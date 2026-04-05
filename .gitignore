@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.npm/
+/package-lock.json
+
+# Build output
+dist/
+build/
+.next/
+.vite/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Legacy database (sensitive data - NEVER upload)
+legacydb/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+client/test-results/
+
+# Docker volumes
+mongo-data/
+data/db/
+.data/
+
+# Temporary files
+tmp/
+.tmp/
+.qlicker.pids
+
+# Uploaded files
+server/uploads/
+
+# Production setup runtime data (sensitive/generated — NEVER commit)
+production_setup/.env
+production_setup/certs/
+production_setup/backups/
+production_setup/legacydb/
+
+# Load testing generated state (contains credentials) and results
+load-testing/state.json
+load-testing/state/
+load-testing/results/
+load-testing/node_modules/
+load-testing/.env
