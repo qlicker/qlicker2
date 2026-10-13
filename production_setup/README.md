@@ -1040,3 +1040,19 @@ each host. The runner exercises named and anonymous quiz/live scenarios with
 the host's own `production_setup/.env`, then restores the original rate-limit
 setting. See [the load-testing guide](../load-testing/README.md#identical-staging-and-production-runs)
 for the prepare, run, restore, and cleanup sequence.
+
+## Production-equivalent load-test matrix
+
+With `load-testing/.env` configured for `prod` and `docker`, run
+`../load-testing/run.sh --matrix` from this directory. It runs both live-statistics
+modes, records container utilization, restores rate limits, and cleans its fixtures.
+See the [matrix instructions](../load-testing/README.md#compare-shared-interactive-latency).
+The deployment `.env` rate-limit setting is temporarily changed and restored;
+load-test settings do not need editing.
+
+Preparation/recovery restarts Nginx, which regenerates its configuration from
+`nginx/nginx.conf`. Keep deployment-specific front-proxy settings in that persistent
+template, not only in the rendered container file. A proxy sending PROXY protocol
+requires matching HTTPS listeners and a `real_ip_header proxy_protocol` setting,
+with `set_real_ip_from` restricted to the verified proxy source address. Preserve
+loopback-only backend port bindings when using a host-level front proxy.

@@ -89,8 +89,10 @@ an external domain.
 |---------|-------------|
 | `./run.sh` | Seed + run the load test |
 | `./run.sh --students N` | Override the configured student count |
+| `./run.sh --matrix` | Prepare, run all 12 interactive comparisons, restore, and clean automatically |
+| `./run.sh --live-stats on\|off` | Override statistics during answers without editing `.env` |
 | `./run.sh --scenario NAME` | Choose `live-named` (default), `live-anonymous`, `quiz-named`, `quiz-anonymous`, `live-external-named`, `live-external-anonymous`, `quiz-external-named`, or `quiz-external-anonymous` |
-| `./run.sh --session-chat on|off` | Run `live-named` with chat enabled or disabled; shared and anonymous comparisons require chat off |
+| `./run.sh --session-chat on\|off` | Run `live-named` with chat enabled or disabled; shared and anonymous comparisons require chat off |
 | `./run.sh --enrolled-percent N` | Set the enrolled proportion (0–100) for external fixtures; ordinary fixtures require 100 |
 | `./run.sh --seed-only` | Seed without running k6 |
 | `./run.sh --test-only` | Run k6 with the existing `state/state.json` for the selected scenario |
@@ -172,30 +174,57 @@ stack before seeding.
 
 ## Compare shared interactive latency
 
-Use the same `prod` + `docker` configuration, `production_setup` images, public
-`BASE_URL`, replica count, and timing settings as the ordinary-session baseline.
-After `./run.sh --prepare`, run this comparison on the staging copy:
+Use the existing `prod` + `docker` configuration, `production_setup` images,
+public `BASE_URL`, replica count, and timing settings. From `load-testing/`, run:
 
 ```bash
-export JOIN_GRACE_S=30 ANSWER_WINDOW_S=30 STATS_PAUSE_S=15 CORRECT_PAUSE_S=15
-export STUDENT_LOGIN_SPREAD_S=12 RESPONSE_JITTER_MS=2000
-export LIVE_STATS_DURING_ANSWERS=true
-./run.sh --scenario live-named --students 500 --session-chat off
-./run.sh --scenario live-external-named --enrolled-percent 100 --students 500 --session-chat off
-./run.sh --scenario live-external-named --enrolled-percent 50 --students 500 --session-chat off
-./run.sh --scenario live-external-named --enrolled-percent 0 --students 500 --session-chat off
-./run.sh --scenario live-external-anonymous --enrolled-percent 0 --students 500 --session-chat off
-./run.sh --scenario live-anonymous --students 500 --session-chat off
+./run.sh --matrix
 ```
 
-These compare sharing off, sharing on with no guests, mixed enrollment, and
-all guests, with anonymous variants for the ordinary and shared paths. Repeat
-with `LIVE_STATS_DURING_ANSWERS=false` to separate the cost of broadcasts during
-answer bursts. Keep chat off in every comparison because guests cannot use it;
-retain the ordinary `live-named` run with chat on as a separate regression.
-Run each configuration more than once and compare matching configurations on
-the baseline and PR images. A single fast run is not evidence of unchanged
-latency. Small local smoke runs only validate execution and assertions.
+The matrix uses the configured student count (normally 500); override it with
+`./run.sh --matrix --students 500`. It automatically:
+
+1. Restores an interrupted previous preparation, then prepares the configured stack.
+2. Runs ordinary, shared (100% / 50% / 0% enrolled), shared anonymous (all guests),
+   and course anonymous interactive scenarios, with chat off.
+3. Repeats all six with statistics during answers off, then on. Command-line
+   settings override `.env`; no editing of `.env` is required.
+4. Continues through k6 threshold failures, but stops on preparation, ingress,
+   or other execution failures. Privacy and performance thresholds stay strict.
+5. Restores rate limits and removes test fixtures on completion, failure, or
+   Ctrl+C. A restoration failure is reported and its recovery record retained.
+
+The command returns nonzero if any scenario or cleanup step fails. An exclusive
+lock prevents concurrent matrices from overwriting each other's fixtures; do not
+run separate manual seed/test commands while a matrix is active. The driver uses
+Bash, Docker, and `flock` (normally included with Linux `util-linux`). It does not
+feed commands through stdin, so Docker Compose cannot consume the remaining script.
+
+Outputs under `results/` share a `matrix-TIMESTAMP` prefix:
+
+- `.log`: complete console output, including preparation and restoration failures.
+- `.tsv`: scenario, enrollment percentage, statistics setting, and exit status.
+- `-resources.jsonl`: UTC sample headers with host load and Docker container
+  CPU, memory, network I/O and process counts, sampled approximately every seven
+  seconds. All running containers are included so front-proxy and other host
+  workloads can be distinguished. k6 containers have `qlicker-load-…` names.
+- `-resources-errors.log`: resource sampling errors, if any.
+
+Keep these together with the per-scenario k6 logs and JSON summaries. Resource
+samples contain container names/utilization, not environment variables or user
+payloads. Do not commit generated results.
+
+For one prepared scenario, `--live-stats on|off` overrides the setting without
+editing configuration:
+
+```bash
+./run.sh --scenario live-external-anonymous --enrolled-percent 0 --students 500 --session-chat off --live-stats on
+```
+
+Run matching matrices more than once on baseline and PR images before claiming
+unchanged latency. Retain the ordinary chat-enabled workload as a separate
+regression. The matrix does not include quizzes or the below-four-respondent
+privacy case; those remain separate scenarios.
 
 All participants in a shared run redeem the code once, including enrolled
 students. `activity_redeem_duration` reports that initial step separately from
@@ -284,7 +313,7 @@ Timing and sync variables:
 - `LIVE_STATS_DURING_ANSWERS`: default `false`. Set `true` to keep statistics enabled while answers arrive and exercise per-answer delivery to participants. Anonymous answer content is delivered only in batches of at least four new respondents. Compare both stats-on and stats-off runs; the ordinary workload and production rate-limit configuration are unchanged.
 
 - `SESSION_CHAT_ENABLED`: set to `true`/`false` (or use
-  `./run.sh --session-chat on|off`) to run the interactive session with session
+  `./run.sh --session-chat on\|off`) to run the interactive session with session
   chat enabled or disabled.
 - `ANSWER_WINDOW_S`: how long each question stays open for answers. Keep this
   comfortably above `RESPONSE_JITTER_MS` so the scenario is testing a normal
@@ -404,6 +433,19 @@ aggregate-statistics work performed before the websocket event is emitted.
 `response_delivery_to_professor_duration` reports the emit-to-observer portion.
 This split shows whether a slow professor update came from response/statistics
 processing or from transport/observer backlog.
+
+`anonymous_privacy_failures{reason:…}` separates identity/timestamp exposure,
+small batches, publication gaps, and published totals larger than their accompanying
+response counts. Every reason must stay at zero. Bounded warnings show only role,
+question position, attempt and numeric counts—never answers, user IDs or raw payloads.
+The original `anonymous_privacy_success` check remains in force. Final batch-size
+checks alone cannot establish that intermediate publications were safe.
+
+`response_event_chars` reports response-event JSON string lengths (characters,
+not encoded network bytes), tagged by role. Combine it with `ws_msgs_received`,
+network traffic, resource samples and observer lag to distinguish larger payloads,
+higher fan-out volume and load-generator contention. No per-event console logging
+or unbounded raw k6 sample export is enabled.
 
 `professor_observer_loop_lag` samples a 250 ms timer in the professor k6 VU.
 High loop lag alongside high delivery latency means the shared load generator

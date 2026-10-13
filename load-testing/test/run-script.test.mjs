@@ -297,3 +297,28 @@ test('rejects invalid participant mixes and mismatched fixtures before invoking 
   assert.notEqual(run(root, argsFile, '--test-only', '--enrolled-percent', '50').status, 0);
   await assert.rejects(fs.access(argsFile));
 });
+
+test('CLI statistics setting overrides .env in both directions', async (t) => {
+  for (const [envValue, cliValue, expected] of [['true', 'off', 'false'], ['false', 'on', 'true']]) {
+    const { root, argsFile } = await fixture(t);
+    await fs.appendFile(path.join(root, '.env'), `\nLIVE_STATS_DURING_ANSWERS=${envValue}\n`);
+    const result = run(root, argsFile, '--test-only', '--live-stats', cliValue);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.ok((await fs.readFile(argsFile, 'utf8')).includes(`LIVE_STATS_DURING_ANSWERS=${expected}`));
+    assert.match(await fs.readFile(path.join(root, '.env'), 'utf8'), new RegExp(`LIVE_STATS_DURING_ANSWERS=${envValue}`));
+  }
+});
+
+test('matrix dispatch passes student count and rejects conflicting single-run controls', async (t) => {
+  const { root, argsFile } = await fixture(t, { runtime: 'docker' });
+  await fs.writeFile(path.join(root, 'matrix.sh'), '#!/bin/bash\nprintf "matrix %s\\n" "$*"\n');
+  let result = run(root, argsFile, '--matrix', '--students', '75');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /matrix --students 75/);
+  for (const flags of [['--live-stats', 'on'], ['--prepare'], ['--scenario', 'live-anonymous']]) {
+    result = run(root, argsFile, '--matrix', ...flags);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /--matrix accepts only/);
+  }
+  await assert.rejects(fs.access(argsFile));
+});

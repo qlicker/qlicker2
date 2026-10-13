@@ -4,6 +4,8 @@
 #
 # Commands:
 #   ./run.sh                     Seed the database + run the k6 load test
+#   ./run.sh --matrix            Run both live-stat modes with automatic cleanup
+#   ./run.sh --live-stats on|off  Override statistics during answers
 #   ./run.sh --students N        Override the configured number of students
 #   ./run.sh --enrolled-percent N Set enrolled share for external activities (0–100)
 #   ./run.sh --scenario NAME      Choose a live or quiz workload
@@ -93,6 +95,8 @@ if [[ -z "$MONGO_URL" || -z "$BASE_URL" ]]; then
 fi
 
 ACTION="full"
+MATRIX=false
+MATRIX_OPTIONS=false
 
 normalize_boolean_flag() {
   local value="${1:-}"
@@ -120,13 +124,24 @@ while [[ $# -gt 0 ]]; do
     --students)
       if [[ $# -lt 2 ]]; then error "--students requires a number"; exit 1; fi
       NUM_STUDENTS="$2"; shift 2 ;;
+    --matrix)
+      MATRIX=true; shift ;;
+    --live-stats)
+      MATRIX_OPTIONS=true
+      if [[ $# -lt 2 ]] || ! LIVE_STATS_DURING_ANSWERS="$(normalize_boolean_flag "$2")"; then
+        error "--live-stats requires on|off"; exit 1
+      fi
+      shift 2 ;;
     --enrolled-percent)
+      MATRIX_OPTIONS=true
       if [[ $# -lt 2 ]]; then error "--enrolled-percent requires an integer from 0 to 100"; exit 1; fi
       ENROLLED_PERCENT="$2"; shift 2 ;;
     --scenario)
+      MATRIX_OPTIONS=true
       if [[ $# -lt 2 ]]; then error "--scenario requires a name"; exit 1; fi
       SCENARIO="$2"; shift 2 ;;
     --session-chat)
+      MATRIX_OPTIONS=true
       if [[ $# -lt 2 ]]; then
         error "--session-chat requires a value: on|off"
         exit 1
@@ -147,13 +162,26 @@ while [[ $# -gt 0 ]]; do
     --restore)
       ACTION="restore"; shift ;;
     -h|--help)
-      head -18 "$0"
+      head -20 "$0"
       exit 0 ;;
     *)
       error "Unknown option: $1"
       exit 1 ;;
   esac
 done
+
+if [[ ! "$NUM_STUDENTS" =~ ^[1-9][0-9]*$ ]]; then
+  error "--students must be a positive integer."; exit 1
+fi
+if [[ "$MATRIX" == true ]]; then
+  if [[ "$ACTION" != full || "$MATRIX_OPTIONS" == true ]]; then
+    error "--matrix accepts only --students; it selects both statistics modes and all participant mixes."; exit 1
+  fi
+  if [[ "$TARGET_RUNTIME" != docker || "$TARGET_ENV" != prod ]]; then
+    error "--matrix requires the production-equivalent prod/docker configuration."; exit 1
+  fi
+  exec bash "$SCRIPT_DIR/matrix.sh" --students "$NUM_STUDENTS"
+fi
 
 case "$SCENARIO" in
   live-named|live-anonymous|live-external-named|live-external-anonymous) SCENARIO_FILE="live-session.js" ;;
@@ -248,7 +276,7 @@ stack_compose() {
     --project-directory "$STACK_DIR" \
     --env-file "$TARGET_ENV_FILE" \
     -f "$TARGET_COMPOSE_FILE" \
-    "$@"
+    "$@" </dev/null
 }
 
 set_boolean_env_var() {
@@ -357,6 +385,7 @@ k6_runner() {
   done
 
   docker run --rm \
+    --name "qlicker-load-${RUN_LABEL}-${RUN_TIMESTAMP}-${scenario_file%.js}" \
     --user "$(id -u):$(id -g)" \
     --ulimit "nofile=${K6_NOFILE_LIMIT}:${K6_NOFILE_LIMIT}" \
     "${network_args[@]}" \
@@ -564,7 +593,7 @@ do_test() {
     cat "$preflight_log"
     error "Login ingress preflight failed. Check Nginx and any upstream proxy limits before running the load test."
     error "Preflight log: $preflight_log"
-    return 1
+    return 10
   fi
   info "Login ingress preflight passed ✓"
   info "Running $SCENARIO load test against $BASE_URL …"

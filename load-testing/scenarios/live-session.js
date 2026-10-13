@@ -22,6 +22,7 @@ import { Counter, Rate, Trend } from 'k6/metrics';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 import { connectionFailureDetails } from './connection-diagnostics.js';
+import { createAnonymousStatsValidator, privacyFailureReasons } from './anonymous-diagnostics.js';
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -114,6 +115,8 @@ const resultsDuration = new Trend('results_duration', true);
 const resultsSuccess = new Rate('results_success');
 const gradeContractSuccess = new Rate('grade_contract_success');
 const privacySuccess = new Rate('anonymous_privacy_success');
+const privacyFailures = new Counter('anonymous_privacy_failures');
+const responseEventChars = new Trend('response_event_chars');
 const anonymousBatchStatsSuccess = new Rate('anonymous_batch_stats_success');
 const questionResponseCountSuccess = new Rate('question_response_count_success');
 
@@ -203,7 +206,9 @@ const thresholds = {
   grade_contract_success: ['rate==1'],
   question_response_count_success: ['rate==1'],
   results_duration: ['p(95)<3000'],
-  ...(anonymous ? { anonymous_privacy_success: ['rate==1'], anonymous_batch_stats_success: ['rate==1'] } : {}),
+  ...(anonymous ? { anonymous_privacy_success: ['rate==1'], anonymous_batch_stats_success: ['rate==1'],
+    ...Object.fromEntries(privacyFailureReasons.map((reason) => [`anonymous_privacy_failures{reason:${reason}}`, ['count==0']])),
+  } : {}),
   ...(external ? { activity_redeem_success: ['rate==1'], activity_redeem_duration: ['p(95)<3000'] } : {}),
   session_completion: ['rate==1'],
   'login_duration{role:student}': ['p(95)<3000'],
@@ -426,35 +431,50 @@ function fetchLive(token, role, reason = 'live_refresh') {
   };
 }
 
-// k6 module state is private to each VU. Check publication gaps even if Redis
-// delivers batches out of order or a reconnect repeats an HTTP snapshot.
-const anonymousPublishedTotals = new Map();
-function isSafeAnonymousStats(stats, responseCount, questionId, attempt = 1) {
-  if (stats == null) return true;
-  const total = Number(stats.total);
-  if (total < 4 || total > responseCount || !Number.isInteger(total)) return false;
-  if (!(stats.answers || []).every((entry) => Object.keys(entry)
-    .every((key) => key === 'answer' || key === 'answerWysiwyg'))) return false;
-  const key = `${questionId}:${attempt}`;
-  const totals = anonymousPublishedTotals.get(key) || new Set([0]);
-  if ([...totals].some((previous) => previous !== total && Math.abs(previous - total) < 4)) return false;
-  totals.add(total);
-  anonymousPublishedTotals.set(key, totals);
-  return true;
+// k6 module state is private to each VU. Preserve checks across out-of-order
+// events and reconnects, but keep failure samples bounded and identity-free.
+const validateAnonymousStats = createAnonymousStatsValidator();
+const privacySamples = new Map();
+function recordPrivacy(reasons, details = {}) {
+  privacySuccess.add(reasons.length === 0);
+  for (const reason of reasons) {
+    privacyFailures.add(1, { reason });
+    const samples = privacySamples.get(reason) || 0;
+    // The professor observer sees all publications; one student VU supplies a
+    // participant view. Never log thousands of copies of the same failure.
+    if ((details.role === 'professor' || exec.vu.idInTest <= 3) && samples < 3) {
+      privacySamples.set(reason, samples + 1);
+      console.warn(`Anonymous privacy check failed: ${JSON.stringify({ reason, ...details })}`);
+    }
+  }
+}
+
+function checkResponsePrivacy(data, role) {
+  const { reasons, ...counts } = validateAnonymousStats(data.responseStats, data.responseCount, data.questionId, data.attempt);
+  if (data.response != null) reasons.push('response_identity');
+  if (data.responseSubmittedAt != null) reasons.push('response_timestamp');
+  if (reasons.length === 0) { privacySuccess.add(true); return; }
+  recordPrivacy(reasons, { role, source: 'response_event',
+    question: state.questions.findIndex((question) => String(question.id) === String(data.questionId)) + 1,
+    attempt: data.attempt, ...counts });
 }
 
 function checkLivePrivacy(snapshot, role) {
   if (anonymous && role === 'professor') {
     const serialized = JSON.stringify(snapshot);
-    privacySuccess.add(!!snapshot && (snapshot.allResponses || []).length === 0
-      && isSafeAnonymousStats(snapshot.responseStats, snapshot.responseCount, snapshot.currentQuestion?._id, snapshot.currentAttempt?.number)
-      && (snapshot.session?.joinedStudents || []).length === 0
-      && students.every((student) => !serialized.includes(student.id)));
+    const { reasons, ...counts } = validateAnonymousStats(snapshot?.responseStats, snapshot?.responseCount,
+      snapshot?.currentQuestion?._id, snapshot?.currentAttempt?.number);
+    if (!snapshot) reasons.push('missing_snapshot');
+    if ((snapshot?.allResponses || []).length !== 0) reasons.push('live_response_rows');
+    if ((snapshot?.session?.joinedStudents || []).length !== 0) reasons.push('live_joined_rows');
+    if (students.some((student) => serialized?.includes(student.id))) reasons.push('participant_identity');
+    recordPrivacy(reasons, { role, source: 'live_snapshot', ...counts });
   }
   return snapshot;
 }
 
 export function setup() {
+  if (anonymous) privacyFailureReasons.forEach((reason) => privacyFailures.add(0, { reason }));
   console.log(JSON.stringify({ workload: state.session.scenario, participants: students.length,
     enrolled: students.filter((student) => student.enrolled !== false).length,
     anonymous, shared: external, chat: SESSION_CHAT_ENABLED, liveStats: LIVE_STATS_DURING_ANSWERS }));
@@ -474,8 +494,9 @@ function verifyFinalResults(token) {
   check(response, { 'all participants have correlated, complete result rows': () => complete });
   if (anonymous) {
     const serialized = JSON.stringify(payload);
-    privacySuccess.add(!serialized.includes('anon_') && students.every((student) =>
-      !serialized.includes(student.id) && !serialized.includes(student.email)));
+    recordPrivacy(!serialized.includes('anon_') && students.every((student) =>
+      !serialized.includes(student.id) && !serialized.includes(student.email)) ? [] : ['result_identity'],
+    { role: 'professor', source: 'final_results' });
   }
   const grades = jsonRequest('GET', `/sessions/${state.session.id}/grades`, token, undefined, 'final_grades');
   const gradeRows = parseJson(grades)?.grades || [];
@@ -1626,8 +1647,8 @@ export function professorViewerFlow() {
         case 'session:response-added':
           {
             professorResponseEvents.add(1);
-            if (anonymous) privacySuccess.add(data.response == null && isSafeAnonymousStats(data.responseStats, data.responseCount, data.questionId, data.attempt)
-              && data.responseSubmittedAt == null);
+            if (anonymous) checkResponsePrivacy(data, role);
+            responseEventChars.add(raw.length, metricTags(role));
             const submittedAtMs = parseTimestampMs(data?.responseSubmittedAt);
             const emittedAtMs = parseTimestampMs(data?.emittedAt);
             if (submittedAtMs != null && submittedAtMs <= receivedAtMs) {
@@ -2160,8 +2181,8 @@ export function studentFlow() {
             break;
 
           case 'session:response-added':
-            if (anonymous) privacySuccess.add(data.response == null && isSafeAnonymousStats(data.responseStats, data.responseCount, data.questionId, data.attempt)
-              && data.responseSubmittedAt == null);
+            if (anonymous) checkResponsePrivacy(data, role);
+            responseEventChars.add(raw.length, metricTags(role));
             if (data?.responseStats || data?.response || data?.responseCount !== undefined || data?.joinedCount !== undefined) {
               liveData = syncLiveAfterEvent(
                 liveData,
