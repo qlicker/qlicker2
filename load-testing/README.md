@@ -441,6 +441,15 @@ question position, attempt and numeric counts—never answers, user IDs or raw p
 The original `anonymous_privacy_success` check remains in force. Final batch-size
 checks alone cannot establish that intermediate publications were safe.
 
+The k6 response-list simulator maintains already-sorted histories incrementally
+for individual response events. It preserves the same ordering, deduplication,
+updates and immutable snapshots as the previous full-sort implementation, but
+avoids repeatedly parsing every response timestamp and sorting the whole list
+on each of hundreds of simulated clients. HTTP snapshots and entries without IDs
+retain the canonical merge path. This changes simulation bookkeeping only; it does
+not reduce requests, recipients, events, or strict completion/privacy thresholds.
+Browser rendering performance still requires browser telemetry.
+
 `response_event_chars` reports response-event JSON string lengths (characters,
 not encoded network bytes), tagged by role. Combine it with `ws_msgs_received`,
 network traffic, resource samples and observer lag to distinguish larger payloads,

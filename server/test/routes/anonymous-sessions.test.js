@@ -800,6 +800,48 @@ describe('anonymous live statistics batches', () => {
     expect(fresh.histogramData.visible).toBe(false);
   });
 
+  it.each([3, 7])('keeps counts consistent when an answer arrives during publication after %i responses', async (initialCount) => {
+    const { prof, profToken, course, students } = await setupCourse({ studentCount: initialCount + 2 });
+    const sessionId = (await createSession(profToken, course._id, { anonymous: true })).json().session._id;
+    const questionId = await addMcQuestion(profToken, sessionId, course._id);
+    await startLiveQuestion(profToken, sessionId);
+    for (const { token } of students) {
+      await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/join`, { token, payload: {} });
+    }
+    await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${sessionId}/question-visibility`, {
+      token: profToken, payload: { stats: true },
+    });
+    for (const { token } of students.slice(0, initialCount)) {
+      expect((await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/respond`, {
+        token, payload: { answer: '0' },
+      })).statusCode).toBe(201);
+    }
+    const countDocuments = Response.countDocuments.bind(Response);
+    // Reproduce a second request persisting its answer between the count query
+    // and the publication query. The aggregate can legitimately include it.
+    vi.spyOn(Response, 'countDocuments').mockImplementationOnce(async (filter) => {
+      const count = await countDocuments(filter);
+      await Response.create({ questionId, attempt: 1, answer: '1',
+        studentUserId: getAnonymousParticipantId(sessionId, students[initialCount + 1].user._id),
+        createdAt: new Date(), submittedAt: new Date() });
+      return count;
+    });
+    const sendSpy = vi.spyOn(app, 'wsSendToUsers');
+    expect((await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/respond`, {
+      token: students[initialCount].token, payload: { answer: '0' },
+    })).statusCode).toBe(201);
+    const events = sendSpy.mock.calls.filter(([, event, data]) => event === 'session:response-added' && data.responseStats);
+    expect(events.some(([ids]) => ids.includes(String(prof._id)))).toBe(true);
+    expect(events.some(([ids]) => ids.includes(String(students[0].user._id)))).toBe(true);
+    for (const [, , data] of events) {
+      expect(data.responseStats.total).toBe(initialCount + 2);
+      expect(data.responseCount).toBeGreaterThanOrEqual(data.responseStats.total);
+      expectNoIdentity(data, students);
+    }
+    const stored = await Question.findById(questionId).lean();
+    expect(stored.sessionProperties.lastAttemptResponseCount).toBe(initialCount + 2);
+  });
+
   it('reserves batch rebuilds under concurrent submissions and repairs an interrupted publication', async () => {
     const { prof, profToken, course, students } = await setupCourse({ studentCount: 12 });
     const sessionId = (await createSession(profToken, course._id, { anonymous: true })).json().session._id;

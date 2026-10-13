@@ -2405,6 +2405,10 @@ async function publishAnonymousAttemptStats(question, attemptNumber, responses) 
     .sort((a, b) => JSON.stringify([a.answer, a.answerWysiwyg]).localeCompare(JSON.stringify([b.answer, b.answerWysiwyg])));
   entry.values.sort((a, b) => a - b);
 
+  // More responses may have arrived since the count used to reserve this batch.
+  // Advance the count in the same write so the published snapshot is coherent.
+  const countUpdate = { 'sessionProperties.lastAttemptResponseCount': total };
+
   // Compare-and-set protects the minimum gap even when different replicas build
   // overlapping batches. A late writer cannot replace a newer published cache.
   let updated = await Question.findOneAndUpdate({
@@ -2412,12 +2416,12 @@ async function publishAnonymousAttemptStats(question, attemptNumber, responses) 
     'sessionOptions.attemptStats': { $elemMatch: {
       number: attemptNumber, total: { $lte: total - MIN_ANONYMOUS_RESPONDENTS },
     } },
-  }, { $set: { 'sessionOptions.attemptStats.$': entry } }, { returnDocument: 'after' }).lean();
+  }, { $set: { 'sessionOptions.attemptStats.$': entry }, $max: countUpdate }, { returnDocument: 'after' }).lean();
   if (!updated) {
     updated = await Question.findOneAndUpdate({
       _id: question._id,
       'sessionOptions.attemptStats.number': { $ne: attemptNumber },
-    }, { $push: { 'sessionOptions.attemptStats': entry } }, { returnDocument: 'after' }).lean();
+    }, { $push: { 'sessionOptions.attemptStats': entry }, $max: countUpdate }, { returnDocument: 'after' }).lean();
   }
   return { question: updated || question, published: !!updated };
 }

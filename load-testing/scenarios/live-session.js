@@ -23,6 +23,7 @@ import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 import { connectionFailureDetails } from './connection-diagnostics.js';
 import { createAnonymousStatsValidator, privacyFailureReasons } from './anonymous-diagnostics.js';
+import { createResponseMerger } from './response-merge.js';
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -729,44 +730,7 @@ function applyChatEventData(previousData, eventPayload) {
   return nextData;
 }
 
-function getResponseMergeKey(response = {}) {
-  const responseId = String(response?._id || '').trim();
-  if (responseId) return `id:${responseId}`;
-
-  return [
-    Number(response?.attempt || 0),
-    String(response?.questionId || ''),
-    String(response?.studentName || ''),
-    String(response?.answer ?? ''),
-    String(response?.answerWysiwyg ?? ''),
-    getTimestampMs(response?.updatedAt || response?.createdAt),
-  ].join('|');
-}
-
-function sortResponsesNewestFirst(responses = []) {
-  return responses
-    .map((response) => ({
-      response,
-      timestamp: getTimestampMs(response?.updatedAt || response?.createdAt),
-      id: String(response?._id || ''),
-    }))
-    .sort((a, b) => {
-      const timestampDiff = b.timestamp - a.timestamp;
-      if (timestampDiff !== 0) return timestampDiff;
-      return b.id.localeCompare(a.id);
-    })
-    .map(({ response }) => response);
-}
-
-function mergeResponsesNewestFirst(existingResponses = [], incomingResponses = []) {
-  const mergedByKey = new Map();
-  [...(Array.isArray(existingResponses) ? existingResponses : []), ...(Array.isArray(incomingResponses) ? incomingResponses : [])]
-    .forEach((response) => {
-      if (!response) return;
-      mergedByKey.set(getResponseMergeKey(response), response);
-    });
-  return sortResponsesNewestFirst([...mergedByKey.values()]);
-}
+const mergeResponsesNewestFirst = createResponseMerger();
 
 function applyLiveResponseAddedDelta(previousData, eventPayload = {}) {
   if (!previousData) return previousData;
