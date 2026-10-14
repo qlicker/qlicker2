@@ -78,3 +78,39 @@ test('matrix handles termination and rejects a concurrent matrix', async (t) => 
   assert.deepEqual(calls.slice(-2), ['--restore', '--clean']);
   await assert.rejects(fs.access(path.join(root, 'state/rate-limit-restore.env')));
 });
+
+for (const [stats, expected] of [['both', ['off', 'on']], ['on', ['on']], ['off', ['off']]]) {
+  test(`ordinary comparison runs only selected statistics modes: ${stats}`, async (t) => {
+    const { root, options } = await fixture(t, 'threshold');
+    const result = spawnSync('bash', ['matrix.sh', '--students', '500', '--profile', 'ordinary', '--stats', stats], options);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    const calls = (await fs.readFile(path.join(root, 'calls'), 'utf8')).trim().split('\n');
+    assert.deepEqual(calls, ['--prepare', ...expected.map((mode) =>
+      `--scenario live-named --enrolled-percent 100 --students 500 --session-chat off --live-stats ${mode}`), '--restore', '--clean']);
+    const files = await fs.readdir(path.join(root, 'results'));
+    assert.ok(files.every((name) => name.startsWith('ordinary-')));
+    assert.equal(await fs.readFile(path.join(root, '.env'), 'utf8'), 'LIVE_STATS_DURING_ANSWERS=true\n');
+  });
+}
+
+test('ordinary comparison captures image identity and restart state before and after the workload', async (t) => {
+  const { root, options } = await fixture(t);
+  await fs.writeFile(path.join(root, 'bin/docker'), `#!/bin/sh
+printf '%s\\n' "$*" >> "$DOCKER_CALLS"
+case "$1" in
+  compose) echo fixture-container ;;
+  inspect) echo '{"name":"/server-1","imageId":"sha256:test","restartCount":0,"oomKilled":false}' ;;
+esac
+`, { mode: 0o755 });
+  const result = spawnSync('bash', ['matrix.sh', '--students', '20', '--profile', 'ordinary', '--stats', 'on'], {
+    ...options, env: { ...options.env, STACK_DIR: root, TARGET_ENV_FILE: `${root}/.env`,
+      TARGET_COMPOSE_FILE: `${root}/docker-compose.yml`, DOCKER_CALLS: `${root}/docker-calls` },
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const calls = (await fs.readFile(path.join(root, 'docker-calls'), 'utf8')).split('\n');
+  assert.equal(calls.filter((line) => line.startsWith('inspect ')).length, 2);
+  assert.match(result.stdout, /Container snapshot: before live-named stats=on/);
+  assert.match(result.stdout, /Container snapshot: after live-named stats=on/);
+  assert.match(result.stdout, /sha256:test/);
+  assert.ok(calls.filter((line) => line.startsWith('inspect ')).every((line) => !line.includes('.Config.Env')));
+});

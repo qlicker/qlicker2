@@ -322,3 +322,29 @@ test('matrix dispatch passes student count and rejects conflicting single-run co
   }
   await assert.rejects(fs.access(argsFile));
 });
+
+test('ordinary command selects both modes regardless of env, and supports a single-mode override', async (t) => {
+  const { root, argsFile } = await fixture(t, { runtime: 'docker' });
+  await fs.appendFile(path.join(root, '.env'), '\nLIVE_STATS_DURING_ANSWERS=true\n');
+  await fs.writeFile(path.join(root, 'matrix.sh'), 'printf "%s\\n" "$*"\n');
+  let result = run(root, argsFile, '--ordinary', '--students', '500');
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /--students 500 --profile ordinary --stats both/);
+  result = run(root, argsFile, '--ordinary', '--live-stats', 'off');
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /--profile ordinary --stats off/);
+  result = run(root, argsFile, '--ordinary', '--live-stats', 'on');
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /--profile ordinary --stats on/);
+  result = run(root, argsFile, '--matrix');
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /--profile matrix --stats both/);
+  for (const args of [
+    ['--ordinary', '--matrix'], ['--ordinary', '--clean'],
+    ['--ordinary', '--scenario', 'live-anonymous'], ['--matrix', '--live-stats', 'on'],
+  ]) {
+    result = run(root, argsFile, ...args);
+    assert.notEqual(result.status, 0, args.join(' '));
+  }
+  await assert.rejects(fs.access(argsFile)); // Invalid/dispatch-only calls never touch Docker.
+});

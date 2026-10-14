@@ -1041,6 +1041,17 @@ the host's own `production_setup/.env`, then restores the original rate-limit
 setting. See [the load-testing guide](../load-testing/README.md#identical-staging-and-production-runs)
 for the prepare, run, restore, and cleanup sequence.
 
+## Focused ordinary-session load test
+
+With `load-testing/.env` configured for `prod` and `docker`, run
+`../load-testing/run.sh --ordinary --students 500` from this directory. This checks
+ordinary sessions with statistics hidden/visible during answering, using the deployed
+images and public proxy path, and automatically prepares, restores rate limits, and
+cleans up. It takes roughly 11 minutes plus setup/cleanup with default timings.
+Use `--live-stats on` to investigate only the statistics-visible case. No manual
+`.env` edits are required. See the [focused comparison guide](../load-testing/README.md#focused-ordinary-session-performance-check)
+for artifacts, diagnostics, and baseline-versus-feature comparisons.
+
 ## Production-equivalent load-test matrix
 
 With `load-testing/.env` configured for `prod` and `docker`, run

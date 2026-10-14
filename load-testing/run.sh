@@ -4,7 +4,8 @@
 #
 # Commands:
 #   ./run.sh                     Seed the database + run the k6 load test
-#   ./run.sh --matrix            Run both live-stat modes with automatic cleanup
+#   ./run.sh --ordinary          Test ordinary sessions with automatic cleanup
+#   ./run.sh --matrix            Run the full shared/anonymous comparison
 #   ./run.sh --live-stats on|off  Override statistics during answers
 #   ./run.sh --students N        Override the configured number of students
 #   ./run.sh --enrolled-percent N Set enrolled share for external activities (0–100)
@@ -96,7 +97,9 @@ fi
 
 ACTION="full"
 MATRIX=false
+ORDINARY=false
 MATRIX_OPTIONS=false
+STATS_OPTION=false
 
 normalize_boolean_flag() {
   local value="${1:-}"
@@ -126,8 +129,10 @@ while [[ $# -gt 0 ]]; do
       NUM_STUDENTS="$2"; shift 2 ;;
     --matrix)
       MATRIX=true; shift ;;
+    --ordinary)
+      ORDINARY=true; shift ;;
     --live-stats)
-      MATRIX_OPTIONS=true
+      STATS_OPTION=true
       if [[ $# -lt 2 ]] || ! LIVE_STATS_DURING_ANSWERS="$(normalize_boolean_flag "$2")"; then
         error "--live-stats requires on|off"; exit 1
       fi
@@ -162,7 +167,7 @@ while [[ $# -gt 0 ]]; do
     --restore)
       ACTION="restore"; shift ;;
     -h|--help)
-      head -20 "$0"
+      head -21 "$0"
       exit 0 ;;
     *)
       error "Unknown option: $1"
@@ -173,14 +178,26 @@ done
 if [[ ! "$NUM_STUDENTS" =~ ^[1-9][0-9]*$ ]]; then
   error "--students must be a positive integer."; exit 1
 fi
-if [[ "$MATRIX" == true ]]; then
-  if [[ "$ACTION" != full || "$MATRIX_OPTIONS" == true ]]; then
-    error "--matrix accepts only --students; it selects both statistics modes and all participant mixes."; exit 1
+if [[ "$MATRIX" == true || "$ORDINARY" == true ]]; then
+  if [[ "$MATRIX" == true && "$ORDINARY" == true ]]; then
+    error "Choose --ordinary or --matrix, not both."; exit 1
+  fi
+  if [[ "$ACTION" != full || "$MATRIX_OPTIONS" == true || ( "$MATRIX" == true && "$STATS_OPTION" == true ) ]]; then
+    error "--ordinary accepts --students and optional --live-stats on|off; --matrix accepts only --students."; exit 1
   fi
   if [[ "$TARGET_RUNTIME" != docker || "$TARGET_ENV" != prod ]]; then
-    error "--matrix requires the production-equivalent prod/docker configuration."; exit 1
+    error "Automatic comparisons require the production-equivalent prod/docker configuration."; exit 1
   fi
-  exec bash "$SCRIPT_DIR/matrix.sh" --students "$NUM_STUDENTS"
+  profile=matrix
+  stats_mode=both
+  if [[ "$ORDINARY" == true ]]; then
+    profile=ordinary
+    if [[ "$STATS_OPTION" == true ]]; then
+      if [[ "$LIVE_STATS_DURING_ANSWERS" == true ]]; then stats_mode=on; else stats_mode=off; fi
+    fi
+  fi
+  export STACK_DIR TARGET_ENV_FILE TARGET_COMPOSE_FILE K6_IMAGE
+  exec bash "$SCRIPT_DIR/matrix.sh" --students "$NUM_STUDENTS" --profile "$profile" --stats "$stats_mode"
 fi
 
 case "$SCENARIO" in

@@ -23,7 +23,7 @@ import { check, group, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
-import { connectionFailureDetails } from './connection-diagnostics.js';
+import { answerFailureDetails, connectionErrorKind, connectionFailureDetails } from './connection-diagnostics.js';
 import { createAnonymousStatsValidator, privacyFailureReasons } from './anonymous-diagnostics.js';
 import { createResponseMerger } from './response-merge.js';
 import { createSocketConnector } from './socket-client.js';
@@ -491,7 +491,10 @@ export function setup() {
   if (anonymous) privacyFailureReasons.forEach((reason) => privacyFailures.add(0, { reason }));
   console.log(JSON.stringify({ workload: state.session.scenario, participants: students.length,
     enrolled: students.filter((student) => student.enrolled !== false).length,
-    anonymous, shared: external, chat: SESSION_CHAT_ENABLED, liveStats: LIVE_STATS_DURING_ANSWERS }));
+    anonymous, shared: external, chat: SESSION_CHAT_ENABLED, liveStats: LIVE_STATS_DURING_ANSWERS,
+    timing: { answerWindowS: ANSWER_WINDOW_S, statsPauseS: STATS_PAUSE_S,
+      correctPauseS: CORRECT_PAUSE_S, joinGraceS: JOIN_GRACE_S,
+      responseJitterMs: RESPONSE_JITTER_MS, studentLoginSpreadS: STUDENT_LOGIN_SPREAD_S } }));
 }
 
 function verifyFinalResults(token) {
@@ -1154,6 +1157,10 @@ function recordResponseFailure(res) {
   respondServerFailures.add(1, { status: String(status || 'network') });
 }
 
+// k6 globals are isolated per VU; this measures gaps between that student's answers.
+let previousAnswerCompletedAtMs = 0;
+let answerFailureWarnings = 0;
+
 async function submitResponse(token, liveData) {
   const question = liveData?.currentQuestion;
   const attemptNumber = Number(liveData?.currentAttempt?.number || 0);
@@ -1169,7 +1176,8 @@ async function submitResponse(token, liveData) {
     JSON.stringify(payload),
     { headers: apiHeaders(token), tags: { name: 'respond' } },
   );
-  respondDuration.add(Date.now() - start, metricTags('student'));
+  const completedAt = Date.now();
+  respondDuration.add(completedAt - start, metricTags('student'));
 
   const ok = res.status === 200 || res.status === 201;
   respondSuccess.add(ok);
@@ -1177,7 +1185,15 @@ async function submitResponse(token, liveData) {
     respondSuccessfulSubmissions.add(1);
   } else {
     recordResponseFailure(res);
+    if (answerFailureWarnings < 2) {
+      answerFailureWarnings += 1;
+      console.warn(`Answer submission failed: ${JSON.stringify(answerFailureDetails(res, {
+        startedAt: start, completedAt, previousCompletedAt: previousAnswerCompletedAtMs,
+        questionType: Number(question.type), attemptNumber,
+      }))}`);
+    }
   }
+  previousAnswerCompletedAtMs = completedAt;
   return {
     ok,
     key: `${String(question._id || '')}:${attemptNumber}`,
@@ -2102,8 +2118,15 @@ export async function studentFlow() {
       });
 
       socket.on('error', (err) => {
+        const kind = connectionErrorKind(err);
+        // A threshold abort cancels every VU. One notice is enough; retain the
+        // error metric and all non-cancellation failures without dumping tokens.
+        if (kind !== 'execution_canceled') {
+          console.warn(`Student WebSocket error: ${kind}`);
+        } else if (exec.scenario.iterationInTest === 0) {
+          console.warn('Student WebSockets canceled by k6 shutdown; inspect the first request failure and threshold summary.');
+        }
         wsErrors.add(1, metricTags(role));
-        console.warn(`Student WebSocket error: ${String(err)}`);
       });
 
       socket.setTimeout(() => {

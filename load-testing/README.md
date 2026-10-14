@@ -89,6 +89,7 @@ an external domain.
 |---------|-------------|
 | `./run.sh` | Seed + run the load test |
 | `./run.sh --students N` | Override the configured student count |
+| `./run.sh --ordinary` | Prepare, run two ordinary interactive comparisons, restore, and clean automatically |
 | `./run.sh --matrix` | Prepare, run all 12 interactive comparisons, restore, and clean automatically |
 | `./run.sh --live-stats on\|off` | Override statistics during answers without editing `.env` |
 | `./run.sh --scenario NAME` | Choose `live-named` (default), `live-anonymous`, `quiz-named`, `quiz-anonymous`, `live-external-named`, `live-external-anonymous`, `quiz-external-named`, or `quiz-external-anonymous` |
@@ -172,6 +173,66 @@ Test on the lower-stakes host first, then use the same commands on production.
 local to each host. Confirm each host's configuration points at its intended
 stack before seeding.
 
+## Focused ordinary-session performance check
+
+For the next regression check, use the deployed production-equivalent Docker
+stack and run from the repository root:
+
+```bash
+./load-testing/run.sh --ordinary --students 500
+```
+
+This runs **two** five-question sessions: all participants enrolled, responses
+identified, sharing off, chat off, first with statistics hidden during answering,
+then visible. Instructor updates and showing results after answering are exercised
+in both modes. Allow approximately **11 minutes plus preparation/cleanup** with
+the default timings. It does not reduce class size, retry failed requests, or
+relax any correctness, latency, or load-generator health threshold.
+
+Preparation, resource monitoring, restoration of rate limits, and fixture cleanup
+are automatic, including after a failure or Ctrl+C. No `.env` edits or application
+image rebuilds are needed for this runner update. It uses the same deployed images,
+replica count, public HTTPS address, and front proxy as the full matrix. Do not run
+manual seed/test commands concurrently.
+
+To investigate just the previously failing statistics-visible case (about five
+minutes plus preparation/cleanup):
+
+```bash
+./load-testing/run.sh --ordinary --students 500 --live-stats on
+```
+
+Without `--live-stats`, both modes always run, regardless of `.env`. Outputs use
+`load-testing/results/ordinary-TIMESTAMP` for the log, TSV, resource samples, and
+resource-error log. Keep those together with the newly produced per-scenario k6
+logs and JSON summaries. The console log records container image tags **and image
+IDs**, restart counts, OOM state, and start/finish times before and after each
+workload. It never dumps container environment variables. Diagnostic collection
+failures are reported without concealing the workload's exit status.
+
+Failed answer submissions log status, transport error category/code, timing phases,
+HTTP protocol, question type/attempt, and elapsed time since that student's previous
+answer, without credentials or answer bodies. That gap is not necessarily an idle
+connection interval: other requests may have occurred between answers. Cancellation
+of all WebSockets during a k6 abort produces at most one representative notice; other
+WebSocket errors are still reported and the error counter remains in place. Metrics
+from canceled VUs may be incomplete, so an aborted run is never a pass.
+
+If the statistics-visible run still fails, inspect the first transport error,
+container snapshots, resource samples, and observer-loop lag before scheduling more
+comparisons. A broken pipe does not establish whether the application, proxy, or
+client closed the connection. A failed observer-loop threshold means latency cannot
+be attributed solely to the application.
+
+For a before/after comparison, retain this same load-testing checkout and deploy
+baseline application images using the usual deployment workflow, then run the same
+command against each application version. Match the host, replica count, k6 image,
+student count, and timing settings; the recorded application image IDs distinguish
+the runs. Compare completed answers/results/grades and errors first, then p95/p99
+answer and event latency. A passing feature run alone is not evidence of unchanged
+latency. These two cases do not cover chat, quizzes, or anonymous/shared access;
+the full matrix and those separate workloads remain available when needed.
+
 ## Compare shared interactive latency
 
 Use the existing `prod` + `docker` configuration, `production_setup` images,
@@ -228,8 +289,8 @@ editing configuration:
 ./run.sh --scenario live-external-anonymous --enrolled-percent 0 --students 500 --session-chat off --live-stats on
 ```
 
-Run matching matrices more than once on baseline and PR images before claiming
-unchanged latency. Retain the ordinary chat-enabled workload as a separate
+Use matching ordinary comparisons on baseline and PR images for the primary
+latency regression check; repeat a borderline result before claiming unchanged latency. Retain the ordinary chat-enabled workload as a separate
 regression. The matrix does not include quizzes or the below-four-respondent
 privacy case; those remain separate scenarios.
 
