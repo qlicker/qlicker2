@@ -123,7 +123,10 @@ export async function redeemActivityCode(rawCode, userId) {
     sessionId: share.sessionId, userId: String(userId), accessEpoch: share.accessEpoch,
   })) return null;
 
-  const session = await Session.findById(share.sessionId)
+  // A code may be prepared in Draft, but must not reveal the activity or
+  // create participation records until the instructor publishes it.
+  const visibleSessionFilter = { _id: share.sessionId, status: { $in: ['visible', 'running', 'done'] } };
+  const session = await Session.findOne(visibleSessionFilter)
     .select('_id name courseId quiz practiceQuiz studentCreated anonymous participationStarted')
     .lean();
   if (!session || session.practiceQuiz || session.studentCreated) return null;
@@ -134,7 +137,7 @@ export async function redeemActivityCode(rawCode, userId) {
   // setting update requires participationStarted to remain false.
   const anonymityFilter = session.anonymous ? { anonymous: true } : { anonymous: { $ne: true } };
   const claimed = await Session.updateOne(
-    { _id: session._id, ...anonymityFilter },
+    { ...visibleSessionFilter, ...anonymityFilter },
     { $set: { participationStarted: true } }
   );
   if (!claimed.matchedCount) return null;
@@ -158,9 +161,10 @@ export async function redeemActivityCode(rawCode, userId) {
     // Two requests for the same account may race the unique grant index.
     await ActivityGrant.updateOne(grantFilter, { $max: { accessEpoch: share.accessEpoch } });
   }
-  const currentShare = await ActivityShare.exists({
-    _id: share._id, enabled: true, accessEpoch: share.accessEpoch,
-  });
-  if (!currentShare) return null;
+  const [currentShare, stillVisible] = await Promise.all([
+    ActivityShare.exists({ _id: share._id, enabled: true, accessEpoch: share.accessEpoch }),
+    Session.exists(visibleSessionFilter),
+  ]);
+  if (!currentShare || !stillVisible) return null;
   return { sessionId: session._id, courseId: session.courseId, name: session.name, quiz: !!session.quiz, anonymous: !!session.anonymous };
 }

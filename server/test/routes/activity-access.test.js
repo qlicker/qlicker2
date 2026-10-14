@@ -27,7 +27,7 @@ afterEach(async () => {
   }
 });
 
-async function fixture({ anonymous = false, quiz = true } = {}) {
+async function fixture({ anonymous = false, quiz = true, status = 'visible' } = {}) {
   const professor = await createTestUser({ email: 'share-prof@example.com', roles: ['professor'] });
   const outsider = await createTestUser({ email: 'share-outsider@example.com', roles: ['student'] });
   const professorToken = await getAuthToken(app, professor);
@@ -47,6 +47,8 @@ async function fixture({ anonymous = false, quiz = true } = {}) {
   });
   expect(sessionResponse.statusCode).toBe(201);
   const session = sessionResponse.json().session;
+  await Session.updateOne({ _id: session._id }, { $set: { status } });
+  session.status = status;
   return { professor, outsider, professorToken, outsiderToken, course, session };
 }
 
@@ -90,12 +92,92 @@ describe('activity code foundation', () => {
     expect((await Course.findById(course._id).lean()).students).not.toContain(outsider._id);
     expect(await Grade.countDocuments({ sessionId: session._id, userId: outsider._id })).toBe(0);
     const sessionAccess = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}`, { token: outsiderToken });
-    expect(sessionAccess.statusCode).toBe(403); // Hidden sessions stay hidden.
+    expect(sessionAccess.statusCode).toBe(200);
 
     const toggle = await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${session._id}`, {
       token: professorToken, payload: { anonymous: true },
     });
     expect(toggle.statusCode).toBe(409);
+  });
+
+  it.each([
+    { anonymous: false, quiz: false }, { anonymous: true, quiz: false },
+    { anonymous: false, quiz: true }, { anonymous: true, quiz: true },
+  ])('keeps Draft codes unavailable without side effects (anonymous=$anonymous, quiz=$quiz)', async (options) => {
+    const { professorToken, outsiderToken, course, session } = await fixture({ ...options, status: 'hidden' });
+    const student = await createTestUser({ email: 'draft-enrolled@example.com', roles: ['student'] });
+    const studentToken = await getAuthToken(app, student);
+    await Course.updateOne({ _id: course._id }, { $addToSet: { students: student._id } });
+    const issued = await issue(session._id, professorToken);
+    expect(issued.statusCode).toBe(200);
+    const code = issued.json().code;
+    const unknown = await redeem('S-AAAAAAAAAA', outsiderToken);
+    expect(unknown.statusCode).toBe(404);
+    for (const token of [outsiderToken, studentToken]) {
+      const denied = await redeem(code, token);
+      expect(denied.statusCode).toBe(404);
+      expect(denied.json()).toEqual(unknown.json());
+    }
+    expect(await ActivityGrant.countDocuments({ sessionId: session._id })).toBe(0);
+    expect(await Grade.countDocuments({ sessionId: session._id })).toBe(0);
+    const stored = await Session.findById(session._id).lean();
+    expect(stored.participationStarted).toBeFalsy();
+    expect(stored.joined).toEqual([]);
+    expect(stored.joinRecords).toEqual([]);
+    const editable = await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${session._id}`, {
+      token: professorToken, payload: { anonymous: !options.anonymous },
+    });
+    expect(editable.statusCode).toBe(200);
+    await Session.updateOne({ _id: session._id }, { $set: { anonymous: options.anonymous, status: 'visible' } });
+    // Publishing makes the same code usable; no regeneration is needed.
+    for (const token of [outsiderToken, studentToken]) {
+      expect((await redeem(code, token)).statusCode).toBe(200);
+    }
+    expect(await ActivityGrant.countDocuments({ sessionId: session._id })).toBe(2);
+    await Session.updateOne({ _id: session._id }, { $set: { status: 'hidden' } });
+    // Existing grants must not bypass Draft, including after code expiry.
+    await ActivityShare.updateOne({ sessionId: session._id }, { $set: { expiresAt: new Date(0) } });
+    for (const token of [outsiderToken, studentToken]) {
+      const denied = await redeem(code, token);
+      expect(denied.statusCode).toBe(404);
+      expect(denied.json()).toEqual(unknown.json());
+      const direct = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}`, { token });
+      expect(direct.statusCode).toBe(403);
+    }
+  });
+
+  it('rejects a redemption if the activity returns to Draft before participation is claimed', async () => {
+    const { professorToken, outsiderToken, session } = await fixture();
+    const code = (await issue(session._id, professorToken)).json().code;
+    const updateOne = Session.updateOne.bind(Session);
+    const race = vi.spyOn(Session, 'updateOne').mockImplementationOnce(async (...args) => {
+      await updateOne({ _id: session._id }, { $set: { status: 'hidden' } });
+      return updateOne(...args);
+    });
+    try {
+      expect((await redeem(code, outsiderToken)).statusCode).toBe(404);
+      expect(await ActivityGrant.countDocuments({ sessionId: session._id })).toBe(0);
+      expect((await Session.findById(session._id).lean()).participationStarted).toBeFalsy();
+    } finally {
+      race.mockRestore();
+    }
+  });
+
+  it('does not disclose metadata if the activity returns to Draft while saving its grant', async () => {
+    const { professorToken, outsiderToken, session } = await fixture();
+    const code = (await issue(session._id, professorToken)).json().code;
+    const updateOne = ActivityGrant.updateOne.bind(ActivityGrant);
+    const race = vi.spyOn(ActivityGrant, 'updateOne').mockImplementationOnce(async (...args) => {
+      await Session.updateOne({ _id: session._id }, { $set: { status: 'hidden' } });
+      return updateOne(...args);
+    });
+    try {
+      const denied = await redeem(code, outsiderToken);
+      expect(denied.statusCode).toBe(404);
+      expect(denied.json()).toEqual({ error: 'Not Found', message: 'Invalid or unavailable activity code' });
+    } finally {
+      race.mockRestore();
+    }
   });
 
   it('keeps old hash-only codes redeemable but requires rotation to display them', async () => {
