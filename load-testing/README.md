@@ -202,7 +202,9 @@ feed commands through stdin, so Docker Compose cannot consume the remaining scri
 
 Outputs under `results/` share a `matrix-TIMESTAMP` prefix:
 
-- `.log`: complete console output, including preparation and restoration failures.
+- `.log`: complete console output, including preparation and restoration failures,
+  checkout revision, host logical CPU count, and cached k6 image ID. A missing
+  image ID means Docker had not pulled the configured image when the matrix began.
 - `.tsv`: scenario, enrollment percentage, statistics setting, and exit status.
 - `-resources.jsonl`: UTC sample headers with host load and Docker container
   CPU, memory, network I/O and process counts, sampled approximately every seven
@@ -213,6 +215,11 @@ Outputs under `results/` share a `matrix-TIMESTAMP` prefix:
 Keep these together with the per-scenario k6 logs and JSON summaries. Resource
 samples contain container names/utilization, not environment variables or user
 payloads. Do not commit generated results.
+
+Check the observer loop-lag thresholds before interpreting latency failures.
+If these fail, the run is still a failed acceptance test, but its latency cannot
+be attributed solely to Qlicker. No automatic retry, smaller class, longer answer
+window, or relaxed performance limit is used to turn a failed run into a pass.
 
 For one prepared scenario, `--live-stats on|off` overrides the setting without
 editing configuration:
@@ -386,6 +393,7 @@ The scenario tracks and thresholds these key signals:
 - `respond_attempts`
 - `respond_successful_submissions`
 - `professor_response_events`
+- `professor_response_coverage_success`
 - `professor_driver_completions`
 - `professor_viewer_completions`
 - `student_flow_completions`
@@ -412,6 +420,8 @@ The scenario tracks and thresholds these key signals:
 - `response_server_processing_duration`
 - `response_delivery_to_professor_duration`
 - `professor_observer_loop_lag`
+- `student_observer_loop_lag` (tagged by participant type)
+- `respond_timer_lag` (actual timer delay beyond the requested answer jitter)
 - `live_refresh_duration{role:student}`
 - `live_refresh_duration{role:professor}`
 - `event_sync_duration{role:student}`
@@ -443,12 +453,27 @@ checks alone cannot establish that intermediate publications were safe.
 
 The k6 response-list simulator maintains already-sorted histories incrementally
 for individual response events. It preserves the same ordering, deduplication,
-updates and immutable snapshots as the previous full-sort implementation, but
-avoids repeatedly parsing every response timestamp and sorting the whole list
-on each of hundreds of simulated clients. HTTP snapshots and entries without IDs
-retain the canonical merge path. This changes simulation bookkeeping only; it does
-not reduce requests, recipients, events, or strict completion/privacy thresholds.
-Browser rendering performance still requires browser telemetry.
+and updates as the browser. The protocol simulator owns its lists and updates
+them in place; it does not need immutable snapshot histories for React rendering.
+An ID index avoids scanning the list for new responses, and binary insertion
+preserves timestamp/ID ordering. This removes per-answer list copies and sorts
+across hundreds of simulated clients. HTTP snapshots and entries without IDs
+retain the canonical merge path. Regression tests compare every intermediate
+list with the original implementation, including reordered and repeated answers.
+Requests, recipients and events are unchanged. Browser rendering performance
+still requires browser telemetry.
+
+Student sockets use the [k6 global-event-loop WebSocket API](https://grafana.com/docs/k6/latest/javascript-api/k6-websockets/),
+with [asynchronous answer requests](https://grafana.com/docs/k6/latest/javascript-api/k6-http/asyncrequest/).
+They continue consuming updates while their own answer HTTP request is pending,
+as a browser does. The former blocking HTTP call inside `k6/ws` artificially
+queued incoming events behind the answer request. One in-flight request is allowed
+per attempt; its completion cannot overwrite newer question/stats state. Socket
+closure cancels timers and waits for pending callbacks before counting completion.
+The answer count, jitter, HTTP failure and HTTP latency requirements are unchanged.
+Keep the standard k6 image current if using a custom image predating `k6/websockets`.
+Initial setup and infrequent fallback/chat calls remain synchronous in the runner;
+use the loop-lag gates to spot contamination from those paths.
 
 `response_event_chars` reports response-event JSON string lengths (characters,
 not encoded network bytes), tagged by role. Combine it with `ws_msgs_received`,
@@ -456,11 +481,24 @@ network traffic, resource samples and observer lag to distinguish larger payload
 higher fan-out volume and load-generator contention. No per-event console logging
 or unbounded raw k6 sample export is enabled.
 
-`professor_observer_loop_lag` samples a 250 ms timer in the professor k6 VU.
-High loop lag alongside high delivery latency means the shared load generator
-is struggling to schedule the observer and may overstate browser latency. Low
-loop lag with high delivery latency points instead to Redis/WebSocket/network
-fan-out in the deployed path.
+`professor_observer_loop_lag` samples a 250 ms timer in the professor k6 VU;
+`student_observer_loop_lag` samples a one-second timer in every student VU.
+Both must have p99 below 250 ms. These are test-client health gates, separate
+from the existing three-second application latency limits. A failed health gate
+means the run cannot establish browser latency reliably, even if all answers
+were saved. Local scheduling delays can come from generator CPU contention or
+synchronous HTTP calls within a VU; compare them with container CPU and HTTP
+timings before attributing the delay to the server. Low timer lag alone does
+not rule out an incoming WebSocket queue backlog.
+
+`respond_timer_lag` measures how late each answer timer fired beyond its requested
+jitter. The runner rechecks the current question, attempt, session status, join,
+visibility and answer gates after every relevant session event, and again before
+submitting. An attempt event after a visibility event cannot leave a stale
+separate window flag blocking submission. A timer belonging to another attempt
+is skipped, never submitted against the new question. `respond_stale_timer_skips`
+still must be zero for this controlled workload; its `reason` tag distinguishes
+an attempt change from a closed answer window. Missing answers remain failures.
 
 The event metrics use the same split: `event_delivery_duration` measures server
 emit to WebSocket receipt and `event_apply_duration` measures receipt to a
@@ -484,8 +522,12 @@ Additional counters include:
 - `response_added_refreshes`
 - `respond_attempts`: every `/respond` request issued by the scenario
 - `respond_successful_submissions`: every accepted response
-- `professor_response_events`: accepted responses observed by the professor
-  WebSocket client
+- `professor_response_events`: raw response notifications observed by the professor
+  WebSocket client. Anonymous snapshot repair can send an extra aggregate
+  notification without inserting an answer; this is not a count of database rows.
+- `professor_response_coverage_success`: every question's latest observed attempt
+  reaches exactly the seeded participant count. Repeated/out-of-order counts
+  cannot inflate this check; excess counts also fail.
 - `professor_driver_completions`, `professor_viewer_completions`, and
   `student_flow_completions`: exact counts of scenario flows that reached their
   normal end; unlike a success rate, these expose callbacks aborted by a runner
@@ -545,10 +587,17 @@ The current acceptance bar is intentionally strict for classroom use:
 
 - `http_req_failed` must stay at `0%`
 - `ws_errors` must stay at `0`
-- `respond_attempts`, `respond_successful_submissions`, and
-  `professor_response_events` must each equal the seeded student count times
-  the number of response-capable questions. This prevents a clean percentage
-  from hiding missing, duplicate, or unobserved responses.
+- `respond_attempts` and `respond_successful_submissions` must each equal the
+  seeded student count times the number of response-capable questions.
+- `professor_response_events` must equal that count for non-anonymous sessions.
+  For anonymous sessions it must be at least that count: instructor `/live`
+  snapshot repair can legitimately publish another anonymous aggregate event.
+  All sessions must pass `professor_response_coverage_success` for every question,
+  the authoritative final question count, and final results with exactly one
+  answer per participant per question. Extra notifications cannot substitute
+  for missing or duplicate saved responses.
+- Professor and student observer loop-lag p99 must be below 250 ms. Keep these
+  health gates separate from application latency when interpreting a failure.
 - `professor_driver_completions` and `professor_viewer_completions` must each
   equal `1`, and `student_flow_completions` must equal the seeded student count.
   A JavaScript exception or early return therefore cannot disappear from a
@@ -610,6 +659,7 @@ For live-session correctness, the most important lines are:
 - `respond_attempts`
 - `respond_successful_submissions`
 - `professor_response_events`
+- `professor_response_coverage_success`
 - `student_flow_completions`
 - `ws_connect_success{role:student}`
 - `ws_connect_success{role:professor}`

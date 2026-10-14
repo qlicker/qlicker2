@@ -82,3 +82,35 @@ test('snapshots and legacy responses preserve the canonical fallback rules', () 
     }
   }
 });
+
+test('owned mutable histories match canonical sorting across every update without allocating new arrays', () => {
+  const merge = createResponseMerger({ mutable: true });
+  let actual = merge([], []);
+  let expected = [];
+  for (let i = 0; i < 2000; i += 1) {
+    const response = { _id: `response-${(i * 71) % 503}`, answer: `answer-${i}`,
+      createdAt: new Date(1700000000000 + (i * 29) % 100).toISOString() };
+    expected = mergeResponsesNewestFirst(expected, [response]);
+    const previous = actual;
+    actual = merge(actual, [response]);
+    assert.equal(actual, previous);
+    assert.deepEqual(actual, expected);
+  }
+  const old = actual;
+  const snapshot = [null, { answer: 'legacy' }, { _id: 'new-snapshot-entry' }];
+  expected = mergeResponsesNewestFirst(expected, snapshot);
+  actual = merge(actual, snapshot);
+  assert.notEqual(actual, old);
+  assert.deepEqual(actual, expected);
+});
+
+test('independent answer lists and new question snapshots do not share mutable histories', () => {
+  const merge = createResponseMerger({ mutable: true });
+  const source = Object.freeze([Object.freeze({ _id: 'seed' })]);
+  const first = merge(source, [{ _id: 'first' }]);
+  const second = merge(source, [{ _id: 'second' }]);
+  merge(first, [{ _id: 'third' }]);
+  assert.deepEqual(second.map((r) => r._id), ['seed', 'second']);
+  assert.deepEqual(source, [{ _id: 'seed' }]);
+  assert.deepEqual(merge([], [{ _id: 'new-question' }]), [{ _id: 'new-question' }]);
+});

@@ -20,6 +20,13 @@ printf 'scenario\tenrolled_percent\tlive_stats\texit_code\n' > "$summary"
 echo "[INFO] Matrix log: $SCRIPT_DIR/$log"
 echo "[INFO] Matrix summary: $SCRIPT_DIR/$summary"
 echo "[INFO] Resource samples: $SCRIPT_DIR/$resources"
+revision="$(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+if [[ "$revision" != unknown ]] && ! git -C "$SCRIPT_DIR" diff --quiet HEAD -- .; then
+  revision="${revision}-modified"
+fi
+echo "[INFO] Load-test checkout: $revision; host logical CPUs: $(getconf _NPROCESSORS_ONLN 2>/dev/null || echo unknown)"
+echo "[INFO] Configured k6 image: ${K6_IMAGE:-grafana/k6:latest}"
+echo "[INFO] Cached k6 image ID: $(docker image inspect --format '{{.Id}}' "${K6_IMAGE:-grafana/k6:latest}" 2>/dev/null || echo unavailable-before-run)"
 
 monitor_pid=''
 cleanup() {

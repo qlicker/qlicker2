@@ -1,6 +1,7 @@
 // k6 simulates hundreds of clients in one process. Keep the same response-list
 // values/order as the browser without rebuilding and sorting the whole history
-// for every single response event. Inputs and returned arrays are immutable.
+// for every single response event. The optional mutable mode is for k6 only:
+// it owns its current arrays and does not retain old snapshots for rendering.
 function timestamp(value) {
   if (!value) return 0;
   const parsed = new Date(value).getTime();
@@ -23,7 +24,7 @@ function compare(a, b) {
   return b.time - a.time || b.id.localeCompare(a.id);
 }
 
-export function createResponseMerger() {
+export function createResponseMerger({ mutable = false } = {}) {
   const histories = new WeakMap();
   return (existing = [], incoming = []) => {
     const previous = Array.isArray(existing) ? existing : [];
@@ -34,9 +35,13 @@ export function createResponseMerger() {
       const next = entry(added[0]);
       // Remove an updated/repeated ID, then insert by timestamp and ID. A cached
       // history has already been deduplicated and sorted by the canonical path.
-      entries = cached.slice();
-      const oldIndex = entries.findIndex((item) => item.key === next.key);
-      if (oldIndex !== -1) entries.splice(oldIndex, 1);
+      entries = mutable ? cached.entries : cached.entries.slice();
+      const oldIndex = cached.keys.has(next.key)
+        ? entries.findIndex((item) => item.key === next.key) : -1;
+      if (oldIndex !== -1) {
+        entries.splice(oldIndex, 1);
+        if (mutable) previous.splice(oldIndex, 1);
+      }
       let low = 0;
       let high = entries.length;
       while (low < high) {
@@ -45,6 +50,11 @@ export function createResponseMerger() {
         else low = middle + 1;
       }
       entries.splice(low, 0, next);
+      if (mutable) {
+        previous.splice(low, 0, next.response);
+        cached.keys.add(next.key);
+        return previous;
+      }
     } else {
       // HTTP snapshots, multiple entries and legacy entries without IDs retain
       // the original deduplication and stable sorting rules.
@@ -57,7 +67,7 @@ export function createResponseMerger() {
       entries = [...byKey.values()].sort(compare);
     }
     const result = entries.map((item) => item.response);
-    histories.set(result, entries);
+    histories.set(result, { entries, keys: new Set(entries.map((item) => item.key)) });
     return result;
   };
 }

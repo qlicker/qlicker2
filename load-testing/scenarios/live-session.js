@@ -17,6 +17,8 @@
 
 import http from 'k6/http';
 import ws from 'k6/ws';
+import { WebSocket } from 'k6/websockets';
+import * as timers from 'k6/timers';
 import { check, group, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import { SharedArray } from 'k6/data';
@@ -24,6 +26,9 @@ import exec from 'k6/execution';
 import { connectionFailureDetails } from './connection-diagnostics.js';
 import { createAnonymousStatsValidator, privacyFailureReasons } from './anonymous-diagnostics.js';
 import { createResponseMerger } from './response-merge.js';
+import { createSocketConnector } from './socket-client.js';
+import { canAnswer, createAttemptScheduler, getLiveAttemptKey, readLiveVisibilityFlag } from './attempt-scheduler.js';
+import { createResponseCoverage, hasCompleteResultRows } from './response-coverage.js';
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -141,6 +146,9 @@ const responseToProfessorDuration = new Trend('response_to_professor_duration', 
 const responseServerProcessingDuration = new Trend('response_server_processing_duration', true);
 const responseDeliveryToProfessorDuration = new Trend('response_delivery_to_professor_duration', true);
 const professorObserverLoopLag = new Trend('professor_observer_loop_lag', true);
+const studentObserverLoopLag = new Trend('student_observer_loop_lag', true);
+const responseTimerLag = new Trend('respond_timer_lag', true);
+const professorResponseCoverageSuccess = new Rate('professor_response_coverage_success');
 
 const wsConnections = new Counter('ws_connections');
 const wsErrors = new Counter('ws_errors');
@@ -185,7 +193,12 @@ const thresholds = {
   professor_driver_completions: ['count==1'],
   professor_viewer_completions: ['count==1'],
   student_flow_completions: [`count==${students.length}`],
-  professor_response_events: [`count==${expectedResponseCount}`],
+  // Anonymous snapshot repair may publish additional aggregate notifications.
+  // Exact persisted answers and per-question observed counts are checked separately.
+  professor_response_events: [`count${anonymous ? '>=' : '=='}${expectedResponseCount}`],
+  professor_response_coverage_success: ['rate==1'],
+  professor_observer_loop_lag: ['p(99)<250'],
+  student_observer_loop_lag: ['p(99)<250'],
   respond_attempts: [`count==${expectedResponseCount}`],
   respond_successful_submissions: [`count==${expectedResponseCount}`],
   respond_conflict_failures: ['count==0'],
@@ -486,11 +499,9 @@ function verifyFinalResults(token) {
   resultsDuration.add(response.timings.duration);
   const payload = parseJson(response) || {};
   const rows = payload.studentResults || [];
-  const expectedRows = anonymous && students.length < 4 ? 0 : students.length;
   const questions = state.questions.filter((question) => normalizeQuestionType(question) !== 6);
-  const complete = response.status === 200 && rows.length === expectedRows && rows.every((row) =>
-    questions.every((question) => row.questionResults?.some((result) =>
-      String(result.questionId) === String(question.id) && result.responses?.length === 1)));
+  const complete = response.status === 200 && hasCompleteResultRows(rows,
+    questions.map((question) => question.id), students.map((student) => student.id), anonymous);
   resultsSuccess.add(complete);
   check(response, { 'all participants have correlated, complete result rows': () => complete });
   if (anonymous) {
@@ -504,26 +515,11 @@ function verifyFinalResults(token) {
   const enrolledIds = new Set(students.filter((student) => student.enrolled !== false).map((student) => student.id));
   const contractOk = grades.status === 200
     && gradeRows.length === (anonymous ? 0 : enrolledIds.size)
+    && new Set(gradeRows.map((grade) => grade.userId)).size === gradeRows.length
     && gradeRows.every((grade) => enrolledIds.has(grade.userId))
     && (anonymous || rows.every((row) => !!row.guest === !enrolledIds.has(row.studentId)));
   gradeContractSuccess.add(contractOk);
   check(grades, { 'only eligible enrolled participants receive grades': () => contractOk });
-}
-
-function readLiveVisibilityFlag(data, key) {
-  if (key === 'hidden') {
-    if (data?.questionHidden !== undefined) return Boolean(data.questionHidden);
-    return Boolean(data?.currentQuestion?.sessionOptions?.hidden);
-  }
-  if (key === 'stats') {
-    if (data?.showStats !== undefined) return Boolean(data.showStats);
-    return Boolean(data?.currentQuestion?.sessionOptions?.stats);
-  }
-  if (key === 'correct') {
-    if (data?.showCorrect !== undefined) return Boolean(data.showCorrect);
-    return Boolean(data?.currentQuestion?.sessionOptions?.correct);
-  }
-  return undefined;
 }
 
 function validateLiveState(data, expectation = {}) {
@@ -730,7 +726,9 @@ function applyChatEventData(previousData, eventPayload) {
   return nextData;
 }
 
-const mergeResponsesNewestFirst = createResponseMerger();
+// k6 is a protocol consumer, with no React rendering or retained snapshot history.
+// Keep identical values/order while updating the owned lists in place.
+const mergeResponsesNewestFirst = createResponseMerger({ mutable: true });
 
 function applyLiveResponseAddedDelta(previousData, eventPayload = {}) {
   if (!previousData) return previousData;
@@ -1143,13 +1141,6 @@ function buildResponsePayload(question) {
   return { answer: '' };
 }
 
-function getLiveAttemptKey(snapshot) {
-  const questionId = String(snapshot?.currentQuestion?._id || '').trim();
-  const attemptNumber = Number(snapshot?.currentAttempt?.number || 0);
-  if (!questionId || attemptNumber <= 0) return null;
-  return `${questionId}:${attemptNumber}`;
-}
-
 function recordResponseFailure(res) {
   const status = Number(res?.status || 0);
   if (status === 409) {
@@ -1163,7 +1154,7 @@ function recordResponseFailure(res) {
   respondServerFailures.add(1, { status: String(status || 'network') });
 }
 
-function submitResponse(token, liveData) {
+async function submitResponse(token, liveData) {
   const question = liveData?.currentQuestion;
   const attemptNumber = Number(liveData?.currentAttempt?.number || 0);
   if (!question || !attemptNumber) {
@@ -1173,7 +1164,7 @@ function submitResponse(token, liveData) {
   const payload = buildResponsePayload(question);
   const start = Date.now();
   respondAttempts.add(1);
-  const res = http.post(
+  const res = await http.asyncRequest('POST',
     `${API}/sessions/${state.session.id}/respond`,
     JSON.stringify(payload),
     { headers: apiHeaders(token), tags: { name: 'respond' } },
@@ -1467,6 +1458,8 @@ export function professorViewerFlow() {
   let chatEnabled = false;
   let sessionEnded = false;
   let nextObserverTickAtMs = null;
+  const coverage = createResponseCoverage(state.questions
+    .filter((question) => normalizeQuestionType(question) !== 6).map((question) => question.id), students.length);
 
   group('professor_viewer_login', () => {
     const start = Date.now();
@@ -1611,6 +1604,7 @@ export function professorViewerFlow() {
         case 'session:response-added':
           {
             professorResponseEvents.add(1);
+            coverage.observe(data);
             if (anonymous) checkResponsePrivacy(data, role);
             responseEventChars.add(raw.length, metricTags(role));
             const submittedAtMs = parseTimestampMs(data?.responseSubmittedAt);
@@ -1694,10 +1688,13 @@ export function professorViewerFlow() {
   if (!sessionEnded && liveData?.session?.status !== 'done') {
     chatData = chatData || null;
   }
+  coverage.results().forEach((ok) => professorResponseCoverageSuccess.add(ok));
   professorViewerCompletions.add(1);
 }
 
-export function studentFlow() {
+const connectStudentSocket = createSocketConnector(WebSocket, timers);
+
+export async function studentFlow() {
   const studentIndex = exec.scenario.iterationInTest;
   if (studentIndex < 0 || studentIndex >= students.length) {
     return;
@@ -1793,17 +1790,14 @@ export function studentFlow() {
   }
 
   let studentFlowCompleted = false;
-  group('student_ws_session', () => {
+  { // Async socket lifetime is awaited outside k6's synchronous group API.
     const wsUrl = `${WS_URL}?token=${encodeURIComponent(token)}`;
-    const submittedAttempts = {};
-    const scheduledAttempts = {};
     const completedChatWaves = new Set();
     const ownPostIds = new Set();
     let createdRandomPostCount = 0;
     let sessionEnded = false;
-    let responseWindowAttemptKey = null;
 
-    const response = ws.connect(wsUrl, {}, (socket) => {
+    const response = await connectStudentSocket(wsUrl, (socket) => {
       const ensureChatSnapshot = (reason) => {
         if (!chatEnabled || !usesChat) return chatData;
         const refreshed = fetchChat(token, role, reason).data;
@@ -1813,91 +1807,25 @@ export function studentFlow() {
         return chatData;
       };
 
-      const updateResponseWindow = (snapshot) => {
-        const attemptKey = getLiveAttemptKey(snapshot);
-        const responseWindowIsOpen = Boolean(
-          attemptKey
-          && snapshot?.currentQuestion
-          && snapshot?.currentAttempt
-          && !readLiveVisibilityFlag(snapshot, 'hidden')
-          && (LIVE_STATS_DURING_ANSWERS || !readLiveVisibilityFlag(snapshot, 'stats'))
-          && !readLiveVisibilityFlag(snapshot, 'correct')
-          && !snapshot.currentAttempt.closed
-        );
-        responseWindowAttemptKey = responseWindowIsOpen ? attemptKey : null;
-        return responseWindowAttemptKey;
-      };
-
-      const maybeSubmitCurrentAttempt = (snapshot) => {
-        const currentQuestion = snapshot?.currentQuestion;
-        const currentAttempt = snapshot?.currentAttempt;
-        if (!currentQuestion || !currentAttempt) return;
-        if (snapshot?.questionHidden) return;
-        if (currentAttempt.closed) return;
-        if (snapshot?.studentResponse) return;
-
-        const attemptKey = getLiveAttemptKey(snapshot);
-        if (
-          !attemptKey
-          || responseWindowAttemptKey !== attemptKey
-          || submittedAttempts[attemptKey]
-          || scheduledAttempts[attemptKey]
-        ) {
-          return;
-        }
-
-        scheduledAttempts[attemptKey] = true;
-        const responseDelayMs = seededRatio(
-          studentIndex,
-          Number(snapshot?.questionNumber || 0),
-          Number(currentAttempt?.number || 0),
-        ) * RESPONSE_JITTER_MS;
-        socket.setTimeout(() => {
-          // Match the browser: submit from the websocket-synchronized snapshot
-          // instead of issuing an extra /live request immediately beforehand.
-          const latest = liveData || snapshot;
-          liveData = latest;
-          chatEnabled = SESSION_CHAT_ENABLED && Boolean(latest?.session?.chatEnabled);
-
-          // A timer may have been created from a visibility event immediately
-          // before the professor opened a new attempt. Never let that stale
-          // timer submit against whichever attempt happens to be current when
-          // it wakes; schedule the current attempt through the normal path.
-          if (getLiveAttemptKey(latest) !== attemptKey || responseWindowAttemptKey !== attemptKey) {
-            respondStaleTimerSkips.add(1);
-            delete scheduledAttempts[attemptKey];
-            maybeSubmitCurrentAttempt(latest);
-            return;
+      const maybeSubmitCurrentAttempt = createAttemptScheduler({
+        getSnapshot: () => liveData,
+        isOpen: (snapshot) => canAnswer(snapshot, LIVE_STATS_DURING_ANSWERS),
+        delayFor: (snapshot) => seededRatio(studentIndex, Number(snapshot.questionNumber || 0),
+          Number(snapshot.currentAttempt.number || 0)) * RESPONSE_JITTER_MS,
+        setTimeout: (callback, delay) => socket.setTimeout(callback, delay),
+        onTimer: (lag) => responseTimerLag.add(lag, metricTags(role)),
+        onStale: (reason) => respondStaleTimerSkips.add(1, { reason }),
+        submit: async (latest) => {
+          const submitted = await submitResponse(token, latest);
+          if (submitted.ok && submitted.response?.response
+            && getLiveAttemptKey(liveData) === getLiveAttemptKey(latest)) {
+            // Preserve stats and visibility received while the HTTP request was pending.
+            liveData = { ...liveData, studentResponse: submitted.response.response };
           }
-
-          if (
-            !latest?.currentQuestion
-            || latest?.questionHidden
-            || latest?.currentAttempt?.closed
-            || latest?.studentResponse
-          ) {
-            delete scheduledAttempts[attemptKey];
-            return;
-          }
-
-          const submitted = submitResponse(token, latest);
-          if (submitted.ok) {
-            submittedAttempts[attemptKey] = true;
-            if (submitted.response?.response) {
-              liveData = {
-                ...latest,
-                studentResponse: submitted.response.response,
-              };
-            }
-          } else if (submitted.res?.status === 409) {
-            // A conflict means this student already has a response for this
-            // attempt. Treat it as submitted so later events do not retry it.
-            submittedAttempts[attemptKey] = true;
-          }
-
-          delete scheduledAttempts[attemptKey];
-        }, normalizeSocketTimeoutMs(responseDelayMs));
-      };
+          // Keep conflicts visible as failures, but do not retry an existing answer.
+          return submitted.ok || submitted.res?.status === 409;
+        },
+      });
 
       const refreshForEvent = (reason, expectation = {}, syncContext = null) => {
         const refreshed = refreshLiveAfterEvent(token, role, reason, expectation, syncContext);
@@ -2005,8 +1933,13 @@ export function studentFlow() {
         if (chatEnabled && watchesChat) {
           chatData = fetchChat(token, role, 'student_ws_open_chat').data || chatData;
         }
-        updateResponseWindow(liveData);
-        maybeSubmitCurrentAttempt(liveData);
+        maybeSubmitCurrentAttempt();
+        let nextTick = Date.now() + 1000;
+        socket.setInterval(() => {
+          const now = Date.now();
+          studentObserverLoopLag.add(Math.max(0, now - nextTick), metricTags(role));
+          nextTick = now + 1000;
+        }, 1000);
         socket.setInterval(() => {
           socket.send(JSON.stringify({ event: 'ping' }));
         }, 15000);
@@ -2033,7 +1966,6 @@ export function studentFlow() {
 
         switch (event) {
           case 'session:status-changed':
-            responseWindowAttemptKey = null;
             liveData = refreshLiveAfterEvent(
               token,
               role,
@@ -2049,7 +1981,6 @@ export function studentFlow() {
             break;
 
           case 'session:question-changed':
-            responseWindowAttemptKey = null;
             if (Object.prototype.hasOwnProperty.call(data || {}, 'question')) {
               liveData = syncLiveAfterEvent(
                 liveData,
@@ -2086,12 +2017,9 @@ export function studentFlow() {
                 correct: data.correct,
               }, syncContext);
             }
-            updateResponseWindow(liveData);
-            maybeSubmitCurrentAttempt(liveData);
             break;
 
           case 'session:attempt-changed':
-            responseWindowAttemptKey = null;
             liveData = syncLiveAfterEvent(
               liveData,
               role,
@@ -2167,11 +2095,15 @@ export function studentFlow() {
           default:
             break;
         }
+        if (['session:status-changed', 'session:question-changed',
+          'session:attempt-changed', 'session:visibility-changed'].includes(event)) {
+          maybeSubmitCurrentAttempt();
+        }
       });
 
       socket.on('error', (err) => {
         wsErrors.add(1, metricTags(role));
-        console.warn(`WebSocket error for ${student.email}: ${String(err)}`);
+        console.warn(`Student WebSocket error: ${String(err)}`);
       });
 
       socket.setTimeout(() => {
@@ -2190,7 +2122,7 @@ export function studentFlow() {
 
     sessionCompletion.add(sessionEnded || liveData?.session?.status === 'done');
     studentFlowCompleted = true;
-  });
+  }
 
   if (studentFlowCompleted) {
     studentFlowCompletions.add(1);
