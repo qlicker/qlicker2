@@ -1357,6 +1357,62 @@ describe('POST /api/v1/sessions/:id/start', () => {
   });
 });
 
+describe('activating the first item when an interactive session goes live', () => {
+  it.each([
+    { method: 'PATCH', type: 0, anonymous: false }, { method: 'PATCH', type: 6, anonymous: false },
+    { method: 'PATCH', type: 0, anonymous: true }, { method: 'PATCH', type: 6, anonymous: true },
+    { method: 'POST', type: 0, anonymous: false }, { method: 'POST', type: 6, anonymous: false },
+    { method: 'POST', type: 0, anonymous: true }, { method: 'POST', type: 6, anonymous: true },
+  ])('$method selects the first item (type=$type, anonymous=$anonymous) and preserves an active item', async ({ method, type, anonymous }) => {
+    const { profToken, course } = await setupCourseWithStudent();
+    const session = (await createSessionInCourse(profToken, course._id, { anonymous })).json().session;
+    const first = await createQuestionInSession(profToken, {
+      sessionId: session._id, courseId: course._id, type,
+      content: '<p>First item</p>', plainText: 'First item',
+      ...(type === 0 ? { options: [{ content: 'A', correct: true }, { content: 'B', correct: false }] } : {}),
+    });
+    const second = await createQuestionInSession(profToken, {
+      sessionId: session._id, courseId: course._id, type: 6,
+      content: '<p>Second item</p>', plainText: 'Second item',
+    });
+    const goLive = () => authenticatedRequest(app, method,
+      `/api/v1/sessions/${session._id}${method === 'POST' ? '/start' : ''}`, {
+        token: profToken, ...(method === 'PATCH' ? { payload: { status: 'running' } } : {}),
+      });
+    for (const status of ['hidden', 'visible', 'done']) {
+      await Session.updateOne({ _id: session._id }, { $set: { status, currentQuestion: '' } });
+      await Question.updateOne({ _id: first._id }, { $set: { 'sessionOptions.hidden': false } });
+      const res = await goLive();
+      expect(res.statusCode).toBe(200);
+      expect(res.json().session).toMatchObject({ status: 'running', currentQuestion: first._id });
+      expect((await Question.findById(first._id).lean()).sessionOptions.hidden).toBe(true);
+      const live = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/live`, { token: profToken });
+      expect(live.statusCode).toBe(200);
+      expect(live.json().currentQuestion._id).toBe(first._id);
+    }
+    await Session.updateOne({ _id: session._id }, { $set: { status: 'visible', currentQuestion: second._id } });
+    await Question.updateOne({ _id: second._id }, { $set: { 'sessionOptions.hidden': false } });
+    expect((await goLive()).json().session.currentQuestion).toBe(second._id);
+    expect((await Question.findById(second._id).lean()).sessionOptions.hidden).toBe(false);
+  });
+
+  it('leaves quiz status changes and empty interactive sessions unchanged', async () => {
+    const { profToken, course } = await setupCourseWithStudent();
+    for (const quiz of [false, true]) {
+      const session = (await createSessionInCourse(profToken, course._id, { quiz })).json().session;
+      if (quiz) {
+        await createQuestionInSession(profToken, { sessionId: session._id, courseId: course._id,
+          type: 6, content: '<p>Quiz slide</p>', plainText: 'Quiz slide' });
+      }
+      const res = await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${session._id}`, {
+        token: profToken, payload: { status: 'running' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().session.currentQuestion).toBeFalsy();
+    }
+  });
+});
+
 // ---------- GET /api/v1/sessions/:id/live ----------
 describe('GET /api/v1/sessions/:id/live', () => {
   it('treats slides as non-response items in live sessions', async (ctx) => {

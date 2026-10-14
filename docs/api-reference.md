@@ -55,6 +55,8 @@ Publishing `reviewable: true` through `PATCH /sessions/:id`, `PATCH /sessions/:i
 
 ## Interactive live status
 
+Setting an interactive session to `running` with `PATCH /sessions/:id` initializes `currentQuestion` to the first ordered question or slide when no item is active, matching `POST /sessions/:id/start`. The newly selected item starts hidden; existing selections and their visibility remain intact. Empty sessions have no item to select. Quiz status patches retain their existing behavior.
+
 For participants, `GET /sessions/:id/live` returns a metadata-only snapshot when an interactive session is not `running`: question, attempt, own response, statistics, word cloud, and histogram are null. `hidden` (Draft) redirects the participant to their course or, for outside guests, dashboard; `visible` (Upcoming) shows a waiting screen; `done` shows the ended screen. Existing metadata/status events refresh these states and restore questions when the session resumes. Instructor access, saved responses, and quiz endpoints retain their existing behavior.
 
 ## Anonymous sessions

@@ -2383,7 +2383,7 @@
           "subtitle": "Control entry to a live interactive session, then handle late arrivals individually.",
           "bullets": [
             "The course enrollment code joins the course; the six-digit session join code admits an already-enrolled student to one live session. For attendance-controlled entry, enable Require Passcode before students join.",
-            "Launch does not open admission automatically. In the live Controls, enable Join Period and use Open presentation window to show the current code in class. Students open the live session and enter that code.",
+            "When an interactive session becomes Live, Qlicker selects the first question or slide if none is active. An existing active item is preserved. A newly selected first item starts hidden until you reveal it, just as with Launch. Launch does not open admission automatically. In the live Controls, enable Join Period and use Open presentation window to show the current code in class. Students open the live session and enter that code.",
             "Set Refresh (sec) between 5 and 120; keep the professor's live controls open for automatic rotation. Refresh join code replaces the code immediately. Students not yet admitted must enter the current code.",
             "After check-in, turn off Join Period but leave Require Passcode enabled. Without the passcode requirement, enrolled students can join a running session without a code.",
             "For a late arrival, open Students, expand Waiting to join, filter by name or email, and select Admit beside the verified student. They must be enrolled. Manual admission works while the session is running even with Join Period closed.",

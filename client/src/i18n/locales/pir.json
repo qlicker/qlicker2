@@ -2336,7 +2336,7 @@
           "subtitle": "Control boardin' to a live interactive voyage, then admit late crew one by one.",
           "bullets": [
             "Th' course enrollment code joins th' ship's course; th' six-digit voyage code admits enrolled crew to one live voyage. Fer attendance-controlled boardin', enable Require Secret code before crew join.",
-            "Launchin' won't open boardin' by itself. In th' live controls, enable Board Spell an' open th' presentation window to show th' current code in class. Crew open th' live voyage an' enter that code.",
+            "When an interactive session goes Live, Qlicker picks the first question or slide if none be active. The current active item stays put. A newly picked first item stays hidden till ye reveal it, just as with Launch. Launchin' won't open boardin' by itself. In th' live controls, enable Board Spell an' open th' presentation window to show th' current code in class. Crew open th' live voyage an' enter that code.",
             "Set refresh between 5 an' 120 seconds; keep th' officer's live controls open fer automatic rotation. Refresh th' code to replace it straightaway. Crew not yet aboard must use th' current code.",
             "After check-in, close Board Spell but keep Require Secret code enabled. Without that requirement, enrolled crew can board a runnin' voyage without a code.",
             "Fer late crew, open th' students panel, expand Waitin' to board, filter by name or email, an' choose Admit beside th' verified crewmate. They must be enrolled. Manual admission works while th' voyage runs even with Board Spell closed.",

@@ -639,6 +639,16 @@ function isQuizLikeSession(session) {
   return !!(session?.quiz || session?.practiceQuiz);
 }
 
+async function initializeActiveQuestion(session, updates) {
+  const firstQuestionId = session.questions?.[0];
+  if (session.currentQuestion || !firstQuestionId) return;
+  updates.currentQuestion = firstQuestionId;
+  // Match Launch: select the first question or slide without revealing it yet.
+  await Question.findByIdAndUpdate(firstQuestionId, {
+    $set: { 'sessionOptions.hidden': true },
+  });
+}
+
 async function getNonAutoGradeableQuestions(session) {
   const questionIds = Array.isArray(session?.questions) ? session.questions : [];
   if (questionIds.length === 0) return [];
@@ -4181,6 +4191,10 @@ export default async function sessionRoutes(app) {
         }
       }
 
+      if (updates.status === 'running' && !isQuizLikeSession({ ...session, ...updates })) {
+        await initializeActiveQuestion(session, updates);
+      }
+
       const guardedSettingsChange = changingAnonymity || changingAnonymousMode;
       const updateFilter = { _id: request.params.id };
       if (guardedSettingsChange) {
@@ -4379,15 +4393,7 @@ export default async function sessionRoutes(app) {
         currentJoinCode: '',
         joinCodeExpiresAt: null,
       };
-      const sessionQuestions = session.questions || [];
-      if (sessionQuestions.length > 0 && !session.currentQuestion) {
-        updates.currentQuestion = sessionQuestions[0];
-
-        // Set first question hidden by default when session launches
-        await Question.findByIdAndUpdate(sessionQuestions[0], {
-          $set: { 'sessionOptions.hidden': true },
-        });
-      }
+      await initializeActiveQuestion(session, updates);
 
       const updated = await Session.findByIdAndUpdate(
         request.params.id,

@@ -217,7 +217,7 @@ Use **Set all question points** only after considering ungraded slides and delib
 
 ### Session-level controls
 
-- **Status** controls whether the activity is hidden/draft, visible, running, or ended.
+- **Status** controls whether the activity is hidden/draft, visible, running, or ended. When an interactive session becomes Live, Qlicker selects the first question or slide if none is active. An existing active item is preserved. A newly selected first item starts hidden until you reveal it, just as with Launch.
 - **Reviewable** controls whether students can later see review/grades; it is not the same as ending the session.
 - **Join code/passcode** and refresh interval provide controlled entry for live activities.
 - **Multi-select scoring** applies to multi-select questions in the session.
