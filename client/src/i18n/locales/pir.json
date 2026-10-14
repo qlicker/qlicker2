@@ -1804,6 +1804,9 @@
       "noAutoConflicts": "Nary any auto-gradeable conflicts to apply.",
       "appliedAutoPartial": "Applied automatic notches where supported. {{count}} conflict(s) require manual handling.",
       "avgParticipation": "Avg. Turnout",
+      "avgGrade": "Avg. Marks",
+      "noGradeItems": "No marks aboard",
+      "selectWithGradeItems": "Select sessions with marks aboard",
       "notApplicable": "Not fer ye",
       "firstName": "First moniker",
       "lastName": "Last moniker",
@@ -2353,7 +2356,8 @@
             "Ledger detail dialogs now label riddle rows with both number an' type, such as Q1(MC) or Q2(SA), an' spotlight rows that still need gradin' while ignorin' adrift zero-doubloon gradin' flags.",
             "Crew get a bulletin when ye proclaim new holler, so use short, actionable remarks that tell 'em what to revisit.",
             "If watch structures mattered durin' th' activity, compare th' recap an' gradin' data with th' ship watches so ye can spot uneven turnout patterns.",
-            "Joinin’ a course fills missin’ marks for finished activities, includin’ answers saved as a guest. Missed work earns zero with no reckonin’ needed; written answers may need reckonin’. Existing marks and feedback stay aboard. Anonymous activities stay ungraded."
+            "Joinin’ a course fills missin’ marks for finished activities, includin’ answers saved as a guest. Missed work earns zero with no reckonin’ needed; written answers may need reckonin’. Existing marks and feedback stay aboard. Anonymous activities stay ungraded.",
+            "The grade table averages the marks aboard the displayed sessions. Missing marks stay out; recorded zeros count. Use Select sessions with marks aboard, or pick sessions with No marks aboard by hand."
           ],
           "success": "Professors can open th' crew member manual from th' switcher above to preview th' learner workflow afore class."
         },
@@ -2456,7 +2460,8 @@
           "bullets": [
             "Open recappable voyages from th' ship page after yer officer ends th' activity an' turns on recap.",
             "Move one riddle at a time to compare yer answer, th' released answer, th' explanation, an' any officer holler without rushin' past details.",
-            "Watch fer holler bulletins because they tell ye when new remarks or gradin' updates be available."
+            "Watch fer holler bulletins because they tell ye when new remarks or gradin' updates be available.",
+            "Yer average marks and turnout use visible marks from ended sessions open fer review. Missing marks stay out; recorded zeros count."
           ],
           "success": "Crew often improve fastest when they read th' holler an' then immediately try a similar riddle again.",
           "screenshot": {

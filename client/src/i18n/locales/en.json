@@ -1804,6 +1804,9 @@
       "noAutoConflicts": "No auto-gradeable conflicts to apply.",
       "appliedAutoPartial": "Applied automatic marks where supported. {{count}} conflict(s) require manual handling.",
       "avgParticipation": "Avg. Participation",
+      "avgGrade": "Avg. Grade",
+      "noGradeItems": "No grade items",
+      "selectWithGradeItems": "Select sessions with grade items",
       "notApplicable": "Not applicable",
       "firstName": "First name",
       "lastName": "Last name",
@@ -2400,7 +2403,8 @@
             "Grade detail dialogs now label question rows with both number and type, such as Q1(MC) or Q2(SA), and visually highlight rows that still need grading while ignoring stale zero-point grading flags.",
             "Students receive a notification when you publish new feedback, so use short, actionable comments that tell them what to revisit.",
             "If group structures mattered during the activity, compare the review and grading data with the course groups so you can spot uneven participation patterns.",
-            "Enrollment creates missing grades for completed course activities, including saved guest responses. Missed work receives zero without needing grading; written answers may need grading. Existing grades and feedback are preserved. Anonymous activities remain ungraded."
+            "Enrollment creates missing grades for completed course activities, including saved guest responses. Missed work receives zero without needing grading; written answers may need grading. Existing grades and feedback are preserved. Anonymous activities remain ungraded.",
+            "Grade-table averages use actual grade items in the displayed sessions. Missing items are excluded; recorded zeros count. Use Select sessions with grade items, or include sessions labelled No grade items manually."
           ],
           "success": "Professors can open the student manual from the switcher above to preview the learner workflow before class."
         },
@@ -2503,7 +2507,8 @@
           "bullets": [
             "Open reviewable sessions from the course page after your instructor ends the activity and turns on review.",
             "Move one question at a time to compare your answer, the released answer, the explanation, and any instructor feedback without rushing past details.",
-            "Watch for feedback notifications because they tell you when new comments or grading updates are available."
+            "Watch for feedback notifications because they tell you when new comments or grading updates are available.",
+            "Average grade and participation use your visible grade items from ended, reviewable sessions. Missing items are excluded; recorded zeros count."
           ],
           "success": "Students often improve fastest when they read the feedback and then immediately try a similar question again.",
           "screenshot": {

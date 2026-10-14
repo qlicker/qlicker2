@@ -1804,6 +1804,9 @@
       "noAutoConflicts": "Aucun conflit auto-évaluable à appliquer.",
       "appliedAutoPartial": "Notes automatiques appliquées lorsque possible. {{count}} conflit(s) nécessitent un traitement manuel.",
       "avgParticipation": "Participation moy.",
+      "avgGrade": "Note moy.",
+      "noGradeItems": "Aucun élément de note",
+      "selectWithGradeItems": "Sélectionner les séances avec des éléments de note",
       "notApplicable": "Sans objet",
       "firstName": "Prénom",
       "lastName": "Nom de famille",
@@ -2353,7 +2356,8 @@
             "Les dialogues de détail des notes identifient maintenant chaque ligne par numéro et type, par exemple Q1(MC) ou Q2(SA), et mettent en évidence les lignes qui demandent encore une correction tout en ignorant les anciens indicateurs de correction sur les questions à zéro point.",
             "Les étudiants reçoivent une notification lorsque vous publiez une nouvelle rétroaction; privilégiez donc des commentaires courts et directement actionnables.",
             "Si la structure des groupes a compté pendant l'activité, comparez les données de révision et de notation avec les groupes du cours afin de repérer une participation inégale.",
-            "L’inscription crée les notes manquantes pour les activités terminées du cours, y compris à partir des réponses enregistrées comme invité. Le travail manqué reçoit zéro sans correction requise ; les réponses écrites peuvent nécessiter une correction. Les notes et commentaires existants sont conservés. Les activités anonymes restent sans notes."
+            "L’inscription crée les notes manquantes pour les activités terminées du cours, y compris à partir des réponses enregistrées comme invité. Le travail manqué reçoit zéro sans correction requise ; les réponses écrites peuvent nécessiter une correction. Les notes et commentaires existants sont conservés. Les activités anonymes restent sans notes.",
+            "Les moyennes du tableau utilisent les éléments de note existants des séances affichées. Les éléments manquants sont exclus ; les zéros enregistrés comptent. Utilisez Sélectionner les séances avec des éléments de note, ou ajoutez manuellement les séances sans élément de note."
           ],
           "success": "Les professeurs peuvent ouvrir le guide étudiant depuis le sélecteur ci-dessus afin de prévisualiser le flux de l'apprenant avant un cours."
         },
@@ -2456,7 +2460,8 @@
           "bullets": [
             "Ouvrez les séances révisables depuis la page du cours après la fin de l'activité et l'activation de la révision par votre enseignant.",
             "Avancez une question à la fois pour comparer votre réponse, la réponse publiée, l'explication et la rétroaction de l'enseignant sans passer trop vite sur les détails.",
-            "Surveillez les notifications de rétroaction parce qu'elles indiquent que de nouveaux commentaires ou ajustements de note sont disponibles."
+            "Surveillez les notifications de rétroaction parce qu'elles indiquent que de nouveaux commentaires ou ajustements de note sont disponibles.",
+            "Les moyennes de note et de participation utilisent vos éléments de note visibles des séances terminées et consultables. Les éléments manquants sont exclus ; les zéros enregistrés comptent."
           ],
           "success": "Les étudiants progressent souvent le plus lorsqu'ils lisent la rétroaction puis refont immédiatement une question semblable.",
           "screenshot": {

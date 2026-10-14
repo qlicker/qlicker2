@@ -61,26 +61,18 @@ function buildStudentStats({ sessions = [], grades = [] }) {
     return !!grade?.submitted;
   }).length;
 
-  const interactiveGradeAverage = interactiveSessions.length > 0
-    ? roundToTenths(interactiveSessions.reduce((sum, session) => {
-      const grade = gradeBySessionId.get(String(session?._id || ''));
-      return sum + (Number(grade?.value) || 0);
-    }, 0) / interactiveSessions.length)
-    : null;
-
-  const quizGradeAverage = endedQuizSessions.length > 0
-    ? roundToTenths(endedQuizSessions.reduce((sum, session) => {
-      const grade = gradeBySessionId.get(String(session?._id || ''));
-      return sum + (Number(grade?.value) || 0);
-    }, 0) / endedQuizSessions.length)
-    : null;
-
-  const participationAverage = interactiveSessions.length > 0
-    ? roundToTenths(interactiveSessions.reduce((sum, session) => {
-      const grade = gradeBySessionId.get(String(session?._id || ''));
-      return sum + (Number(grade?.participation) || 0);
-    }, 0) / interactiveSessions.length)
-    : null;
+  const average = (selectedSessions, field) => {
+    const applicableGrades = selectedSessions
+      .map((session) => gradeBySessionId.get(String(session?._id || '')))
+      .filter((grade) => grade && (grade.hasGradeItem === true || grade._id)
+        && grade.hasGradeItem !== false && !grade.notApplicable);
+    return applicableGrades.length > 0
+      ? roundToTenths(applicableGrades.reduce((sum, grade) => sum + (Number(grade[field]) || 0), 0) / applicableGrades.length)
+      : null;
+  };
+  const interactiveGradeAverage = average(interactiveSessions, 'value');
+  const quizGradeAverage = average(endedQuizSessions, 'value');
+  const participationAverage = average(interactiveSessions, 'participation');
 
   return {
     joinedInteractions,

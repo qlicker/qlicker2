@@ -30,6 +30,24 @@ Session reviewable integration is in:
 - Manual-grading flags are normalized on reads against current latest responses and question types, including existing production rows. An automatic zero for a nonblank, positive-point short answer remains pending; `automatic: false` records a confirmed score, including zero. No schema migration is needed. Use **Re-calculate all grades** on an already affected ended quiz to persist repaired automatic marks and totals; manual scores are preserved.
 - Blank detection includes whitespace, empty rich-text markup, and non-breaking spaces; rich-text-only and image answers count as content. AI grading uses saved response content, regardless of join/submission membership, and rechecks session readiness before saving each result.
 
+## Course averages and grade-item availability
+
+`GET /courses/:courseId/grades` reports `avgParticipation` and `avgGrade` as
+unweighted arithmetic means of existing applicable grade items per student,
+rounded to one decimal place. Zero-valued items count; synthetic missing-item
+placeholders and `notApplicable` items do not. An empty denominator returns `null`.
+Student rows use only published grades in ended, reviewable, non-anonymous sessions
+with no remaining extensions; other students' private practice sessions are excluded.
+Instructor rows use the requested/displayed sessions, including unpublished grade
+items. Selecting an empty session does not dilute averages.
+
+`grades[].hasGradeItem` distinguishes real rows from missing-item placeholders;
+`sessions[].hasGradeItems` reports availability within the caller's grade query
+(for students, their own published items only). These are derived response fields,
+not stored model fields. The picker offers graded-only selection and still permits
+explicit selection of empty sessions. Table sorting and CSV use the same server
+averages. No migration or live-response-path changes are needed.
+
 ## Latest Attempt and Legacy Data
 
 - Per-student grading always uses that student's latest attempt for the question.

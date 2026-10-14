@@ -518,6 +518,7 @@ export default function CourseDetail() {
       const summaryMap = {};
       (gradeSummaryRes.data?.sessions || []).forEach((sessionSummary) => {
         summaryMap[sessionSummary._id] = {
+          hasGradeItems: sessionSummary.hasGradeItems,
           studentsNeedingGrading: Number(sessionSummary.studentsNeedingGrading) || 0,
           marksNeedingGrading: Number(sessionSummary.marksNeedingGrading) || 0,
         };

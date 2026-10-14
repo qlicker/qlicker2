@@ -1804,6 +1804,9 @@
       "noAutoConflicts": "No hay conflictos calificables automáticamente para aplicar.",
       "appliedAutoPartial": "Se aplicaron notas automáticas donde fue posible. {{count}} conflicto(s) requieren manejo manual.",
       "avgParticipation": "Participación prom.",
+      "avgGrade": "Calificación prom.",
+      "noGradeItems": "Sin registros de calificación",
+      "selectWithGradeItems": "Seleccionar sesiones con registros de calificación",
       "notApplicable": "No aplica",
       "firstName": "Nombre",
       "lastName": "Apellido",
@@ -2353,7 +2356,8 @@
             "Los diálogos de detalle de calificación ahora etiquetan las filas de preguntas con el número y el tipo, como P1(OM) o P2(RC), y resaltan visualmente las filas que aún requieren calificación mientras ignoran los indicadores obsoletos de calificación en cero puntos.",
             "Los estudiantes reciben una notificación cuando usted publica nueva retroalimentación, así que use comentarios breves y accionables que les digan qué repasar.",
             "Si las estructuras de grupo importaron durante la actividad, compare los datos de revisión y calificación con los grupos del curso para detectar patrones desiguales de participación.",
-            "Al inscribirse, se crean las calificaciones que faltan para las actividades finalizadas del curso, incluidas las respuestas guardadas como invitado. Las actividades no realizadas reciben cero sin necesitar corrección; las respuestas escritas pueden necesitarla. Se conservan las calificaciones y los comentarios existentes. Las actividades anónimas siguen sin calificarse."
+            "Al inscribirse, se crean las calificaciones que faltan para las actividades finalizadas del curso, incluidas las respuestas guardadas como invitado. Las actividades no realizadas reciben cero sin necesitar corrección; las respuestas escritas pueden necesitarla. Se conservan las calificaciones y los comentarios existentes. Las actividades anónimas siguen sin calificarse.",
+            "Los promedios de la tabla utilizan los registros de calificación existentes de las sesiones mostradas. Se excluyen los registros ausentes; los ceros registrados cuentan. Use Seleccionar sesiones con registros de calificación o incluya manualmente sesiones sin registros."
           ],
           "success": "Los profesores pueden abrir el manual del estudiante desde el selector de arriba para previsualizar el flujo de trabajo del estudiante antes de la clase."
         },
@@ -2456,7 +2460,8 @@
           "bullets": [
             "Abra las sesiones revisables desde la página del curso después de que su instructor finalice la actividad y active la revisión.",
             "Avance una pregunta a la vez para comparar su respuesta, la respuesta publicada, la explicación y cualquier retroalimentación del instructor sin pasar por alto los detalles.",
-            "Esté atento a las notificaciones de retroalimentación porque le avisan cuándo hay nuevos comentarios o actualizaciones de calificación disponibles."
+            "Esté atento a las notificaciones de retroalimentación porque le avisan cuándo hay nuevos comentarios o actualizaciones de calificación disponibles.",
+            "Los promedios de calificación y participación utilizan sus registros visibles de sesiones finalizadas y disponibles para revisión. Se excluyen los registros ausentes; los ceros registrados cuentan."
           ],
           "success": "Los estudiantes suelen mejorar más rápido cuando leen la retroalimentación y luego intentan de inmediato una pregunta similar de nuevo.",
           "screenshot": {

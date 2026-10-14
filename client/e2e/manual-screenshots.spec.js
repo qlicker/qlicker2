@@ -346,7 +346,11 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await professorPage.getByRole('tab', { name: /^Grades$/i }).click();
   await professorPage.getByRole('button', { name: /^Show Grade Table$/i }).click();
   const gradeDialog = professorPage.getByRole('dialog', { name: /select sessions for grade table/i });
-  await gradeDialog.getByText('Cell Biology Review Quiz').click();
+  await expect(gradeDialog.getByText('No grade items').first()).toBeVisible();
+  await expect(gradeDialog.getByRole('button', { name: 'Select sessions with grade items' })).toBeEnabled();
+  await capture(professorPage, 'professor-grade-session-picker.png');
+  await gradeDialog.getByRole('button', { name: 'Select sessions with grade items' }).click();
+  await expect(gradeDialog.getByRole('checkbox', { name: 'Toggle selection for Cell Biology Review Quiz' })).toBeChecked();
   await gradeDialog.getByRole('button', { name: /^Show Table$/i }).click();
   await expect(professorPage.getByText(student.email)).toBeVisible();
   await capture(professorPage, 'professor-grades.png');

@@ -210,7 +210,7 @@ Not every detail is always released. The instructor controls reviewability and g
 
 ## 7. Read grades and feedback
 
-The **Grades** tab shows only your own results and only sessions the instructor has made visible/reviewable under the current rules.
+The **Grades** tab shows only your own results from ended, reviewable sessions. Average grade and participation are the arithmetic means of your visible grade items in those sessions. Missing or unpublished grade items are excluded; recorded zeros, including missed work, count. When no applicable grade items exist, no average is shown.
 
 - Objective items may be graded automatically.
 - Short answers usually remain incomplete until an instructor assigns points.

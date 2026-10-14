@@ -88,8 +88,8 @@ function buildSortValueForField(row, field) {
   if (field === 'email') {
     return normalizeAnswerValue(row?.studentSortEmail).toLowerCase();
   }
-  if (field === 'avgParticipation') {
-    return Number(row?.avgParticipation) || 0;
+  if (field === 'avgParticipation' || field === 'avgGrade') {
+    return Number(row?.[field]) || 0;
   }
 
   if (field.endsWith('_smark')) {
@@ -1043,7 +1043,7 @@ export default function CourseGradesPanel({
     setLoadingSessionOptions(true);
     setSessionOptionsError('');
     try {
-      const { data } = await apiClient.get(`/courses/${courseId}/sessions`);
+      const { data } = await apiClient.get(`/courses/${courseId}/grades`);
       setFallbackSessionOptions(
         (data.sessions || []).map((session) => ({
           ...session,
@@ -1076,6 +1076,7 @@ export default function CourseGradesPanel({
   const sessionSelectionOptions = useMemo(() => {
     const sourceSessions = hasProvidedSessionOptions ? availableSessions : fallbackSessionOptions;
     const normalized = sourceSessions
+      .filter((session) => !session.anonymous && !session.studentCreated)
       .map((session) => {
         const sessionId = String(session?._id || '').trim();
         if (!sessionId) return null;
@@ -1083,6 +1084,7 @@ export default function CourseGradesPanel({
         return {
           ...session,
           _id: sessionId,
+          hasGradeItems: session?.hasGradeItems ?? summary?.hasGradeItems,
           marksNeedingGrading: Number(
             session?.marksNeedingGrading
             ?? summary?.marksNeedingGrading
@@ -1162,7 +1164,7 @@ export default function CourseGradesPanel({
       }
       return {
         field,
-        direction: field === 'avgParticipation' || field.endsWith('_smark') || field.endsWith('_spart')
+        direction: field === 'avgParticipation' || field === 'avgGrade' || field.endsWith('_smark') || field.endsWith('_spart')
           ? 'desc'
           : 'asc',
       };
@@ -1182,7 +1184,7 @@ export default function CourseGradesPanel({
   const exportCsvWithData = useCallback((exportSessions, exportRows) => {
     if (!exportSessions.length || !exportRows.length) return;
 
-    const header = [t('grades.coursePanel.lastName'), t('grades.coursePanel.firstName'), t('common.email'), t('grades.coursePanel.avgParticipation')];
+    const header = [t('grades.coursePanel.lastName'), t('grades.coursePanel.firstName'), t('common.email'), t('grades.coursePanel.avgParticipation'), t('grades.coursePanel.avgGrade')];
     exportSessions.forEach((session) => {
       header.push(t('grades.coursePanel.sessionMarkHeader', { name: session.name }));
       header.push(t('grades.coursePanel.sessionPartHeader', { name: session.name }));
@@ -1193,13 +1195,14 @@ export default function CourseGradesPanel({
         escapeCsvCell(row?.student?.lastname || ''),
         escapeCsvCell(row?.student?.firstname || ''),
         escapeCsvCell(row?.student?.email || ''),
-        escapeCsvCell(row?.avgParticipation === null ? '' : formatPercent(row?.avgParticipation || 0)),
+        escapeCsvCell(row?.avgParticipation == null ? '' : formatPercent(row.avgParticipation)),
+        escapeCsvCell(row?.avgGrade == null ? '' : formatPercent(row.avgGrade)),
       ];
 
       exportSessions.forEach((session) => {
         const grade = row?.gradeBySession?.[session._id];
-        line.push(escapeCsvCell(grade?.notApplicable ? '' : formatPercent(grade?.value || 0)));
-        line.push(escapeCsvCell(grade?.notApplicable ? '' : formatPercent(grade?.participation || 0)));
+        line.push(escapeCsvCell((grade?.notApplicable || grade?.hasGradeItem === false) ? '' : formatPercent(grade?.value || 0)));
+        line.push(escapeCsvCell((grade?.notApplicable || grade?.hasGradeItem === false) ? '' : formatPercent(grade?.participation || 0)));
       });
 
       return line.join(',');
@@ -1214,6 +1217,11 @@ export default function CourseGradesPanel({
   ), [sessionSelectionOptions]);
   const filteredSessionPickerIds = useMemo(() => (
     filteredSessionSelectionOptions.map((session) => String(session._id))
+  ), [filteredSessionSelectionOptions]);
+
+  const gradedSessionPickerIds = useMemo(() => (
+    filteredSessionSelectionOptions.filter((session) => session.hasGradeItems === true)
+      .map((session) => String(session._id))
   ), [filteredSessionSelectionOptions]);
 
   const validSessionPickerSelection = useMemo(() => {
@@ -2039,6 +2047,14 @@ export default function CourseGradesPanel({
             label={t('grades.coursePanel.selectAll', { count: filteredSessionPickerIds.length })}
             sx={{ mb: 1 }}
           />
+          <Button
+            size="small"
+            disabled={!gradedSessionPickerIds.length}
+            onClick={() => setSessionPickerSelectedIds(gradedSessionPickerIds)}
+            sx={{ mb: 1 }}
+          >
+            {t('grades.coursePanel.selectWithGradeItems')}
+          </Button>
           {filteredSessionSelectionOptions.length === 0 ? (
             <Typography variant="body2" sx={{
               color: "text.secondary"
@@ -2069,6 +2085,9 @@ export default function CourseGradesPanel({
                       primary={sessionName}
                       secondary={session.status ? t('grades.coursePanel.sessionStatus', { status: session.status }) : undefined}
                     />
+                    {session.hasGradeItems === false && (
+                      <Chip size="small" variant="outlined" label={t('grades.coursePanel.noGradeItems')} />
+                    )}
                     {ungradedCount > 0 && (
                       <Chip size="small" color="warning" variant="outlined" label={t('grades.coursePanel.needsGradingCount', { count: ungradedCount })} />
                     )}
@@ -2232,6 +2251,15 @@ export default function CourseGradesPanel({
                           {t('grades.coursePanel.avgParticipation')}
                         </TableSortLabel>
                       </TableCell>
+                      <TableCell sx={{ fontWeight: 700, minWidth: 96 }}>
+                        <TableSortLabel
+                          active={sort.field === 'avgGrade'}
+                          direction={sort.field === 'avgGrade' ? sort.direction : 'desc'}
+                          onClick={() => handleSort('avgGrade')}
+                        >
+                          {t('grades.coursePanel.avgGrade')}
+                        </TableSortLabel>
+                      </TableCell>
                       {visibleSessions.flatMap((session) => {
                         const markSortKey = `${session._id}_smark`;
                         const participationSortKey = `${session._id}_spart`;
@@ -2322,15 +2350,18 @@ export default function CourseGradesPanel({
                           />
                         </TableCell>
                         <TableCell sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.student.email}</TableCell>
-                        <TableCell>{row.avgParticipation === null
+                        <TableCell>{row.avgParticipation == null
                           ? t('grades.coursePanel.notApplicable')
                           : `${formatPercent(row.avgParticipation)}%`}</TableCell>
+                        <TableCell>{row.avgGrade == null
+                          ? t('grades.coursePanel.notApplicable')
+                          : `${formatPercent(row.avgGrade)}%`}</TableCell>
                         {visibleSessions.map((session) => {
                           const grade = row.gradeBySession?.[session._id];
-                          const markLabel = grade?.notApplicable
+                          const markLabel = grade?.notApplicable || grade?.hasGradeItem === false
                             ? t('grades.coursePanel.notApplicable')
                             : `${formatPercent(grade?.value || 0)}%`;
-                          const participationLabel = grade?.notApplicable
+                          const participationLabel = grade?.notApplicable || grade?.hasGradeItem === false
                             ? t('grades.coursePanel.notApplicable')
                             : `${formatPercent(grade?.participation || 0)}%`;
                           return (

@@ -48,13 +48,17 @@ describe('StudentInfoModal', () => {
           { _id: 'interactive-1', quiz: false, practiceQuiz: false, joinedCount: 2 },
           { _id: 'interactive-2', quiz: false, practiceQuiz: false, joinedCount: 1 },
           { _id: 'quiz-1', quiz: true, practiceQuiz: false, status: 'done', joinedCount: 2 },
+          { _id: 'empty', quiz: false, joinedCount: 3 },
+          { _id: 'quiz-empty', quiz: true, status: 'done' },
           { _id: 'quiz-2', quiz: true, practiceQuiz: false, status: 'visible', joinedCount: 2 },
         ],
         rows: [
           {
             grades: [
-              { sessionId: 'interactive-1', joined: true, participation: 80, value: 70, submitted: false },
-              { sessionId: 'quiz-1', joined: true, participation: 0, value: 90, submitted: true },
+              { _id: 'grade-live-1', sessionId: 'interactive-1', joined: true, participation: 80, value: 70, submitted: false },
+              { _id: 'grade-quiz-1', sessionId: 'quiz-1', joined: true, participation: 0, value: 90, submitted: true },
+              { sessionId: 'empty', hasGradeItem: false, participation: 0, value: 0 },
+              { sessionId: 'quiz-empty', hasGradeItem: false, participation: 0, value: 0 },
               { sessionId: 'quiz-2', joined: true, participation: 0, value: 100, submitted: true },
             ],
           },
@@ -110,7 +114,7 @@ describe('StudentInfoModal', () => {
       });
     });
 
-    expect(await screen.findAllByText('1 / 1')).toHaveLength(2);
+    expect(await screen.findAllByText('1 / 2')).toHaveLength(2);
     expect(screen.getByText('70%')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();

@@ -509,7 +509,13 @@ Review tabs can include result summaries, per-question response data, students, 
 
 ### Course grade table
 
-Open the course **Grades** tab, choose **Show Grade Table**, select sessions, and show the table. Select a percentage cell to inspect the student's grade; select a question label such as `Q1(SA)` to grade that response.
+Open the course **Grades** tab and choose **Show Grade Table**. Use **Select sessions with grade items** to select the matching sessions that have grades. Sessions labelled **No grade items** remain available for manual selection or **Select All**.
+
+![Session picker identifying sessions without grade items](../assets/manuals/professor-grade-session-picker.png)
+
+Average grade and participation use only each student's actual, applicable grade items from the displayed sessions. Missing grade items appear as **Not applicable** and do not reduce the average; recorded zeros do count. With no applicable grade items, the average is **Not applicable**. CSV exports use the same averages.
+
+Select a percentage cell to inspect the student's grade; select a question label such as `Q1(SA)` to grade that response.
 
 ![Course grade table with a completed quiz selected](../assets/manuals/professor-grades.png)
 

@@ -1804,6 +1804,9 @@
       "noAutoConflicts": "Nessun conflitto valutabile automaticamente da applicare.",
       "appliedAutoPartial": "Voti automatici applicati dove possibile. {{count}} conflitto/i richiedono gestione manuale.",
       "avgParticipation": "Partecipazione media",
+      "avgGrade": "Voto medio",
+      "noGradeItems": "Nessun voto registrato",
+      "selectWithGradeItems": "Seleziona le sessioni con voti registrati",
       "notApplicable": "Non applicabile",
       "firstName": "Nome",
       "lastName": "Cognome",
@@ -2353,7 +2356,8 @@
             "Le finestre di dettaglio dei voti ora etichettano le righe delle domande con numero e tipo, ad esempio D1(SM) o D2(RB), ed evidenziano visivamente le righe ancora da valutare ignorando i vecchi indicatori di valutazione su domande a zero punti.",
             "Gli studenti ricevono una notifica quando pubblichi un nuovo feedback, quindi usa commenti brevi e concreti che dicano loro cosa rivedere.",
             "Se le strutture dei gruppi erano rilevanti durante l'attività, confronta i dati di revisione e valutazione con i gruppi del corso per individuare schemi di partecipazione irregolari.",
-            "L’iscrizione crea i voti mancanti per le attività concluse del corso, anche dalle risposte salvate come ospite. Le attività non svolte ricevono zero senza richiedere correzione; le risposte scritte possono richiederla. I voti e i commenti esistenti vengono conservati. Le attività anonime restano senza voto."
+            "L’iscrizione crea i voti mancanti per le attività concluse del corso, anche dalle risposte salvate come ospite. Le attività non svolte ricevono zero senza richiedere correzione; le risposte scritte possono richiederla. I voti e i commenti esistenti vengono conservati. Le attività anonime restano senza voto.",
+            "Le medie della tabella usano i voti registrati nelle sessioni visualizzate. I voti mancanti sono esclusi; gli zeri registrati contano. Usa Seleziona le sessioni con voti registrati oppure includi manualmente le sessioni senza voti."
           ],
           "success": "I docenti possono aprire la guida studente dal selettore qui sopra per vedere in anteprima il flusso dello studente prima della lezione."
         },
@@ -2456,7 +2460,8 @@
           "bullets": [
             "Apri le sessioni rivedibili dalla pagina del corso dopo che il tuo docente termina l'attività e attiva la revisione.",
             "Avanza una domanda alla volta per confrontare la tua risposta, la risposta pubblicata, la spiegazione e ogni feedback del docente senza saltare i dettagli.",
-            "Tieni d'occhio le notifiche di feedback perché ti avvisano quando sono disponibili nuovi commenti o aggiornamenti di valutazione."
+            "Tieni d'occhio le notifiche di feedback perché ti avvisano quando sono disponibili nuovi commenti o aggiornamenti di valutazione.",
+            "Le medie dei voti e della partecipazione usano i tuoi voti visibili delle sessioni terminate e disponibili per la revisione. I voti mancanti sono esclusi; gli zeri registrati contano."
           ],
           "success": "Gli studenti spesso migliorano più in fretta quando leggono il feedback e poi provano subito di nuovo una domanda simile.",
           "screenshot": {

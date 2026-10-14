@@ -160,3 +160,14 @@ For authentication, SSO, uploads, AI URL policy, grading, or WebSocket changes, 
 `GET /api/v1/sessions/:id/grades` reads existing grades without creating missing rows. Instructor responses include `gradingLockReason`: `not-ended`, `extensions`, `missing-grades`, `anonymous`, or `null`. Anonymous sessions always return `anonymous: true` with no grades, reject grade edits, recalculation, and AI grading with `409`, and are excluded from `GET /courses/:courseId/grades`. Active and upcoming extensions prevent grading even when the stored session status is `done`.
 
 `POST /api/v1/sessions/:id/grades/recalculate` with `{ "missingOnly": true }` explicitly creates missing grade items. Recalculation, manual mark/value updates (including bulk updates and resetting automatic scoring), and starting AI grading return `409` until the session and all extension windows have ended. Existing instructor authorization checks still apply. Grade reads derive pending manual work from current responses; a confirmed manual zero remains graded.
+
+### Course grade averages
+
+`GET /api/v1/courses/:courseId/grades` returns `rows[].avgGrade` alongside
+`avgParticipation` (percentage means, one decimal place, or `null` without applicable
+items). Both use actual grade items for the returned sessions, excluding missing
+placeholders and not-applicable entries while retaining recorded zeros. Student
+queries retain the ended/reviewable/visibility restrictions and exclude other
+students' private practice sessions. Instructor `sessionIds` determines the averaging
+scope. `sessions[].hasGradeItems` and `rows[].grades[].hasGradeItem` are derived
+booleans; student availability refers only to that student's published items.
