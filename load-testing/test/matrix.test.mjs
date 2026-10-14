@@ -114,3 +114,20 @@ esac
   assert.match(result.stdout, /sha256:test/);
   assert.ok(calls.filter((line) => line.startsWith('inspect ')).every((line) => !line.includes('.Config.Env')));
 });
+
+for (const mode of ['', 'threshold', 'ingress']) {
+  test(`regression restores the original classroom workload and cleans up after ${mode || 'success'}`, async (t) => {
+    const { root, options } = await fixture(t, mode);
+    await fs.appendFile(path.join(root, '.env'), 'SESSION_CHAT_ENABLED=false\n');
+    const result = spawnSync('bash', ['matrix.sh', '--students', '500', '--profile', 'regression', '--stats', 'off'], options);
+    assert.equal(result.status, mode === '' ? 0 : mode === 'ingress' ? 10 : 1, result.stdout + result.stderr);
+    const calls = (await fs.readFile(path.join(root, 'calls'), 'utf8')).trim().split('\n');
+    assert.deepEqual(calls, ['--prepare',
+      '--scenario live-named --enrolled-percent 100 --students 500 --session-chat on --live-stats off',
+      '--restore', '--clean']);
+    assert.equal(await fs.readFile(path.join(root, '.env'), 'utf8'), 'LIVE_STATS_DURING_ANSWERS=true\nSESSION_CHAT_ENABLED=false\n');
+    const files = await fs.readdir(path.join(root, 'results'));
+    assert.ok(files.every((name) => name.startsWith('regression-')));
+    await assert.rejects(fs.access(path.join(root, 'state/rate-limit-restore.env')));
+  });
+}

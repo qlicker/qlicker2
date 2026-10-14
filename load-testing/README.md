@@ -28,6 +28,20 @@ after the run.
 
 ## Quick Start
 
+For the ordinary-session regression check on an already configured `prod` / `docker`
+stack (staging or production), use one command:
+
+```bash
+./load-testing/run.sh --regression --students 500
+```
+
+Run it from the repository root, or use `./run.sh --regression --students 500`
+from this directory. Preparation, rate-limit restoration, and cleanup are automatic.
+See [the classroom regression check](#classroom-regression-check) for coverage and
+results. No separate machine, image rebuild, or `.env` edits are required.
+
+The initial setup and manual commands remain available:
+
 ```bash
 cd load-testing
 
@@ -89,6 +103,7 @@ an external domain.
 |---------|-------------|
 | `./run.sh` | Seed + run the load test |
 | `./run.sh --students N` | Override the configured student count |
+| `./run.sh --regression` | Prepare, run the original classroom workflow once, restore, and clean automatically |
 | `./run.sh --ordinary` | Prepare, run two ordinary interactive comparisons, restore, and clean automatically |
 | `./run.sh --matrix` | Prepare, run all 12 interactive comparisons, restore, and clean automatically |
 | `./run.sh --live-stats on\|off` | Override statistics during answers without editing `.env` |
@@ -173,10 +188,60 @@ Test on the lower-stakes host first, then use the same commands on production.
 local to each host. Confirm each host's configuration points at its intended
 stack before seeding.
 
+## Classroom regression check
+
+The recommended check for whether anonymous/shared activity support changed the
+existing classroom experience is:
+
+```bash
+./load-testing/run.sh --regression --students 500
+```
+
+It follows the pre-anonymous-PR classroom sequence (from commit `4719d42`):
+
+- One instructor, an instructor observer, and 500 enrolled students; no guests,
+  sharing, or anonymous responses.
+- Five questions, with the original answer windows and pauses (about five minutes
+  total with default timing settings).
+- Students answer with statistics hidden. The instructor receives response updates
+  throughout. Once answering closes, students see statistics, word clouds/histograms
+  where applicable, and correct answers.
+- The original chat workload is enabled: quick posts, discussion posts, votes, and
+  professor replies from the existing participant fractions.
+- All 2,500 answers and all student completions must be recorded; current checks
+  also verify per-question instructor coverage, final response rows, and grades.
+
+This reuses the maintained scenario and its scheduling fixes; it restores the
+original **workflow**, not a frozen copy of the old runner. Existing error,
+completion, and latency thresholds remain enforced. A failed login threshold is
+still reported as a failure, even if answering and results checks pass. Inspect
+those separately when diagnosing a run.
+
+The profile explicitly selects `live-named`, 100% enrolled, chat on, and statistics
+hidden during answering, overriding prior matrix settings in `.env`. Only
+`--students` can override the profile. Timing settings retain their configured
+values and are logged; use the same values for comparisons. It runs on the same
+host, Docker stack, and public proxy path as before. Resource sampling remains a
+diagnostic aid, and does not require a second machine.
+
+Outputs have a `results/regression-TIMESTAMP` prefix, alongside the per-scenario
+k6 log and JSON summary. Automatic restoration and cleanup run after failures too.
+Compare with the same command/runner against baseline and feature application images
+if you need a before/after latency measurement; historical results from a different
+runner are contextual evidence, not an exact comparison.
+
+The statistics-during-answering workload was added in `973090c`. With 500 students,
+it can deliver each student's response update to hundreds of other students and
+creates a substantially heavier generator workload. It is an optional stress case,
+not part of this original-flow regression check. Shared/anonymous functionality
+has separate integration tests and load scenarios; this profile specifically checks
+that ordinary sessions still work. Passing it does not clear the unresolved
+statistics-visible stress-test failure.
+
 ## Focused ordinary-session performance check
 
-For the next regression check, use the deployed production-equivalent Docker
-stack and run from the repository root:
+For an optional comparison of statistics hidden/visible during answering, use the
+deployed production-equivalent Docker stack and run from the repository root:
 
 ```bash
 ./load-testing/run.sh --ordinary --students 500

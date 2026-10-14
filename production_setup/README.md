@@ -1041,6 +1041,17 @@ the host's own `production_setup/.env`, then restores the original rate-limit
 setting. See [the load-testing guide](../load-testing/README.md#identical-staging-and-production-runs)
 for the prepare, run, restore, and cleanup sequence.
 
+## Original classroom regression check
+
+For the routine same-host check after anonymous/shared activity changes, run
+`../load-testing/run.sh --regression --students 500` from this directory, with
+`load-testing/.env` configured for `prod` and `docker`. It runs one original-style
+classroom session (chat on, statistics shown after answering closes), checks all
+answers/results/grades, and restores rate limits and cleans fixtures automatically.
+Allow about five minutes plus setup/cleanup. No `.env` edits, application image
+rebuild, or separate load-generator machine are needed. See the
+[classroom regression guide](../load-testing/README.md#classroom-regression-check).
+
 ## Focused ordinary-session load test
 
 With `load-testing/.env` configured for `prod` and `docker`, run

@@ -4,6 +4,7 @@
 #
 # Commands:
 #   ./run.sh                     Seed the database + run the k6 load test
+#   ./run.sh --regression        Run the original classroom flow with automatic cleanup
 #   ./run.sh --ordinary          Test ordinary sessions with automatic cleanup
 #   ./run.sh --matrix            Run the full shared/anonymous comparison
 #   ./run.sh --live-stats on|off  Override statistics during answers
@@ -98,6 +99,7 @@ fi
 ACTION="full"
 MATRIX=false
 ORDINARY=false
+REGRESSION=false
 MATRIX_OPTIONS=false
 STATS_OPTION=false
 
@@ -131,6 +133,8 @@ while [[ $# -gt 0 ]]; do
       MATRIX=true; shift ;;
     --ordinary)
       ORDINARY=true; shift ;;
+    --regression)
+      REGRESSION=true; shift ;;
     --live-stats)
       STATS_OPTION=true
       if [[ $# -lt 2 ]] || ! LIVE_STATS_DURING_ANSWERS="$(normalize_boolean_flag "$2")"; then
@@ -167,7 +171,7 @@ while [[ $# -gt 0 ]]; do
     --restore)
       ACTION="restore"; shift ;;
     -h|--help)
-      head -21 "$0"
+      head -22 "$0"
       exit 0 ;;
     *)
       error "Unknown option: $1"
@@ -178,12 +182,12 @@ done
 if [[ ! "$NUM_STUDENTS" =~ ^[1-9][0-9]*$ ]]; then
   error "--students must be a positive integer."; exit 1
 fi
-if [[ "$MATRIX" == true || "$ORDINARY" == true ]]; then
-  if [[ "$MATRIX" == true && "$ORDINARY" == true ]]; then
-    error "Choose --ordinary or --matrix, not both."; exit 1
+if [[ "$MATRIX" == true || "$ORDINARY" == true || "$REGRESSION" == true ]]; then
+  if [[ ( "$MATRIX" == true && "$ORDINARY" == true ) || ( "$REGRESSION" == true && ( "$MATRIX" == true || "$ORDINARY" == true ) ) ]]; then
+    error "Choose only one of --regression, --ordinary, or --matrix."; exit 1
   fi
-  if [[ "$ACTION" != full || "$MATRIX_OPTIONS" == true || ( "$MATRIX" == true && "$STATS_OPTION" == true ) ]]; then
-    error "--ordinary accepts --students and optional --live-stats on|off; --matrix accepts only --students."; exit 1
+  if [[ "$ACTION" != full || "$MATRIX_OPTIONS" == true || ( ( "$MATRIX" == true || "$REGRESSION" == true ) && "$STATS_OPTION" == true ) ]]; then
+    error "--ordinary accepts --students and optional --live-stats on|off; --matrix accepts only --students; --regression accepts only --students."; exit 1
   fi
   if [[ "$TARGET_RUNTIME" != docker || "$TARGET_ENV" != prod ]]; then
     error "Automatic comparisons require the production-equivalent prod/docker configuration."; exit 1
@@ -195,6 +199,10 @@ if [[ "$MATRIX" == true || "$ORDINARY" == true ]]; then
     if [[ "$STATS_OPTION" == true ]]; then
       if [[ "$LIVE_STATS_DURING_ANSWERS" == true ]]; then stats_mode=on; else stats_mode=off; fi
     fi
+  fi
+  if [[ "$REGRESSION" == true ]]; then
+    profile=regression
+    stats_mode=off
   fi
   export STACK_DIR TARGET_ENV_FILE TARGET_COMPOSE_FILE K6_IMAGE
   exec bash "$SCRIPT_DIR/matrix.sh" --students "$NUM_STUDENTS" --profile "$profile" --stats "$stats_mode"

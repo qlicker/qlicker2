@@ -348,3 +348,20 @@ test('ordinary command selects both modes regardless of env, and supports a sing
   }
   await assert.rejects(fs.access(argsFile)); // Invalid/dispatch-only calls never touch Docker.
 });
+
+test('regression command fixes the workload regardless of old env settings and rejects conflicting controls', async (t) => {
+  const { root, argsFile } = await fixture(t, { runtime: 'docker' });
+  await fs.appendFile(path.join(root, '.env'), '\nLIVE_STATS_DURING_ANSWERS=true\nSESSION_CHAT_ENABLED=false\nSCENARIO=live-external-anonymous\nENROLLED_PERCENT=0\n');
+  await fs.writeFile(path.join(root, 'matrix.sh'), 'printf "%s\\n" "$*"\n');
+  const result = run(root, argsFile, '--regression', '--students', '500');
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /--students 500 --profile regression --stats off/);
+  for (const args of [
+    ['--regression', '--ordinary'], ['--regression', '--matrix'], ['--regression', '--clean'],
+    ['--regression', '--live-stats', 'on'], ['--regression', '--session-chat', 'off'],
+    ['--regression', '--scenario', 'live-anonymous'],
+  ]) {
+    assert.notEqual(run(root, argsFile, ...args).status, 0, args.join(' '));
+  }
+  await assert.rejects(fs.access(argsFile));
+});

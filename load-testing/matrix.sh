@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Internal comparison driver; use ./run.sh --ordinary or --matrix.
+# Internal comparison driver; use ./run.sh --regression, --ordinary, or --matrix.
 set -euo pipefail
 exec </dev/null
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,11 +16,14 @@ while (( $# )); do
     *) exit 2 ;;
   esac
 done
-[[ "$profile" == matrix || "$profile" == ordinary ]] || exit 2
+[[ "$profile" == matrix || "$profile" == ordinary || "$profile" == regression ]] || exit 2
 [[ "$stats_mode" == both || "$stats_mode" == on || "$stats_mode" == off ]] || exit 2
-[[ "$profile" == ordinary || "$stats_mode" == both ]] || exit 2
+[[ "$profile" != matrix || "$stats_mode" == both ]] || exit 2
+[[ "$profile" != regression || "$stats_mode" == off ]] || exit 2
 entries=(live-named:100 live-external-named:100 live-external-named:50 live-external-named:0 live-external-anonymous:0 live-anonymous:100)
-if [[ "$profile" == ordinary ]]; then entries=(live-named:100); fi
+if [[ "$profile" != matrix ]]; then entries=(live-named:100); fi
+chat_mode=off
+if [[ "$profile" == regression ]]; then chat_mode=on; fi
 stats_modes=(off on)
 if [[ "$stats_mode" != both ]]; then stats_modes=("$stats_mode"); fi
 mkdir -p results state
@@ -34,7 +37,7 @@ resources="results/${profile}-${stamp}-resources.jsonl"
 # Save all preparation/cleanup output, including failures before k6 starts.
 exec > >(trap '' INT TERM; tee "$log") 2>&1
 printf 'scenario\tenrolled_percent\tlive_stats\texit_code\n' > "$summary"
-echo "[INFO] Comparison profile: $profile; statistics modes: ${stats_modes[*]}; students: $students"
+echo "[INFO] Comparison profile: $profile; statistics modes: ${stats_modes[*]}; chat: $chat_mode; students: $students"
 echo "[INFO] Matrix log: $SCRIPT_DIR/$log"
 echo "[INFO] Matrix summary: $SCRIPT_DIR/$summary"
 echo "[INFO] Resource samples: $SCRIPT_DIR/$resources"
@@ -119,7 +122,7 @@ for stats in "${stats_modes[@]}"; do
     snapshot_stack "before $scenario stats=$stats"
     status=0
     bash ./run.sh --scenario "$scenario" --enrolled-percent "$percent" \
-      --students "$students" --session-chat off --live-stats "$stats" || status=$?
+      --students "$students" --session-chat "$chat_mode" --live-stats "$stats" || status=$?
     printf '%s\t%s\t%s\t%s\n' "$scenario" "$percent" "$stats" "$status" >> "$summary"
     snapshot_stack "after $scenario stats=$stats"
     if (( status != 0 )); then
