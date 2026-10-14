@@ -249,6 +249,10 @@ Linked rows are needed to correlate survey answers, but a unique or self-identif
 
 ### Share a quiz or live activity outside the course
 
+The session editor shows sharing controls only when the course allows activity sharing.
+
+![Session editor with sharing controls hidden because course sharing is disabled](../assets/manuals/session-editor-sharing-disabled.png)
+
 In **Course settings**, turn on **Allow activities to be shared by code**; it is off by default. Turning it off later revokes all codes and outside access for that course. Create the activity inside the course, add its questions, and set its normal quiz window or live settings. In the session editor, switch on **Enable sharing this activity outside the course** to generate a code beginning with `S-` followed by ten letters or digits. The current code stays visible to course instructors after a refresh. Switching sharing off makes the stored code unusable and revokes all outside grants. Switching it on again reuses the same code; prior participants must redeem it again. **Regenerate code** replaces the code, invalidates the old one for new redemptions, and retains existing grants. Codes expire for new participants after 30 days by default; a participant who already redeemed a code can still re-enter it until sharing is disabled. The separate rotating six-digit live join code remains in force when **Require Passcode** is on.
 
 For activities with identified responses, participant lists and results label enrolled students and guests. A professor participating from outside the course also has a **Professor** badge and remains a guest for grading. Anonymous results show respondent labels only.

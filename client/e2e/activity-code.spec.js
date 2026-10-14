@@ -23,7 +23,8 @@ test('course opt-in and session switch expose a persistent code for an outside q
   await loginViaUi(page, professor.email, professor.password, /\/prof$/);
   await page.goto(`/prof/course/${course._id}/session/${quiz._id}`);
   const sharing = page.getByLabel('Enable sharing this activity outside the course');
-  await expect(sharing).toBeDisabled();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Outside quiz');
+  await expect(sharing).toHaveCount(0);
   await page.goto(`/prof/course/${course._id}`);
   await page.getByRole('tab', { name: /^Course Settings$/i }).click();
   await page.getByLabel('Allow activities to be shared by code').click();

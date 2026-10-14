@@ -1646,7 +1646,7 @@ export default function SessionEditor() {
             </Typography>
           )}
 
-          <Paper variant="outlined" sx={{ p: 2, display: 'grid', gap: 1.5 }}>
+          {course?.allowSharedActivities && <Paper variant="outlined" sx={{ p: 2, display: 'grid', gap: 1.5 }}>
             <FormControlLabel sx={{ m: 0 }}
               control={<Switch checked={!!activityShare.enabled}
                 disabled={savingActivityShare || (!activityShare.enabled && (practiceQuiz || session?.studentCreated || !course?.allowSharedActivities || extensionDrafts.length > 0))}
@@ -1708,9 +1708,8 @@ export default function SessionEditor() {
                 {t('professor.sessionEditor.activityCodeExpires', { date: new Date(activityShare.expiresAt).toLocaleString() })}
               </Typography>}
             </>}
-            {!course?.allowSharedActivities && <Typography variant="body2" color="text.secondary">{t('professor.sessionEditor.courseSharingDisabled')}</Typography>}
             {extensionDrafts.length > 0 && <Typography variant="body2" color="text.secondary">{t('professor.sessionEditor.removeExtensionsBeforeSharing')}</Typography>}
-          </Paper>
+          </Paper>}
 
           {/* Join code settings (for interactive sessions only) */}
           {!quiz && (

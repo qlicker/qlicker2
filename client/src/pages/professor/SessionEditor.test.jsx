@@ -395,7 +395,7 @@ describe('SessionEditor inline close behavior', () => {
     expect(screen.getByText('professor.sessionEditor.anonymousNoExtensions')).toBeInTheDocument();
   });
 
-  it('disables activity sharing until course opt-in and prevents extensions on shared quizzes', async () => {
+  it('hides activity sharing until course opt-in and prevents extensions on shared quizzes', async () => {
     const originalGet = apiClientMock.get.getMockImplementation();
     const renderWith = async ({ allowSharedActivities, quizExtensions = [], activityEverShared = false }) => {
       apiClientMock.get.mockImplementation(async (url) => {
@@ -409,10 +409,11 @@ describe('SessionEditor inline close behavior', () => {
       return render(<SessionEditor />);
     };
     let view = await renderWith({ allowSharedActivities: false });
-    expect(await screen.findByLabelText('professor.sessionEditor.allowActivityCodeAccess')).toBeDisabled();
-    fireEvent.mouseOver(screen.getByLabelText('professor.sessionEditor.activityCodeTitle'));
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('professor.sessionEditor.activityCodeHelp');
-    expect(screen.getByText('professor.sessionEditor.courseSharingDisabled')).toBeInTheDocument();
+    await screen.findByLabelText('professor.sessionEditor.anonymous');
+    expect(screen.queryByLabelText('professor.sessionEditor.allowActivityCodeAccess')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('professor.sessionEditor.activityCodeTitle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('activity-share-code')).not.toBeInTheDocument();
+    expect(screen.queryByText('professor.sessionEditor.courseSharingDisabled')).not.toBeInTheDocument();
     view.unmount();
 
     view = await renderWith({ allowSharedActivities: true, quizExtensions: [{ userId: 'student-1' }] });
@@ -422,6 +423,8 @@ describe('SessionEditor inline close behavior', () => {
 
     await renderWith({ allowSharedActivities: true, activityEverShared: true });
     expect(await screen.findByLabelText('professor.sessionEditor.allowActivityCodeAccess')).toBeEnabled();
+    fireEvent.mouseOver(screen.getByLabelText('professor.sessionEditor.activityCodeTitle'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('professor.sessionEditor.activityCodeHelp');
     expect(screen.queryByRole('button', { name: 'professor.sessionEditor.manageExtensions' })).not.toBeInTheDocument();
     expect(screen.getByText('professor.sessionEditor.sharedNoExtensions')).toBeInTheDocument();
   });
