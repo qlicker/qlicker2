@@ -126,6 +126,15 @@ describe('CourseGradesPanel', () => {
     expect(screen.queryByText(/5 ungraded/i)).not.toBeInTheDocument();
   });
 
+  it('opens session review for student grade clicks without opening instructor dialogs', async () => {
+    const onOpenSession = vi.fn();
+    render(<CourseGradesPanel courseId="course-1" instructorView={false} onOpenSession={onOpenSession} />);
+    fireEvent.click(await screen.findByRole('button', { name: '87.5%' }));
+    expect(onOpenSession).toHaveBeenCalledWith('session-1');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(apiClient.get.mock.calls.every(([url]) => url === '/courses/course-1/grades')).toBe(true);
+  });
+
   it('starts hidden for instructors and shows selected-session grades after modal confirmation', async () => {
     render(
       <CourseGradesPanel

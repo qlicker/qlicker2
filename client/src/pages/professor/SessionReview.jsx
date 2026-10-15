@@ -382,7 +382,7 @@ function getStudentQuestionPoints(gradesByStudentId = {}, studentId, questionId,
   return null;
 }
 
-function formatAnswerText(question, answer) {
+function formatAnswerText(question, answer, t) {
   let answerText = answer ?? '';
   const normType = normalizeQuestionType(question);
 
@@ -393,7 +393,15 @@ function formatAnswerText(question, answer) {
     answerText = collectAnswerEntries(answerText)
       .map((entry) => {
         const idx = resolveOptionIndex(entry, question.options);
-        return idx >= 0 ? OPTION_LETTERS[idx] : entry;
+        if (idx < 0) return entry;
+        if (normType === QUESTION_TYPES.TRUE_FALSE) {
+          const option = question.options[idx];
+          const label = normalizeComparableText(option?.plainText || option?.content || option?.answer);
+          return label === 'true' || label === 'false'
+            ? t(`questions.editor.${label}`)
+            : label || t(idx === 0 ? 'questions.editor.true' : 'questions.editor.false');
+        }
+        return OPTION_LETTERS[idx];
       })
       .join(', ');
   } else if (answerText && typeof answerText === 'object') {
@@ -505,7 +513,7 @@ export function buildSessionResultsCsv({
           return;
         }
 
-        const answerText = formatAnswerText(question, attemptResponse?.answer);
+        const answerText = formatAnswerText(question, attemptResponse?.answer, t);
         const points = getStudentQuestionPoints(
           gradesByStudentId,
           student.studentId,
@@ -1189,7 +1197,7 @@ export default function SessionReview() {
     questions.forEach((question) => {
       const qr = questionResultsById.get(String(question._id));
       const latestResponse = getLatestResponse(qr?.responses || []);
-      const responseDisplay = latestResponse ? (formatAnswerText(question, latestResponse?.answer) || '—') : '—';
+      const responseDisplay = latestResponse ? (formatAnswerText(question, latestResponse?.answer, t) || '—') : '—';
       const responsePoints = latestResponse
         ? getStudentQuestionPoints(gradesByStudentId, student.studentId, question._id, latestResponse)
         : null;

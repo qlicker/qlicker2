@@ -498,7 +498,7 @@ async function seed(numStudents, scenario, enrolledPercent) {
   let activityCode = '';
   if (external) {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    activityCode = `S-${[...crypto.randomBytes(10)].map((byte) => alphabet[byte & 31]).join('')}`;
+    activityCode = `S-${[...crypto.randomBytes(7)].map((byte) => alphabet[byte & 31]).join('')}`;
     await mongoose.connection.db.collection('activityShares').insertOne({
       _id: meteorId(), sessionId: session._id,
       codeHash: crypto.createHash('sha256').update(activityCode).digest('hex'),

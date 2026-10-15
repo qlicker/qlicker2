@@ -1038,7 +1038,7 @@
       "sessionName": "Session name",
       "tags": "Session tags",
       "tagsPlaceholder": "Add a topic tag",
-      "tagsHelp": "Use tags that describe the specific topic covered by this session and its questions."
+      "tagsHelp": "Create tags in Course Settings, then select the tags that describe this session and its questions."
     },
     "liveSession": {
       "currentQuestion": "Current question",
@@ -2333,7 +2333,7 @@
           "title": "Build sessions with questions, slides, and visibility in mind",
           "subtitle": "Sessions are ordered learning flows, not just containers.",
           "bullets": [
-            "Use the session editor to set the session name, description, visibility, reviewability, passcode requirement, quiz window, extensions, and multi-select scoring method.",
+            "Use the session editor to set the session name, description, visibility, reviewability, passcode requirement, quiz window, extensions, and multi-select scoring method. Create tags in Course Settings, then select the tags that describe this session and its questions.",
             "Add new questions, pick from the question library, import session JSON, or insert slides anywhere in the sequence.",
             "Slides are content-only pages, so they are ideal for instructions, worked examples, or discussion prompts between graded questions.",
             "Question visibility matters: keep private content private, share course-public material intentionally, and use Qlicker-wide visibility only when broad reuse is really desired."
@@ -2375,7 +2375,7 @@
             "If a session depends on passcodes, groups, or visible statistics, confirm those settings before students begin joining.",
             "Session lists keep search, filters, and pagination inside Search sessions. While an interactive session is live, opening its card joins the live controls directly; live quiz cards still open the editor.",
             "Responses and attendance are stored without student identities. This session will not be graded. Anonymity cannot be changed after students have joined or responded. Anonymous live statistics and unlinked answer lists update after at least four new people respond to the question and attempt. Names and answer times are hidden. Linked respondent rows become available only after the activity ends and at least four people have answered every question and attempt with responses. Unique answers may still identify someone. An information banner in the live Controls explains the four-person minimum while statistics are hidden, then shows the released response count and batching rule.",
-            "The session editor shows sharing controls only when the course allows activity sharing. Use the session switch to turn sharing on or off; the active code remains visible after a refresh and can be regenerated. First enable activity-code sharing in Course settings; it is off by default. Turning it off revokes existing codes and outside access. Remove individual quiz extensions before sharing; they remain unavailable after sharing. To invite signed-in people outside the course, create a quiz or live session in the course and generate an S- activity code in its editor. Copy it when shown; regenerating stops new use of the old code, and disabling revokes outside access. Turning sharing back on reuses the same code; only Regenerate code replaces it. In a named activity, enrolled students can receive grades; guests have tracked responses but no grade items. Turn on anonymity for a survey with no grade items for anyone. Choose named or anonymous responses before anyone redeems the code; anonymous respondent rows appear only after the activity ends and four people answer every question and attempt. Unique answers may still reveal someone. The rotating live join code still applies when enabled. Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity.",
+            "The session editor shows sharing controls only when the course allows activity sharing. Use the session switch to turn sharing on or off; the active code remains visible after a refresh and can be regenerated. First enable activity-code sharing in Course settings; it is off by default. Turning it off revokes existing codes and outside access. Remove individual quiz extensions before sharing; they remain unavailable after sharing. To invite signed-in people outside the course, create a quiz or live session in the course and generate an S- activity code in its editor. Copy it when shown; regenerating stops new use of the old code, and disabling revokes outside access. Turning sharing back on reuses the same code; only Regenerate code replaces it. In a named activity, enrolled students can receive grades; guests have tracked responses but no grade items. Turn on anonymity for a survey with no grade items for anyone. Choose named or anonymous responses before anyone redeems the code; anonymous respondent rows appear only after the activity ends and four people answer every question and attempt. Unique answers may still reveal someone. The rotating live join code still applies when enabled. Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity. Activity codes use S- followed by seven letters or digits. The active code also appears in the instructor’s live session controls.",
             "If an instructor changes a live session to Upcoming, participants see a waiting screen until it returns to Live. Draft sends enrolled students back to the course and guests back to their dashboard. Saved answers are preserved.",
             "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period."
           ]
@@ -2510,7 +2510,7 @@
           "title": "Review sessions one question at a time and use feedback",
           "subtitle": "Review mode is one of the best study tools in the app.",
           "bullets": [
-            "Open reviewable sessions from the course page after your instructor ends the activity and turns on review.",
+            "Open reviewable sessions from the course page after your instructor ends the activity and turns on review. Click a grade in the Grades table to open the session review.",
             "Move one question at a time to compare your answer, the released answer, the explanation, and any instructor feedback without rushing past details.",
             "Watch for feedback notifications because they tell you when new comments or grading updates are available.",
             "Average grade and participation use your visible grade items from ended, reviewable sessions. Missing items are excluded; recorded zeros count."

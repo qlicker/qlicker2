@@ -220,7 +220,7 @@ The **Grades** tab shows only your own results from ended, reviewable sessions. 
 - A session can disappear if the instructor turns reviewability off while correcting results.
 - Participation and score are different measures; a submitted answer can receive participation credit but zero correctness points.
 
-Open the corresponding review page to understand a grade. If you believe something is wrong, identify the course, session, question number/type, attempt, and what you expected; do not send passwords or access tokens.
+Click a grade in the **Grades** table to open the review of that ended, reviewable session. If you believe something is wrong, identify the course, session, question number/type, attempt, and what you expected; do not send passwords or access tokens.
 
 See [Grading guide](grading.md) for the shared rules.
 

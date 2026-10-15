@@ -1816,6 +1816,10 @@ export default function CourseGradesPanel({
 
   const handleOpenGradeDialog = useCallback((grade, student) => {
     if (!grade?._id) return;
+    if (!instructorView) {
+      onOpenSession?.(grade.sessionId);
+      return;
+    }
     const matchingSession = visibleSessions.find((session) => String(session._id) === String(grade?.sessionId));
     setGradeDialogState({
       open: true,
@@ -1823,7 +1827,7 @@ export default function CourseGradesPanel({
       student,
       sessionName: matchingSession?.name || grade?.name || '',
     });
-  }, [visibleSessions]);
+  }, [instructorView, onOpenSession, visibleSessions]);
 
   const handleGradeDialogUpdated = useCallback(async () => {
     await fetchGrades(selectedSessionIds, { applyToState: true });

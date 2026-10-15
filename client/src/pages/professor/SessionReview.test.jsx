@@ -388,6 +388,33 @@ describe('SessionReview', () => {
     expect(csvExport.csvContent).toContain(',B,4');
   });
 
+  it.each(['en', 'fr'])('labels True/False responses in the table and CSV in %s', async (locale) => {
+    await i18n.changeLanguage(locale);
+    const payload = buildResultsPayload();
+    // Reversed option order also occurs in imported questions; respect the option text.
+    payload.questions[0] = { ...payload.questions[0], type: 1, options: [
+      { _id: 'false-option', content: '<p>False</p>' },
+      { _id: 'true-option', content: '<p>True</p>' },
+    ] };
+    payload.studentResults[0].questionResults[0].responses[0].answer = { optionId: 'true-option' };
+    const defaultGet = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (url) => url.endsWith('/results')
+      ? { data: payload } : defaultGet(url));
+    renderSessionReview();
+    fireEvent.click(await screen.findByRole('tab', { name: i18n.t('professor.sessionReview.responseData') }));
+    const trueLabel = i18n.t('questions.editor.true');
+    const falseLabel = i18n.t('questions.editor.false');
+    expect(await screen.findByRole('cell', { name: `${trueLabel} (4)`, exact: true })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: `${falseLabel} (1)`, exact: true })).toBeInTheDocument();
+    const csv = buildSessionResultsCsv({
+      csvQuestionAttempts: [{ question: payload.questions[0], questionNumber: 1, attempts: [1, 2] }],
+      studentResults: payload.studentResults, gradesByStudentId: {}, sessionName: 'True False',
+      t: i18n.t.bind(i18n),
+    });
+    expect(csv.csvContent).toContain(`,${trueLabel},`);
+    expect(csv.csvContent).toContain(`,${falseLabel},`);
+  });
+
   it('builds anonymous CSV rows without identity, grade, or join columns', () => {
     const csvExport = buildSessionResultsCsv({
       anonymous: true,

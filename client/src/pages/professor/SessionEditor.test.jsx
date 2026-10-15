@@ -434,7 +434,7 @@ describe('SessionEditor inline close behavior', () => {
     let enabled = true;
     apiClientMock.get.mockImplementation(async (url) => {
       if (url === '/sessions/session-1/activity-share') {
-        return { data: { enabled, code: enabled ? 'S-ABCDEFGHJK' : null, expiresAt: enabled ? '2026-10-20T12:00:00.000Z' : null } };
+        return { data: { enabled, code: enabled ? 'S-ABCDEFG' : null, expiresAt: enabled ? '2026-10-20T12:00:00.000Z' : null } };
       }
       const response = await originalGet(url);
       if (url === '/courses/course-1') response.data.course.allowSharedActivities = true;
@@ -444,7 +444,7 @@ describe('SessionEditor inline close behavior', () => {
     render(<SessionEditor />);
     const shareSwitch = await screen.findByLabelText('professor.sessionEditor.allowActivityCodeAccess');
     await waitFor(() => expect(shareSwitch).toBeChecked());
-    expect(screen.getByTestId('activity-share-code')).toHaveTextContent('S-ABCDEFGHJK');
+    expect(screen.getByTestId('activity-share-code')).toHaveTextContent('S-ABCDEFG');
     expect(screen.getByRole('button', { name: 'professor.sessionEditor.rotateActivityCode' })).toBeInTheDocument();
     fireEvent.click(shareSwitch);
     await waitFor(() => expect(apiClientMock.delete).toHaveBeenCalledWith('/sessions/session-1/activity-share'));
@@ -456,7 +456,7 @@ describe('SessionEditor inline close behavior', () => {
   it('uses explicit regeneration only for the Regenerate button', async () => {
     const originalGet = apiClientMock.get.getMockImplementation();
     let enabled = true;
-    let code = 'S-ABCDEFGHJK';
+    let code = 'S-ABCDEFG';
     apiClientMock.get.mockImplementation(async (url) => {
       if (url === '/sessions/session-1/activity-share') {
         return { data: { enabled, code: enabled ? code : null, expiresAt: enabled ? '2026-10-20T12:00:00.000Z' : null } };
@@ -467,7 +467,7 @@ describe('SessionEditor inline close behavior', () => {
     });
     apiClientMock.post.mockImplementation(async (url, payload) => {
       expect(url).toBe('/sessions/session-1/activity-share');
-      if (payload.regenerate) code = 'S-HJKLMNPQRS';
+      if (payload.regenerate) code = 'S-HJKLMNP';
       enabled = true;
       return { data: { code, expiresAt: '2026-10-20T12:00:00.000Z' } };
     });

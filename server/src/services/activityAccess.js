@@ -7,7 +7,7 @@ import Session from '../models/Session.js';
 import { isCourseMember } from '../utils/courseAccess.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const CODE_PATTERN = /^(?:S-[A-HJ-NP-Z2-9]{10}|S-[A-F0-9]{40})$/;
+const CODE_PATTERN = /^S-[A-HJ-NP-Z2-9]{7}$/;
 
 export function normalizeActivityCode(value) {
   const code = String(value || '').trim().toUpperCase();
@@ -22,7 +22,7 @@ export function deriveActivityCode(seed) {
   if (!/^[a-f0-9]{32}$/.test(String(seed || ''))) return null;
   const digest = crypto.createHmac('sha256', config.jwtSecret)
     .update(`qlicker-activity-code-v1:${seed}`).digest();
-  return `S-${[...digest.subarray(0, 10)].map((byte) => CODE_ALPHABET[byte & 31]).join('')}`;
+  return `S-${[...digest.subarray(0, 7)].map((byte) => CODE_ALPHABET[byte & 31]).join('')}`;
 }
 
 export function makeActivityCode() {

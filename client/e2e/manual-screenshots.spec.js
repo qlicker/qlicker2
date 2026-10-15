@@ -319,7 +319,7 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   });
   await professorPage.reload();
   await professorPage.getByLabel('Enable sharing this activity outside the course').click();
-  await expect(professorPage.getByTestId('activity-share-code')).toHaveText(/^S-[A-HJ-NP-Z2-9]{10}$/);
+  await expect(professorPage.getByTestId('activity-share-code')).toHaveText(/^S-[A-HJ-NP-Z2-9]{7}$/);
   await capture(professorPage, 'session-editor.png');
 
   await professorPage.goto(`/prof/course/${course._id}`);
@@ -332,6 +332,7 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   const richTextChatToggle = professorPage.getByLabel(/^Enable rich text chat$/i);
   if (!(await richTextChatToggle.isChecked())) await richTextChatToggle.click();
   await expect(professorPage.getByText(/Which organelle produces most of a cell's ATP/i)).toBeVisible();
+  await expect(professorPage.getByTestId('activity-share-code')).toHaveText(/^S-[A-HJ-NP-Z2-9]{7}$/);
   await capture(professorPage, 'professor-live-session.png');
   const studentJoin = await apiJson(request, 'POST', `/sessions/${interactive._id}/join`, {
     token: student.token,

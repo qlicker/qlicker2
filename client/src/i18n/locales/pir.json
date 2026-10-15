@@ -1038,7 +1038,7 @@
       "sessionName": "Voyage name",
       "tags": "Voyage tags",
       "tagsPlaceholder": "Add a topic tag",
-      "tagsHelp": "Use tags that tell what topic this voyage and its questions cover, matey."
+      "tagsHelp": "Create yer tags in Course Settings, then pick the tags that describe this session and its questions."
     },
     "liveSession": {
       "currentQuestion": "Current riddle",
@@ -2286,7 +2286,7 @@
           "title": "Build voyages with riddles, slides, an' visibility in mind",
           "subtitle": "Voyages be ordered learnin' voyages, not just containers.",
           "bullets": [
-            "Use th' voyage editor to set th' voyage moniker, blurb, visibility, reviewability, secret code requirement, reckoning window, extensions, an' multi-pick scorin' method.",
+            "Use th' voyage editor to set th' voyage moniker, blurb, visibility, reviewability, secret code requirement, reckoning window, extensions, an' multi-pick scorin' method. Create yer tags in Course Settings, then pick the tags that describe this session and its questions.",
             "Add new riddles, pick from th' riddle chest, load voyage JSON, or insert slides anywhere in th' sequence.",
             "Slides be content-only pages, so they're ideal fer instructions, worked examples, or parley prompts between reckoned riddles.",
             "Riddle visibility matters: keep private content private, share ship-public material intentionally, an' use Qlicker-wide visibility only when broad reuse be really desired."
@@ -2328,7 +2328,7 @@
             "If a voyage depends on secret codes, watches, or in plain sight statistics, confirm those rigging afore crew begin joinin'.",
             "Voyage lists keep hunt, filters, an' pagination inside Hunt voyages. While an interactive voyage be underway, openin' its card joins th' underway controls directly; underway reckoning cards still open th' editor.",
             "Replies an' musters be stowed without the crew's names. This voyage won't be scored. The mask can't be changed once crew have boarded or replied. Masked live reckonings and untied answer lists update after at least four new mateys answer the riddle and attempt. Names and answer times stay hidden. Rows tied to one matey appear only after the voyage ends and at least four mateys answer every riddle and attempt with replies. A rare reply may still reveal someone. An info banner in live Controls explains the four-crewmate minimum while stats be hidden, then shows the released answer count and batchin’ rule.",
-            "The session editor shows sharin’ controls only when the course allows activity sharin’. Use the voyage switch to open or close sharing; the live code stays in sight after a refresh and can be forged anew. First enable code sharing in course settings, matey; it starts off. Turnin’ it off scuttles old codes and outside access. Clear individual quiz extensions afore sharing; they stay gone thereafter. To invite signed-in mateys outside yer ship, make a quiz or live voyage in the course and forge an S- activity code in the editor. Copy it at once; a new code bars new use of the old one, and disabling it revokes outside entry. Turnin’ sharing back on uses the same code; only forgin’ a new one replaces it. In a named voyage, enrolled mateys may earn marks; guest replies be tracked without marks. Turn on masking fer a survey with no marks fer any matey. Choose named or masked replies before the first code use. Masked rows appear only after the voyage ends and four mateys answer each riddle and attempt. A rare answer may still reveal a matey. The rotating live boarding code still applies when enabled. Activity codes won't work while the activity be a Draft, even fer past crewmates. The same code works once the captain publishes the activity.",
+            "The session editor shows sharin’ controls only when the course allows activity sharin’. Use the voyage switch to open or close sharing; the live code stays in sight after a refresh and can be forged anew. First enable code sharing in course settings, matey; it starts off. Turnin’ it off scuttles old codes and outside access. Clear individual quiz extensions afore sharing; they stay gone thereafter. To invite signed-in mateys outside yer ship, make a quiz or live voyage in the course and forge an S- activity code in the editor. Copy it at once; a new code bars new use of the old one, and disabling it revokes outside entry. Turnin’ sharing back on uses the same code; only forgin’ a new one replaces it. In a named voyage, enrolled mateys may earn marks; guest replies be tracked without marks. Turn on masking fer a survey with no marks fer any matey. Choose named or masked replies before the first code use. Masked rows appear only after the voyage ends and four mateys answer each riddle and attempt. A rare answer may still reveal a matey. The rotating live boarding code still applies when enabled. Activity codes won't work while the activity be a Draft, even fer past crewmates. The same code works once the captain publishes the activity. Activity codes be S- followed by seven letters or digits. The active code also appears in the captain’s live session controls.",
             "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
             "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period."
           ]
@@ -2463,7 +2463,7 @@
           "title": "Recap voyages one riddle at a time an' use holler",
           "subtitle": "Recap mode be one o' th' best study tools in th' app.",
           "bullets": [
-            "Open recappable voyages from th' ship page after yer officer ends th' activity an' turns on recap.",
+            "Open recappable voyages from th' ship page after yer officer ends th' activity an' turns on recap. Click a grade in yer Grades table to open the session review.",
             "Move one riddle at a time to compare yer answer, th' released answer, th' explanation, an' any officer holler without rushin' past details.",
             "Watch fer holler bulletins because they tell ye when new remarks or gradin' updates be available.",
             "Yer average marks and turnout use visible marks from ended sessions open fer review. Missing marks stay out; recorded zeros count."

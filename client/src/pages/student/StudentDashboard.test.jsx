@@ -124,7 +124,7 @@ describe('StudentDashboard', () => {
   it('does not redeem an activity code through course enrollment', async () => {
     renderDashboard();
     fireEvent.click(await screen.findByRole('button', { name: 'student.dashboard.enrollInCourse' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'student.dashboard.enrollmentCode' }), { target: { value: 'S-ABCDEFGHJK' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'student.dashboard.enrollmentCode' }), { target: { value: 'S-ABCDEFG' } });
     fireEvent.click(screen.getByRole('button', { name: 'student.dashboard.enroll' }));
     expect(await screen.findByText('student.dashboard.activityCodeUseJoin')).toBeVisible();
     expect(apiClientMock.post).not.toHaveBeenCalled();
@@ -140,10 +140,10 @@ describe('StudentDashboard', () => {
     fireEvent.click(dialog.getByRole('button', { name: 'student.dashboard.joinActivity' }));
     expect(await screen.findByText('student.dashboard.activityCodeRequired')).toBeVisible();
     expect(apiClientMock.post).not.toHaveBeenCalled();
-    fireEvent.change(code, { target: { value: 'S-ABCDEFGHJK' } });
+    fireEvent.change(code, { target: { value: 'S-ABCDEFG' } });
     fireEvent.click(dialog.getByRole('button', { name: 'student.dashboard.joinActivity' }));
     expect(await screen.findByText('Activity unavailable')).toBeVisible();
-    expect(apiClientMock.post).toHaveBeenCalledWith('/activity-codes/redeem', { code: 'S-ABCDEFGHJK' });
+    expect(apiClientMock.post).toHaveBeenCalledWith('/activity-codes/redeem', { code: 'S-ABCDEFG' });
     expect(apiClientMock.post).not.toHaveBeenCalledWith('/courses/enroll', expect.anything());
   });
 

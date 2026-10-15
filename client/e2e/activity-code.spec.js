@@ -35,7 +35,7 @@ test('course opt-in and session switch expose a persistent code for an outside q
   await sharing.click();
   await expect(sharing).toBeChecked();
   const codeField = page.getByTestId('activity-share-code');
-  await expect(codeField).toHaveText(/^S-[A-HJ-NP-Z2-9]{10}$/);
+  await expect(codeField).toHaveText(/^S-[A-HJ-NP-Z2-9]{7}$/);
   const code = await codeField.textContent();
   await page.reload();
   await expect(sharing).toBeChecked();
@@ -53,7 +53,7 @@ test('course opt-in and session switch expose a persistent code for an outside q
   await page.getByRole('button', { name: 'Regenerate code' }).click();
   await expect(codeField).not.toHaveText(code);
   const regeneratedCode = await codeField.textContent();
-  expect(regeneratedCode).toMatch(/^S-[A-HJ-NP-Z2-9]{10}$/);
+  expect(regeneratedCode).toMatch(/^S-[A-HJ-NP-Z2-9]{7}$/);
   expect((await apiJson(request, 'POST', '/activity-codes/redeem', {
     token: student.token, payload: { code },
   })).response.status()).toBe(404);

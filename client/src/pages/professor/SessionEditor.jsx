@@ -1801,7 +1801,7 @@ export default function SessionEditor() {
                   label={t('professor.sessionEditor.tags', { defaultValue: 'Session tags' })}
                   placeholder={t('professor.sessionEditor.tagsPlaceholder', { defaultValue: 'Add a topic tag' })}
                   helperText={t('professor.sessionEditor.tagsHelp', {
-                    defaultValue: 'Use tags that describe the specific topic covered by this session and its questions.',
+                    defaultValue: 'Create tags in Course Settings, then select the tags that describe this session and its questions.',
                   })}
                 />
               )}

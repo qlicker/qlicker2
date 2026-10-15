@@ -75,7 +75,7 @@ describe('activity code foundation', () => {
     const status = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/activity-share`, { token: professorToken });
     expect(status.statusCode).toBe(200);
     expect(status.json()).toEqual({ enabled: true, code, expiresAt: issued.json().expiresAt });
-    expect(code).toMatch(/^S-[A-HJ-NP-Z2-9]{10}$/);
+    expect(code).toMatch(/^S-[A-HJ-NP-Z2-9]{7}$/);
     const share = await ActivityShare.findOne({ sessionId: session._id }).lean();
     expect(share.codeHash).not.toBe(code);
     expect(JSON.stringify(share)).not.toContain(code);
@@ -113,7 +113,7 @@ describe('activity code foundation', () => {
     const issued = await issue(session._id, professorToken);
     expect(issued.statusCode).toBe(200);
     const code = issued.json().code;
-    const unknown = await redeem('S-AAAAAAAAAA', outsiderToken);
+    const unknown = await redeem('S-AAAAAAA', outsiderToken);
     expect(unknown.statusCode).toBe(404);
     for (const token of [outsiderToken, studentToken]) {
       const denied = await redeem(code, token);
@@ -182,21 +182,26 @@ describe('activity code foundation', () => {
     }
   });
 
-  it('keeps old hash-only codes redeemable but requires rotation to display them', async () => {
+  it('rejects unsupported code formats', async () => {
+    const { outsiderToken } = await fixture();
+    for (const code of ['S-AAAAAA', 'S-AAAAAAAA', `S-${'A'.repeat(10)}`, `S-${'A'.repeat(40)}`]) {
+      expect((await redeem(code, outsiderToken)).statusCode).toBe(404);
+    }
+  });
+
+  it('limits redemption to ten attempts per minute per account without blocking classmates', async () => {
+    await app.close();
+    app = await createApp({ disableRateLimits: false });
     const { professorToken, outsiderToken, session } = await fixture();
-    const legacyCode = `S-${'A'.repeat(40)}`;
-    const { hashActivityCode } = await import('../../src/services/activityAccess.js');
-    await Session.updateOne({ _id: session._id }, { $set: { activityEverShared: true, activityAccessEnabled: true } });
-    await ActivityShare.create({ sessionId: session._id, codeHash: hashActivityCode(legacyCode),
-      expiresAt: new Date(Date.now() + 60_000) });
-    const status = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/activity-share`, { token: professorToken });
-    expect(status.json().enabled).toBe(true);
-    expect(status.json().code).toBeNull();
-    expect((await redeem(legacyCode, outsiderToken)).statusCode).toBe(200);
-    const replacement = (await issue(session._id, professorToken, { regenerate: true })).json().code;
-    expect(replacement).toMatch(/^S-[A-HJ-NP-Z2-9]{10}$/);
-    const updated = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/activity-share`, { token: professorToken });
-    expect(updated.json().code).toBe(replacement);
+    const code = (await issue(session._id, professorToken)).json().code;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      expect((await redeem('S-AAAAAAA', outsiderToken)).statusCode).toBe(404);
+    }
+    const limited = await redeem(code, outsiderToken);
+    expect(limited.statusCode).toBe(429);
+    expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
+    // Same network address, different account: the student's attempts do not block others.
+    expect((await redeem(code, professorToken)).statusCode).toBe(200);
   });
 
   it('creates a code on first enable, reuses it after disabling, and accepts only the enabled code', async () => {
@@ -204,7 +209,7 @@ describe('activity code foundation', () => {
     const first = await issue(session._id, professorToken);
     expect(first.statusCode).toBe(200);
     const firstCode = first.json().code;
-    expect(firstCode).toMatch(/^S-[A-HJ-NP-Z2-9]{10}$/);
+    expect(firstCode).toMatch(/^S-[A-HJ-NP-Z2-9]{7}$/);
     expect((await issue(session._id, professorToken)).json().code).toBe(firstCode);
     expect(await ActivityShare.countDocuments({ sessionId: session._id })).toBe(1);
 
@@ -287,7 +292,7 @@ describe('activity code foundation', () => {
     });
     expect(status.statusCode).toBe(403);
     expect((await issue(session._id, professorToken, { expiresAt: '2020-01-01T00:00:00.000Z' })).statusCode).toBe(400);
-    const invalid = await redeem('S-' + 'A'.repeat(10), outsiderToken);
+    const invalid = await redeem('S-' + 'A'.repeat(7), outsiderToken);
     expect(invalid.statusCode).toBe(404);
     expect(JSON.stringify(invalid.json())).not.toContain(course.name);
     expect(await ActivityGrant.countDocuments({ sessionId: session._id })).toBe(0);
