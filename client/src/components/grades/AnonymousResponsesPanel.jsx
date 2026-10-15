@@ -17,14 +17,9 @@ import {
   Typography,
 } from '@mui/material';
 import { VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
-import {
-  TYPE_COLORS,
-  getQuestionTypeLabel,
-  normalizeQuestionType,
-} from '../questions/constants';
 import { prepareRichTextInput, renderKatexInElement } from '../questions/richTextUtils';
 import { getLatestResponse } from '../../utils/responses';
-import { buildResponseSummary } from './SessionQuestionGradingPanel';
+import { buildResponseSummary, ReviewQuestionPreview, ReviewQuestionNavigator } from './SessionQuestionGradingPanel';
 import ParticipantRoleBadges from '../common/ParticipantRoleBadges';
 
 const richContentSx = {
@@ -70,7 +65,6 @@ export default function AnonymousResponsesPanel({
     || questions[0]
     || null;
   const activeQuestionIndex = activeQuestion ? questions.indexOf(activeQuestion) : -1;
-  const activeQuestionType = activeQuestion ? normalizeQuestionType(activeQuestion) : null;
 
   const rows = useMemo(() => {
     if (!activeQuestion) return [];
@@ -112,21 +106,6 @@ export default function AnonymousResponsesPanel({
 
       <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
-          select
-          size="small"
-          label={t('professor.sessionReview.selectQuestion')}
-          value={String(activeQuestion._id)}
-          onChange={(event) => setSelectedQuestionId(event.target.value)}
-          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-          sx={{ minWidth: 200 }}
-        >
-          {questions.map((question, index) => (
-            <option key={question._id} value={String(question._id)}>
-              {t('professor.sessionReview.questionNumberLabel', { number: index + 1 })}
-            </option>
-          ))}
-        </TextField>
-        <TextField
           size="small"
           label={t('professor.sessionReview.filterAnswers')}
           value={answerQuery}
@@ -135,24 +114,19 @@ export default function AnonymousResponsesPanel({
         />
       </Box>
 
-      <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 } }}>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 1 }}>
-          <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 700 }}>
-            {t('professor.sessionReview.questionNumberLabel', { number: activeQuestionIndex + 1 })}
-          </Typography>
-          <Chip
-            size="small"
-            label={getQuestionTypeLabel(t, activeQuestionType)}
-            color={TYPE_COLORS[activeQuestionType] || 'default'}
-          />
-          <Chip
-            size="small"
-            variant="outlined"
-            label={t('professor.sessionReview.responseCountLabel', { count: rows.length })}
-          />
-        </Box>
-        <RichContent html={activeQuestion.content} fallback={activeQuestion.plainText} allowVideoEmbeds />
-      </Paper>
+      <ReviewQuestionPreview
+        ungraded
+        key={activeQuestion._id}
+        question={activeQuestion}
+        number={activeQuestionIndex + 1}
+        headerExtra={<Chip size="small" variant="outlined"
+          label={t('professor.sessionReview.responseCountLabel', { count: rows.length })} />}
+      />
+      <ReviewQuestionNavigator
+        questionStatuses={questions.map((question, index) => ({ questionId: String(question._id), label: t('grades.coursePanel.questionShort', { index: index + 1 }) }))}
+        activeQuestionId={String(activeQuestion._id)}
+        onSelect={setSelectedQuestionId}
+      />
 
       {filteredRows.length === 0 ? (
         <Alert severity="info">

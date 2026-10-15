@@ -1,38 +1,61 @@
-# Qlicker Migration Status
+# Migrating from Meteor to Qlicker
 
-> The MeteorJS → Fastify/React migration is effectively complete. The new app is running in production. This file now tracks only the small amount of work still outstanding. Historical detail lives in [MIGRATION_COMPLETED.md](MIGRATION_COMPLETED.md).
+The active application is React + Fastify. This directory retains the [legacy database contract](LEGACY_DB.md) and instructions for operators bringing an existing Meteor installation to the current application. It is not a development roadmap. New installations can use the [Docker quick start](../README.md#try-it-with-docker) without importing legacy data.
 
-## Current state
+## Before restoring data
 
-- Fastify backend and React frontend are the active application stack.
-- The app runs against the legacy MongoDB schema and has been validated against real production data and SSO.
-- Core classroom workflows are complete: auth, SSO, courses, sessions, quizzes, grading, groups, video chat, backups, deployment tooling, and load testing.
-- The legacy MeteorJS source has been removed from this repository; only the migration archive remains here.
+1. Build the current server/client images and configure a separate target using the [production guide](../production_setup/README.md#quick-start). Point its MongoDB, Redis, storage, and mail settings at the intended environment.
+2. Take a verified database backup and preserve the uploaded files or object storage. Retain the original Meteor configuration and an independent rollback copy. The initialization script uses `mongorestore --drop`; it is not an incremental import or a merge of two installations.
+3. Rehearse on an isolated copy. Restored settings may contain live email, SSO, AI, and storage credentials; configure them for the test environment before allowing users or external services to interact with it.
+4. Ensure your dump includes the intended application database. Inspect the script's proposed source/target database list, especially if the dump also includes MongoDB system databases.
 
-## Remaining work
+The initializer attempts a pre-restore backup but currently only warns if that attempt fails. Have a successful, independently verified backup before confirming the restore.
 
-- [ ] **Complete the production S3 private-bucket cutover.** The rewrite tooling is ready; the remaining work is the production validation window and final bucket lockdown. See [../production_setup/README.md](../production_setup/README.md#s3-private-bucket-migration).
-- [ ] **Decide whether to add GitHub Actions in the new repository.** Helpful, but no longer a blocker for production use.
-- [ ] **Add audit logging for admin-sensitive changes** if operational requirements call for it (settings, role, and grading changes).
-- [ ] **Have a native French speaker review the remaining identical en/fr strings** before treating the French locale as fully polished.
+## Restore and normalize
 
-## Resolved follow-up decisions
-
-- Legacy `users.services.password.reset.*` tokens are **not** being migrated. The Fastify app uses `services.resetPassword`, and any pending legacy reset tokens should simply be replaced by issuing a fresh reset after cutover if needed.
-- `meteor_accounts_loginServiceConfiguration` does **not** need migration. The observed legacy collection is empty and there is no Fastify model for it.
-- The earlier note about encrypted SAML assertions with production certificates has been removed. The production IdP flow has been tested successfully, and there is no additional action to take unless the institution changes IdP behavior in the future.
-
-## Production notes worth keeping visible
-
-- Private-bucket S3 transition is the only remaining migration item that still affects the live production rollout.
-- Production deployment guidance lives in [../production_setup/README.md](../production_setup/README.md).
-- Legacy database compatibility notes live in [LEGACY_DB.md](LEGACY_DB.md).
-- Future implementation conventions live in [../CODING_STANDARDS.md](../CODING_STANDARDS.md).
-
-## Validation commands
+Follow [Initializing from Legacy Database](../production_setup/README.md#initializing-from-legacy-database) for the full dump/transfer/restore procedure. From the configured `production_setup/` directory:
 
 ```bash
-npm test --prefix server
-npm test --prefix client
-npm run build --prefix client
+./init-from-legacy.sh --dump-dir ./legacydb/qlicker
 ```
+
+The script shows the database mapping and asks for confirmation before replacing data. It reconciles the settings singleton and offers the question-type migration after a dry-run report. Review that report before applying it. Keep the compatibility fallbacks in the application: other restored/imported records may still use legacy formats.
+
+Use the [question reference repair guide](../docs/developer/question-reference-repair.md) if copied sessions share question documents or contain duplicate references. Historical responses cannot be split reliably by session when their only reference is the same question ID.
+
+## Accounts and authentication
+
+- Existing Meteor string IDs, course memberships, responses, and grades are retained; do not replace IDs with MongoDB ObjectIds.
+- Legacy bcrypt passwords require a reset to the current password format. Configure mail delivery and test the reset flow, or use `./manage-user.sh change-password --email user@example.com` for an operator-assisted reset.
+- Old Meteor login sessions and pending password-reset tokens do not carry over. Users sign in again and request fresh reset links when needed.
+- Verify mixed-case email lookup, SSO identity matching, callback/logout URLs, certificates, and role mappings against your institution's current IdP.
+- Review migrated global settings in the administrator UI. The application uses its current settings model; it does not import Meteor login-service configuration as an authentication provider.
+
+## Images and object storage
+
+Configure the storage backend in **Admin → Storage**, then test old and new uploads. If moving legacy public S3 URLs to authenticated `/uploads/<key>` access, follow [S3 Private-Bucket Migration](../production_setup/README.md#s3-private-bucket-migration):
+
+```bash
+./sanitize-s3.sh          # Inspect proposed rewrites
+./sanitize-s3.sh --apply  # Apply after reviewing the report and backups
+```
+
+Applying the rewrite changes the restored database's image URLs and can change object ACLs. Meteor does not serve the new upload paths. Rehearsals must use copied objects or isolated storage if their ACLs will change. Validate image access before restricting the bucket; do not run both applications against the rewritten database.
+
+## Acceptance and cutover
+
+Verify on the restored copy:
+
+- local login, password reset, SSO login/logout, and role access;
+- course rosters and instructor membership;
+- historical questions (including all question types), images, and solutions;
+- one complete live session, quiz save/submit/review, grades, participation, and CSV export;
+- grade visibility and manual marks on representative historical sessions;
+- backup creation and a restore rehearsal;
+- the [classroom regression load test](../load-testing/README.md#classroom-regression-check) using the same images and proxy topology as the intended deployment.
+
+During the final maintenance window, stop Meteor writes, take a fresh final backup, repeat the rehearsed restore, validate, and then switch traffic. Keep the old service stopped. A rollback restores the pre-cutover database/configuration and any changed object permissions; changing DNS alone does not undo a database or storage rewrite. Reconcile any data entered after cutover before rolling back.
+
+## Current additive features
+
+Legacy sessions remain identified and course-only. Anonymous/shared activities are opt-in; missing `anonymous` and `allowSharedActivities` fields mean false. Existing participation prevents changing anonymity. Shared activities use new grant/share collections without rewriting historical enrollment or response records. See [the current data model](../docs/developer/data-model.md#activity-code-access) for privacy, grading, and secret-retention rules.

@@ -241,7 +241,7 @@ What changes:
 - Students still sign in and can answer each question (or each attempt) only once. A quiz can still be submitted only once. Students see a notice that the session is anonymous and can review their own answers later.
 - Changing a live interactive session to **Upcoming** replaces participants’ questions with a waiting screen; returning to **Live** restores the session and their saved answers. **Draft** returns enrolled students to the course page and guests to their dashboard.
 - During an anonymous live activity, response counts update immediately. Statistics and unlinked answer lists update after at least four new people respond to that question and attempt. Show Stats controls what participants and the presentation window see; the instructor sees released statistics even while Show Stats is off. Word clouds and histograms use those same released answers. The last one to three answers wait for the next batch. After the activity ends, review shows answer rows only when at least four people have answered every question and attempt that has responses. Otherwise it shows a count and explains that rows are withheld. The joined-student list, manual admission, and individual quiz extensions are unavailable. Share the live join code if one is required.
-- After the session ends, review shows respondents as **Respondent 1**, **Respondent 2**, and so on, with one row per respondent across questions but without join times or grades. The CSV export uses the same labels. The **Responses by question** tab replaces grading with a read-only list of each respondent's answer and whether it was correct.
+- After the session ends, review shows respondents as **Respondent 1**, **Respondent 2**, and so on, with one row per respondent across questions but without join times or grades. The CSV export uses the same labels. The **Responses by question** tab uses the grading interface’s question navigator and full preview, including options, correct answers, and the optional solution. Below it, a read-only table shows each respondent’s answer and whether it was correct; grading controls remain unavailable.
 - The session is never graded and does not appear in the course gradebook. AI grading is unavailable, and session chat does not show authors' names.
 - The setting locks once anyone joins, saves an answer, or submits. Anonymous quiz/interactive mode also locks after participation. Remove any individual quiz extensions before enabling anonymity.
 
@@ -516,6 +516,10 @@ Video access and group destinations depend on the current course and group confi
 ## 12. Review a session and grade students
 
 Open **Review** from a completed session/quiz card. A running interactive session may be reviewed for monitoring, but grading remains locked until the activity is ended.
+
+The **Response Data** table displays points only for an actual question mark. Recorded zeros remain visible; anonymous respondents and guests without grade items have no point suffix. CSV points are blank when no mark exists.
+
+![Anonymous review with the full question preview and respondent answers](../assets/manuals/professor-anonymous-review.png)
 
 Review tabs can include result summaries, per-question response data, students, grading, and chat history. Use them to answer different questions:
 

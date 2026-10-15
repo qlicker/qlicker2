@@ -1,61 +1,79 @@
 # Qlicker
 
-Qlicker is an open-source classroom response system for higher education. Instructors can run live activities, schedule quizzes, organize reusable questions, discuss course material, review participation, and grade work. Students join from any modern browser without dedicated clicker hardware.
+**Bring everyone into the conversation.**
 
-This repository contains the current React + Fastify application. The completed Meteor migration and legacy database contract are retained in `meteorjs_migration/` for compatibility work.
+Qlicker is an open-source classroom response system. Run live questions, quizzes, and anonymous surveys from any browser—no dedicated clicker hardware required. Self-host it with Docker and keep control of your courses and data.
 
-## Highlights
+![Qlicker landing page with a preview of the student experience](docs/assets/manuals/landing-page.png)
 
-- Interactive instructor-paced sessions with live response counts, statistics, answer reveals, multiple attempts, and a presentation window
-- Scheduled and practice quizzes with autosaved answers, submission tracking, and per-student extensions
-- Multiple-choice, true/false, short-answer, numerical, multiple-select, and slide content
-- Course and session chat, rich text, math, images, word clouds, histograms, and optional Jitsi video
-- Question libraries, tags, session/question import and export, groups with CSV workflows, notifications, and AI-assisted workflows
-- Automatic and manual grading, feedback, review controls, and CSV export
-- Local login or SAML SSO, role-aware access, eight UI locales, responsive layouts, and accessibility coverage
-- Production Docker deployment with Nginx, TLS, Redis fan-out, backups, restore, and migration tooling
+[Get started](#try-it-with-docker) · [User manuals](docs/user-manual/README.md) · [Deploy](production_setup/README.md) · [Contribute](#development)
+
+## Teach, ask, and learn
+
+- **Live teaching:** guide a class through questions and slides, reveal answers, and explore response distributions, word clouds, and histograms in a separate presentation window.
+- **Quizzes and practice:** schedule quizzes with autosaved answers, offer practice activities, and review automatic or manual grades with feedback.
+- **Surveys and guests:** share an activity with signed-in people outside a course using a short code. Choose anonymous responses for ungraded surveys with linked respondent rows and privacy thresholds.
+- **Rich questions:** multiple choice, true/false, multiple select, short answer, numerical answers, images, and LaTeX math. Organize reusable questions with course tags and import/export tools.
+- **Discussion and support:** course and session chat, groups, notifications, optional video, and configurable AI assistance for instructors and students.
+- **Your institution:** local accounts or SAML SSO, eight interface languages, responsive layouts, and administrator tools for storage, backups, and usage monitoring.
+
+![Instructor controls for a live Qlicker session](docs/assets/manuals/professor-live-session.png)
+
+## Try it with Docker
+
+For a local installation, you need **Git, Docker Engine with Compose v2, Bash, and OpenSSL**. Node.js, MongoDB, and Redis run in containers; you do not need to install them separately. These commands target a Linux host; the bundled system monitor uses Linux `/proc` mounts.
+
+```bash
+git clone https://github.com/ryanmartinneutrino/qlicker2.git
+cd qlicker2
+./scripts/setup-docker.sh
+docker compose up -d --build
+```
+
+The setup wizard chooses ports and generates local secrets. Accept the default ports, then open **http://localhost:3000**. On an empty database, the first account you register becomes the administrator. Configure email delivery to use email verification and password reset.
+
+```bash
+# Check startup or follow application logs
+docker compose ps
+docker compose logs -f server client
+
+# Stop; named volumes retain your database and uploads
+docker compose down
+```
+
+This root Compose stack is for local use and exposes database/service ports. For a public installation with TLS, authenticated databases, backups, and multiple API replicas, use [production_setup](production_setup/README.md#quick-start).
+
+### Deploy on your server
+
+Build your own images from this checkout, then configure the production stack:
+
+```bash
+./scripts/build-images.sh --tag local
+cd production_setup
+./setup.sh
+docker compose up -d
+```
+
+Choose the `local` image tags in setup, configure your domain and certificates, and follow the [production guide](production_setup/README.md) for first-run settings, backups, updates, and reverse proxies. Images can also be pushed to your own registry with `build-images.sh --registry … --push`. The source-build path does not depend on a public Qlicker image registry.
+
+**Coming from Meteor?** Start with the [migration guide](meteorjs_migration/MIGRATION.md). Restore and validate a copy of your database before cutting over an existing installation.
 
 ## Documentation
 
-| Audience | Start here |
+| I want to… | Guide |
 | --- | --- |
-| Students | [Student manual](docs/user-manual/student.md) |
-| Professors and TAs | [Professor manual](docs/user-manual/professor.md) |
-| Site administrators | [Admin manual](docs/user-manual/admin.md) |
-| Developers | [Developer documentation](docs/developer/README.md) |
-| Coding agents | [Repository agent guide](AGENTS.md) |
-| Production operators | [Production deployment guide](production_setup/README.md) |
+| Join activities and review my work | [Student manual](docs/user-manual/student.md) |
+| Teach, run surveys, or grade responses | [Professor and TA manual](docs/user-manual/professor.md) |
+| Manage accounts, SSO, storage, AI, and backups | [Administrator manual](docs/user-manual/admin.md) |
+| Deploy or upgrade a server | [Production operations](production_setup/README.md) |
+| Check classroom-scale performance | [Load testing](load-testing/README.md) |
+| Understand or extend the code | [Developer guide](docs/developer/README.md) |
 
-The complete documentation index is at [docs/README.md](docs/README.md). Signed-in users can also open a role-aware manual from the account menu.
+See the [full documentation index](docs/README.md). Signed-in users also have a localized manual in their account menu.
 
-## Repository layout
+## Development
 
-```text
-client/               React/Vite web client and browser tests
-server/               Fastify API, models, services, and server tests
-docs/                 User, developer, grading, and API documentation
-scripts/              Development setup, seeding, and service control
-production_setup/     Production Docker Compose and operations tooling
-load-testing/         k6 classroom-scale load tests
-ssoserver/            Local SAML identity-provider test environment
-meteorjs_migration/   Legacy schema and migration archive
-```
-
-## Requirements
-
-- Node.js 22.13 or newer
-- npm (lockfiles are committed separately under `client/` and `server/`)
-- For native development: MongoDB; Redis is recommended for testing multi-instance/realtime behavior
-- For container development: Docker Engine with Docker Compose v2
-- OpenSSL for setup-generated JWT secrets
-
-Do not reuse development secrets in production. Do not commit the generated `.env` file.
-
-## Quick start
-
-### Native development
-
-From the repository root:
+The application uses React, Vite, Material UI, Fastify, MongoDB, and Redis for optional multi-instance WebSocket delivery. Native development requires **Node.js 22.13 or newer**, npm, MongoDB, and optionally Redis:
 
 ```bash
 ./scripts/setup-native.sh
@@ -63,115 +81,30 @@ From the repository root:
 ./scripts/qlicker.sh status
 ```
 
-The guided setup creates local configuration, installs the client/server dependencies, and checks MongoDB and Redis. On Linux, the service helper also starts the system monitor automatically using the same `.env` configuration. `status`, `stop`, and `restart` manage it with the app; the monitor stops before Redis/MongoDB. Its log is `.data/system-monitor.log`. Set `SYSTEM_MONITOR_ENABLED=false` to opt out of native monitoring. Other operating systems skip the Linux collector.
-
-### Docker development
+Each JavaScript workspace has its own lockfile. Read [CODING_STANDARDS.md](CODING_STANDARDS.md) and [AGENTS.md](AGENTS.md) before contributing. Open a focused pull request with tests and documentation for the behavior you change.
 
 ```bash
-./scripts/setup-docker.sh
-docker compose up -d
-docker compose logs -f server client
-```
-
-The development stack contains MongoDB, Redis, the API, the client, and a resource-limited Linux host monitor. Admins can view seven days of CPU, memory, network, and recent-user history under **Usage Statistics**. See [monitoring setup and metric definitions](production_setup/README.md#in-app-system-monitoring). Stop the stack with `docker compose down`; named volumes retain development data unless explicitly removed.
-
-### Local addresses
-
-Default ports can be changed during setup.
-
-| Service | Default address |
-| --- | --- |
-| Web app | `http://localhost:3000` |
-| API | `http://localhost:3001/api/v1` |
-| Health check | `http://localhost:3001/api/v1/health` |
-| Admin-protected Swagger UI | `http://localhost:3001/docs` when API docs are enabled |
-
-## First run
-
-On an empty database, the first registered account becomes an administrator. After signing in:
-
-1. Review global login, locale, date, and session settings.
-2. Configure backups and verify their host storage.
-3. Choose local, S3-compatible, or Azure image storage and test an upload.
-4. Configure SAML, video, or AI only if the deployment will use them.
-5. Create professor accounts or promote existing users, then create a test course and enroll a student.
-
-See the [admin manual](docs/user-manual/admin.md) for the UI workflows and the [production guide](production_setup/README.md) for operational requirements.
-
-## Development commands
-
-```bash
-# Unit and integration tests
 npm test --prefix server
 npm test --prefix client
-
-# Production client build
 npm run build --prefix client
-
-# Browser workflows
-./scripts/qlicker.sh e2e
-
-# Install the Playwright browser on the first run when needed
 ./scripts/qlicker.sh e2e --install-browser
+node scripts/check-doc-links.mjs
 ```
 
-Run the two application halves directly when you do not need the service helper:
+The [development guide](docs/developer/development-guide.md) covers fixtures, local API addresses, targeted tests, and screenshot capture. The canonical release label lives in [VERSION](VERSION).
 
-```bash
-npm run dev --prefix server
-npm run dev --prefix client
-```
+### Repository map
 
-Development fixtures can be loaded with `./scripts/seed-db.sh` (native) or `./scripts/seed-db-docker.sh` (Docker). See the [development guide](docs/developer/development-guide.md) before making a change and [CODING_STANDARDS.md](CODING_STANDARDS.md) before submitting it.
-
-## Common account-management tasks
-
-For development, reset a local password with:
-
-```bash
-./scripts/changeuserpwd.sh --email user@example.com
-./scripts/changeuserpwd.sh --email user@example.com --newpasswd 'a-new-password'
-```
-
-For production containers, use the supported management wrapper:
-
-```bash
-cd production_setup
-./manage-user.sh list
-./manage-user.sh create --email prof@example.com --firstname Jane --lastname Smith --role professor
-./manage-user.sh promote --email prof@example.com --role admin
-./manage-user.sh change-password --email user@example.com
-./manage-user.sh set-email-login --email sso.user@example.com --disable-email-login
-```
-
-## Production and migration
-
-Production is deployed from `production_setup/`, not the root development Compose file:
-
-```bash
-cd production_setup
-./setup.sh
-docker compose up -d
-```
-
-Before using a real database, read the [production deployment guide](production_setup/README.md), verify backups and restore on a non-production copy, and review the [legacy database reference](meteorjs_migration/LEGACY_DB.md) when upgrading an installation created by the Meteor app.
-
-The canonical release label is the single line in `VERSION`. Setup and image tooling should source that value instead of duplicating a version in prose.
-
-## Load testing
-
-The k6 suite models a professor driving an interactive session while student clients authenticate, join, keep WebSockets open, respond, and use chat:
-
-```bash
-cd load-testing
-./setup.sh
-./run.sh --prepare
-./run.sh
-./run.sh --restore
-./run.sh --clean
-```
-
-Always restore rate limits after a test. Full options and metrics are documented in [load-testing/README.md](load-testing/README.md).
+| Directory | Contents |
+| --- | --- |
+| `client/` | React client, component tests, and Playwright workflows |
+| `server/` | Fastify API, models, services, and integration tests |
+| `scripts/` | Local setup, service control, and image builds |
+| `production_setup/` | Production Compose stack, TLS, backup, restore, and upgrades |
+| `load-testing/` | k6 classroom, quiz, guest, and anonymous scenarios |
+| `docs/` | User and developer documentation |
+| `meteorjs_migration/` | Migration instructions and legacy database compatibility reference |
+| `ssoserver/` | Local SAML identity-provider test environment |
 
 ## License
 

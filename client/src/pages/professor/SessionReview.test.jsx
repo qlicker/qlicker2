@@ -512,6 +512,8 @@ describe('SessionReview', () => {
     expect(within(resultsTable).getByText('Respondent 1')).toBeInTheDocument();
     expect(within(resultsTable).getByText('Respondent 2')).toBeInTheDocument();
     expect(within(resultsTable).queryByText('Grade')).not.toBeInTheDocument();
+    expect(within(resultsTable).getByRole('cell', { name: 'B', exact: true })).toBeInTheDocument();
+    expect(within(resultsTable).getByRole('cell', { name: 'A', exact: true })).toBeInTheDocument();
     expect(within(resultsTable).queryByText('In Session')).not.toBeInTheDocument();
     expect(screen.getByLabelText(/search respondents/i)).toBeInTheDocument();
 
@@ -524,7 +526,9 @@ describe('SessionReview', () => {
     expect(within(rows[1]).getByText('Yes')).toBeInTheDocument();
     expect(within(rows[2]).getByText('A')).toBeInTheDocument();
     expect(within(rows[2]).getByText('No')).toBeInTheDocument();
-    expect(screen.queryByText('Question navigator')).not.toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Question navigator' })).toBeInTheDocument();
+    expect(apiClient.get).not.toHaveBeenCalledWith('/sessions/session-1/grades');
+    expect(screen.queryByRole('spinbutton', { name: 'Question points' })).not.toBeInTheDocument();
   });
 
   it('grades enrolled students and shows guest answers without grade controls in a shared named activity', async () => {
@@ -556,9 +560,39 @@ describe('SessionReview', () => {
     const enrolledRow = within(resultsTable).getByText('Ada Lovelace').closest('tr');
     expect(within(enrolledRow).getByText('Student')).toBeInTheDocument();
     expect(within(guestRow).getByText('No grade')).toBeInTheDocument();
+    expect(within(guestRow).getByRole('cell', { name: 'A', exact: true })).toBeInTheDocument();
+    expect(within(enrolledRow).getByRole('cell', { name: 'B (4)', exact: true })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /grading/i }));
     expect(await screen.findByText('Guest responses')).toBeInTheDocument();
     expect(screen.getByText(/Guests do not receive grades/)).toBeInTheDocument();
+  });
+
+  it.each([undefined, null, '', 0])('shows points only for an explicit question mark (%s)', async (points) => {
+    const defaultGet = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (url) => {
+      if (url.endsWith('/grades')) return { data: { grades: [{ userId: 'student-1',
+        marks: [{ questionId: 'q-1', points }],
+      }] } };
+      if (url.endsWith('/results')) {
+        const payload = buildResultsPayload();
+        payload.studentResults[0].questionResults[0].responses[0].mark = 0;
+        return { data: payload };
+      }
+      return defaultGet(url);
+    });
+    renderSessionReview();
+    fireEvent.click(await screen.findByRole('tab', { name: /response data/i }));
+    const table = await screen.findByRole('table', { name: /student results/i });
+    const row = within(table).getByText('Ada Lovelace').closest('tr');
+    expect(within(row).getByRole('cell', { name: points === 0 ? 'B (0)' : 'B', exact: true })).toBeInTheDocument();
+    const payload = buildResultsPayload();
+    const csv = buildSessionResultsCsv({
+      csvQuestionAttempts: [{ question: payload.questions[0], questionNumber: 1, attempts: [2] }],
+      studentResults: [payload.studentResults[0]], sessionName: 'Review',
+      gradesByStudentId: { 'student-1': { marks: [{ questionId: 'q-1', points }] } },
+      t: i18n.t.bind(i18n),
+    });
+    expect(csv.csvContent.split('\n')[1]).toMatch(points === 0 ? /,B,0$/ : /,B,$/);
   });
 
   it('opens the student avatar image from the response data tab', async () => {

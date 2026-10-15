@@ -12,7 +12,7 @@ This documentation covers the active React + Fastify application.
 6. [API reference](../api-reference.md) for OpenAPI and WebSocket documentation.
 7. [Grading internals](grading.md) when changing scores, attempts, reviewability, or feedback.
 
-Read the [legacy database reference](../../meteorjs_migration/LEGACY_DB.md) before changing schemas, IDs, or migration/repair utilities. The other migration files are primarily historical/status context, not day-to-day architecture guidance.
+Read the [legacy database reference](../../meteorjs_migration/LEGACY_DB.md) before changing schemas, IDs, or migration/repair utilities. The [migration guide](../../meteorjs_migration/MIGRATION.md) documents restoring and validating an existing installation.
 
 ## Validation baseline
 
@@ -42,4 +42,8 @@ Not every change needs every suite during iteration, but the final validation sh
 
 See [Repairing shared question references](question-reference-repair.md) for the production Bash/Docker diagnostic, independent question copies, and interactive grading decisions for answered quizzes.
 
-The [session access by activity code](external-session-access-plan.md) plan covers outside-course quiz and interactive participation. The follow-up PR implements code redemption, session-scoped quiz/live delivery, and mixed grading for named activities (enrolled students graded, guests ungraded); use its acceptance matrix for final staging tests.
+## Shared and anonymous activities
+
+Activity-code access is part of the current application. Start with the [data model](data-model.md#activity-code-access), [API reference](../api-reference.md#activity-code-access), and [instructor workflow](../user-manual/professor.md). Course enrollment and session grants are separate: enrolled students can be graded in identified activities; guests and anonymous respondents have no grade items.
+
+For performance work, begin with the [classroom regression check](../../load-testing/README.md#classroom-regression-check). Use the shared/anonymous scenarios for those access paths and the full statistics-visible matrix only when that stress workload is relevant.

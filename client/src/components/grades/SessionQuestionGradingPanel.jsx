@@ -644,6 +644,185 @@ const GradingTableRow = memo(function GradingTableRow({
   );
 });
 
+/** Shared read-only question preview; grading controls are supplied only by the grading screen. */
+export function ReviewQuestionPreview({ question: activeQuestion, number, ungraded = false, headerExtra = null, controls = null }) {
+  const { t } = useTranslation();
+  const [showSolution, setShowSolution] = useState(false);
+  const activeQuestionType = normalizeQuestionType(activeQuestion);
+  const hasSolution = !!normalizeValue(activeQuestion.solution);
+  const correctAnswerSummary = formatCorrectAnswerSummary(activeQuestion, {
+    manualGradingRequired: t(ungraded ? 'grades.coursePanel.notApplicable' : 'grades.questionPanel.manualGradingRequired'),
+  });
+  const optionTypeQuestion = [
+    QUESTION_TYPES.MULTIPLE_CHOICE,
+    QUESTION_TYPES.TRUE_FALSE,
+    QUESTION_TYPES.MULTI_SELECT,
+  ].includes(activeQuestionType);
+  const questionOptions = Array.isArray(activeQuestion.options) ? activeQuestion.options : [];
+  const correctOptionEntries = optionTypeQuestion
+    ? questionOptions
+      .map((option, index) => ({ option, index }))
+      .filter(({ option }) => isCorrectOption(option))
+    : [];
+
+  return (
+    <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, borderColor: 'primary.main', borderLeftWidth: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          {t('grades.questionPanel.questionNumber', { number })}
+        </Typography>
+        <Chip
+          label={getQuestionTypeLabel(t, activeQuestionType, {
+            key: 'grades.coursePanel.question',
+            defaultValue: 'Question',
+          })}
+          color={TYPE_COLORS[activeQuestionType] || 'default'}
+          size="small"
+          sx={COMPACT_CHIP_SX}
+        />
+        {headerExtra}
+      </Box>
+
+      <RichContent html={activeQuestion.content} fallback={activeQuestion.plainText} allowVideoEmbeds />
+
+      {controls}
+
+      {optionTypeQuestion && questionOptions.length > 0 && (
+        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          {questionOptions.map((option, index) => {
+            const isCorrect = isCorrectOption(option);
+            const optionContent = getOptionRichContentProps(option);
+            return (
+              <Paper
+                key={option?._id || index}
+                variant="outlined"
+                sx={{
+                  p: 0.85,
+                  borderColor: isCorrect ? 'success.main' : 'divider',
+                  bgcolor: isCorrect ? 'success.50' : 'transparent',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
+                  <Chip
+                    label={OPTION_LETTERS[index] || String(index + 1)}
+                    size="small"
+                    color={isCorrect ? 'success' : 'default'}
+                    sx={COMPACT_CHIP_SX}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <RichContent html={optionContent.html} fallback={optionContent.fallback} />
+                  </Box>
+                </Box>
+              </Paper>
+            );
+          })}
+        </Box>
+      )}
+
+      <Box sx={{ mt: 1, display: 'flex', alignItems: 'flex-start', gap: 0.75, flexWrap: 'wrap' }}>
+        <Typography variant="body2" component="span" sx={{ fontWeight: 700 }}>
+          {t('grades.questionPanel.correctAnswer')}
+        </Typography>
+        {optionTypeQuestion ? (
+          correctOptionEntries.length > 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
+              {correctOptionEntries.map(({ option, index }) => {
+                const optionContent = getOptionRichContentProps(option);
+                return (
+                  <Box
+                    key={option?._id || index}
+                    sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, minWidth: 0 }}
+                  >
+                    <Typography variant="body2" component="span" sx={{ fontWeight: 700 }}>
+                      {OPTION_LETTERS[index] || String(index + 1)}:
+                    </Typography>
+                    <RichContent html={optionContent.html} fallback={optionContent.fallback} />
+                  </Box>
+                );
+              })}
+            </Box>
+          ) : (
+            <Typography variant="body2" component="span">
+              {t('grades.questionPanel.noCorrectOption')}
+            </Typography>
+          )
+        ) : (
+          <Typography variant="body2" component="span">{correctAnswerSummary}</Typography>
+        )}
+      </Box>
+
+      {hasSolution && (
+        <Box sx={{ mt: 1 }}>
+          <Button size="small" variant="outlined" onClick={() => setShowSolution((prev) => !prev)}>
+            {showSolution ? t('grades.questionPanel.hideSolution') : t('grades.questionPanel.showSolution')}
+          </Button>
+          {showSolution && (
+            <Paper variant="outlined" sx={{ mt: 1, p: 1.25 }}>
+              <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>
+                {t('common.solution')}
+              </Typography>
+              <RichContent html={activeQuestion.solution} fallback={activeQuestion.solution_plainText} />
+            </Paper>
+          )}
+        </Box>
+      )}
+    </Paper>
+  );
+}
+
+/** Question selection shared by grading and anonymous/guest response review. */
+export function ReviewQuestionNavigator({ questionStatuses, activeQuestionId, onSelect }) {
+  const { t } = useTranslation();
+  return (
+    <Box
+      component="nav"
+      aria-label={t('grades.questionPanel.questionNavigator')}
+      sx={{
+        display: 'flex',
+        mb: 1.5,
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 1,
+        p: 1,
+        position: 'relative',
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          position: 'absolute',
+          top: -10,
+          left: 8,
+          px: 0.5,
+          bgcolor: 'background.paper',
+          fontWeight: 700
+        }}>
+        {t('grades.questionPanel.questionNavigator')}
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+        {questionStatuses.map((entry) => {
+          const isActive = entry.questionId === activeQuestionId;
+          const needsGrading = entry.needsGradingCount > 0;
+          return (
+            <Chip
+              key={entry.questionId}
+              clickable
+              onClick={() => onSelect(entry.questionId)}
+              aria-current={isActive ? 'step' : undefined}
+              label={needsGrading ? `${entry.label} (${entry.needsGradingCount})` : entry.label}
+              color={entry.needsGradingCount == null ? 'primary' : needsGrading ? 'error' : 'success'}
+              variant={isActive ? 'filled' : 'outlined'}
+              sx={COMPACT_CHIP_SX}
+            />
+          );
+        })}
+      </Box>
+    </Box>
+  );
+
+}
+
 export default function SessionQuestionGradingPanel({
   sessionId,
   courseId,
@@ -673,7 +852,6 @@ export default function SessionQuestionGradingPanel({
   const [bulkPoints, setBulkPoints] = useState('');
   const [bulkFeedback, setBulkFeedback] = useState('');
   const [bulkApplying, setBulkApplying] = useState(false);
-  const [showSolution, setShowSolution] = useState(false);
   const [aiGradingOpen, setAiGradingOpen] = useState(false);
   const [aiGradingJob, setAiGradingJob] = useState(null);
   const [aiGradingReportOpen, setAiGradingReportOpen] = useState(false);
@@ -836,11 +1014,11 @@ export default function SessionQuestionGradingPanel({
 
       return {
         questionId,
-        label: `Q${index + 1}`,
+        label: t('grades.coursePanel.questionShort', { index: index + 1 }),
         needsGradingCount,
       };
     });
-  }, [gradesByStudentId, isQuizSession, questions, studentResults]);
+  }, [gradesByStudentId, isQuizSession, questions, studentResults, t]);
 
   useEffect(() => {
     if (!courseId || !sessionId) return undefined;
@@ -1521,21 +1699,6 @@ export default function SessionQuestionGradingPanel({
 
   const activeQuestionType = normalizeQuestionType(activeQuestion);
   const activeQuestionPoints = getQuestionPoints(activeQuestion);
-  const hasSolution = !!normalizeValue(activeQuestion.solution);
-  const correctAnswerSummary = formatCorrectAnswerSummary(activeQuestion, {
-    manualGradingRequired: t('grades.questionPanel.manualGradingRequired'),
-  });
-  const optionTypeQuestion = [
-    QUESTION_TYPES.MULTIPLE_CHOICE,
-    QUESTION_TYPES.TRUE_FALSE,
-    QUESTION_TYPES.MULTI_SELECT,
-  ].includes(activeQuestionType);
-  const questionOptions = Array.isArray(activeQuestion.options) ? activeQuestion.options : [];
-  const correctOptionEntries = optionTypeQuestion
-    ? questionOptions
-      .map((option, index) => ({ option, index }))
-      .filter(({ option }) => isCorrectOption(option))
-    : [];
   const displayedStudentHint = isQuizSession
     ? t('grades.questionPanel.showingStudentsQuiz', { showing: sortedRows.length, total: allRows.length })
     : t('grades.questionPanel.showingStudentsSession', { showing: sortedRows.length, total: allRows.length });
@@ -1546,56 +1709,6 @@ export default function SessionQuestionGradingPanel({
   const questionPointsDirty = Number.isFinite(parsedQuestionPointsDraft)
     && parsedQuestionPointsDraft >= 0
     && Math.abs(parsedQuestionPointsDraft - activeQuestionPoints) > 0.0001;
-
-  const renderQuestionRibbon = () => (
-    <Box
-      component="nav"
-      aria-label={t('grades.questionPanel.questionNavigator')}
-      sx={{
-        display: 'flex',
-        mb: 1.5,
-        border: 1,
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1,
-        position: 'relative',
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          color: "text.secondary",
-          position: 'absolute',
-          top: -10,
-          left: 8,
-          px: 0.5,
-          bgcolor: 'background.paper',
-          fontWeight: 700
-        }}>
-        {t('grades.questionPanel.questionNavigator')}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-        {questionStatuses.map((entry) => {
-          const isActive = entry.questionId === activeQuestionId;
-          const needsGrading = entry.needsGradingCount > 0;
-          return (
-            <Chip
-              key={entry.questionId}
-              clickable
-              onClick={() => {
-                setActiveQuestionId(entry.questionId);
-                setShowSolution(false);
-              }}
-              label={needsGrading ? `${entry.label} (${entry.needsGradingCount})` : entry.label}
-              color={needsGrading ? 'error' : 'success'}
-              variant={isActive ? 'filled' : 'outlined'}
-              sx={COMPACT_CHIP_SX}
-            />
-          );
-        })}
-      </Box>
-    </Box>
-  );
 
   const aiGradingLogRuns = aiGradingJob?.sessionLog?.runs
     ?? [{ startedAt: aiGradingJob?.createdAt, entries: aiGradingJob?.log || [] }];
@@ -1623,140 +1736,44 @@ export default function SessionQuestionGradingPanel({
         </Alert>
       )}
 
-      <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, borderColor: 'primary.main', borderLeftWidth: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            {t('grades.questionPanel.questionNumber', { number: questions.findIndex((question) => String(question?._id) === activeQuestionId) + 1 })}
-          </Typography>
-          <Chip
-            label={getQuestionTypeLabel(t, activeQuestionType, {
-              key: 'grades.coursePanel.question',
-              defaultValue: 'Question',
-            })}
-            color={TYPE_COLORS[activeQuestionType] || 'default'}
-            size="small"
-            sx={COMPACT_CHIP_SX}
-          />
-          <Chip
-            label={t('grades.questionPanel.pointsValue', { count: activeQuestionPoints })}
-            size="small"
-            variant="outlined"
-            sx={COMPACT_CHIP_SX}
-          />
-        </Box>
-
-        <RichContent html={activeQuestion.content} fallback={activeQuestion.plainText} allowVideoEmbeds />
-
-        <Box sx={{ mt: 1.25, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField
-            size="small"
-            type="number"
-            label={t('grades.questionPanel.questionPoints')}
-            value={questionPointsDraft}
-            onChange={(event) => setQuestionPointsDraft(event.target.value)}
-            sx={{ width: 160 }}
-            disabled={gradingLocked}
-            slotProps={{
-              htmlInput: { min: 0, step: 'any' }
-            }}
-          />
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleOpenQuestionPointsDialog}
-            disabled={gradingLocked || !questionPointsDirty || questionPointsSaving || recalculating}
-          >
-            {questionPointsSaving ? t('common.saving') : t('grades.questionPanel.updateQuestionPoints')}
-          </Button>
-          <Typography variant="caption" sx={{
-            color: "text.secondary"
-          }}>
-            {t('grades.questionPanel.updateQuestionPointsHelp')}
-          </Typography>
-        </Box>
-
-        {optionTypeQuestion && questionOptions.length > 0 && (
-          <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            {questionOptions.map((option, index) => {
-              const isCorrect = isCorrectOption(option);
-              const optionContent = getOptionRichContentProps(option);
-              return (
-                <Paper
-                  key={option?._id || index}
-                  variant="outlined"
-                  sx={{
-                    p: 0.85,
-                    borderColor: isCorrect ? 'success.main' : 'divider',
-                    bgcolor: isCorrect ? 'success.50' : 'transparent',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
-                    <Chip
-                      label={OPTION_LETTERS[index] || String(index + 1)}
-                      size="small"
-                      color={isCorrect ? 'success' : 'default'}
-                      sx={COMPACT_CHIP_SX}
-                    />
-                    <Box sx={{ minWidth: 0 }}>
-                      <RichContent html={optionContent.html} fallback={optionContent.fallback} />
-                    </Box>
-                  </Box>
-                </Paper>
-              );
-            })}
-          </Box>
-        )}
-
-        <Box sx={{ mt: 1, display: 'flex', alignItems: 'flex-start', gap: 0.75, flexWrap: 'wrap' }}>
-          <Typography variant="body2" component="span" sx={{ fontWeight: 700 }}>
-            {t('grades.questionPanel.correctAnswer')}
-          </Typography>
-          {optionTypeQuestion ? (
-            correctOptionEntries.length > 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
-                {correctOptionEntries.map(({ option, index }) => {
-                  const optionContent = getOptionRichContentProps(option);
-                  return (
-                    <Box
-                      key={option?._id || index}
-                      sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, minWidth: 0 }}
-                    >
-                      <Typography variant="body2" component="span" sx={{ fontWeight: 700 }}>
-                        {OPTION_LETTERS[index] || String(index + 1)}:
-                      </Typography>
-                      <RichContent html={optionContent.html} fallback={optionContent.fallback} />
-                    </Box>
-                  );
-                })}
-              </Box>
-            ) : (
-              <Typography variant="body2" component="span">
-                {t('grades.questionPanel.noCorrectOption')}
-              </Typography>
-            )
-          ) : (
-            <Typography variant="body2" component="span">{correctAnswerSummary}</Typography>
-          )}
-        </Box>
-
-        {hasSolution && (
-          <Box sx={{ mt: 1 }}>
-            <Button size="small" variant="outlined" onClick={() => setShowSolution((prev) => !prev)}>
-              {showSolution ? t('grades.questionPanel.hideSolution') : t('grades.questionPanel.showSolution')}
+      <ReviewQuestionPreview
+        key={activeQuestion._id}
+        question={activeQuestion}
+        number={questions.findIndex((question) => String(question?._id) === activeQuestionId) + 1}
+        headerExtra={<Chip label={t('grades.questionPanel.pointsValue', { count: activeQuestionPoints })}
+          size="small" variant="outlined" sx={COMPACT_CHIP_SX} />}
+        controls={(
+          <Box sx={{ mt: 1.25, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+            <TextField
+              size="small"
+              type="number"
+              label={t('grades.questionPanel.questionPoints')}
+              value={questionPointsDraft}
+              onChange={(event) => setQuestionPointsDraft(event.target.value)}
+              sx={{ width: 160 }}
+              disabled={gradingLocked}
+              slotProps={{
+                htmlInput: { min: 0, step: 'any' }
+              }}
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleOpenQuestionPointsDialog}
+              disabled={gradingLocked || !questionPointsDirty || questionPointsSaving || recalculating}
+            >
+              {questionPointsSaving ? t('common.saving') : t('grades.questionPanel.updateQuestionPoints')}
             </Button>
-            {showSolution && (
-              <Paper variant="outlined" sx={{ mt: 1, p: 1.25 }}>
-                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>
-                  {t('common.solution')}
-                </Typography>
-                <RichContent html={activeQuestion.solution} fallback={activeQuestion.solution_plainText} />
-              </Paper>
-            )}
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
+              {t('grades.questionPanel.updateQuestionPointsHelp')}
+            </Typography>
           </Box>
         )}
-      </Paper>
+      />
 
-      {renderQuestionRibbon()}
+      <ReviewQuestionNavigator questionStatuses={questionStatuses} activeQuestionId={activeQuestionId} onSelect={setActiveQuestionId} />
       <Divider sx={{ mb: 1.5 }} />
 
       <Paper variant="outlined" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1.25, bgcolor: 'action.hover', borderColor: 'primary.light', flexWrap: 'wrap' }}>
