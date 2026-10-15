@@ -1198,6 +1198,7 @@
       "needsGradingCount": "Requiere calificación ({{count}})",
       "sessionStillRunning": "Esta sesión aún está en curso. Los resultados estarán disponibles después de que finalice la sesión.",
       "liveResultsAvailableWhileRunning": "Esta sesión interactiva en vivo aún está en curso. Los resultados se siguen actualizando aquí, pero la calificación permanece bloqueada hasta que finalice la sesión.",
+      "quizSubmittedResultsOnly": "Hasta que termine este cuestionario, solo se muestran los intentos entregados. Después, se incluyen las respuestas guardadas aunque el estudiante no haya entregado el cuestionario.",
       "pageProgress": "Página {{current}}/{{total}}",
       "questionProgress": "Pregunta {{current}}/{{total}}",
       "ungradedSummary": "Hay {{verb}} {{questions}} {{questionWord}} sin calificar, lo que afecta a {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -2358,7 +2359,8 @@
             "Los estudiantes reciben una notificación cuando usted publica nueva retroalimentación, así que use comentarios breves y accionables que les digan qué repasar.",
             "Si las estructuras de grupo importaron durante la actividad, compare los datos de revisión y calificación con los grupos del curso para detectar patrones desiguales de participación.",
             "Al inscribirse, se crean las calificaciones que faltan para las actividades finalizadas del curso, incluidas las respuestas guardadas como invitado. Las actividades no realizadas reciben cero sin necesitar corrección; las respuestas escritas pueden necesitarla. Se conservan las calificaciones y los comentarios existentes. Las actividades anónimas siguen sin calificarse.",
-            "Los promedios de la tabla utilizan los registros de calificación existentes de las sesiones mostradas. Se excluyen los registros ausentes; los ceros registrados cuentan. Use Seleccionar sesiones con registros de calificación o incluya manualmente sesiones sin registros."
+            "Los promedios de la tabla utilizan los registros de calificación existentes de las sesiones mostradas. Se excluyen los registros ausentes; los ceros registrados cuentan. Use Seleccionar sesiones con registros de calificación o incluya manualmente sesiones sin registros.",
+            "Hasta que termine este cuestionario, solo se muestran los intentos entregados. Después, se incluyen las respuestas guardadas aunque el estudiante no haya entregado el cuestionario."
           ],
           "success": "Los profesores pueden abrir el manual del estudiante desde el selector de arriba para previsualizar el flujo de trabajo del estudiante antes de la clase."
         },

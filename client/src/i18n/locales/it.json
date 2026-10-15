@@ -1198,6 +1198,7 @@
       "needsGradingCount": "Da valutare ({{count}})",
       "sessionStillRunning": "Questa sessione è ancora in corso. I risultati saranno disponibili dopo la fine della sessione.",
       "liveResultsAvailableWhileRunning": "Questa sessione interattiva in diretta è ancora in corso. I risultati continuano ad aggiornarsi qui, ma la valutazione resta bloccata finché la sessione non termina.",
+      "quizSubmittedResultsOnly": "Fino alla fine del quiz vengono mostrati solo i tentativi consegnati. In seguito vengono incluse anche le risposte salvate dagli studenti che non hanno consegnato.",
       "pageProgress": "Pagina {{current}}/{{total}}",
       "questionProgress": "Domanda {{current}}/{{total}}",
       "ungradedSummary": "Ci {{verb}} {{questions}} {{questionWord}} non valutat{{questionWord}}, che coinvolgono {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -2358,7 +2359,8 @@
             "Gli studenti ricevono una notifica quando pubblichi un nuovo feedback, quindi usa commenti brevi e concreti che dicano loro cosa rivedere.",
             "Se le strutture dei gruppi erano rilevanti durante l'attività, confronta i dati di revisione e valutazione con i gruppi del corso per individuare schemi di partecipazione irregolari.",
             "L’iscrizione crea i voti mancanti per le attività concluse del corso, anche dalle risposte salvate come ospite. Le attività non svolte ricevono zero senza richiedere correzione; le risposte scritte possono richiederla. I voti e i commenti esistenti vengono conservati. Le attività anonime restano senza voto.",
-            "Le medie della tabella usano i voti registrati nelle sessioni visualizzate. I voti mancanti sono esclusi; gli zeri registrati contano. Usa Seleziona le sessioni con voti registrati oppure includi manualmente le sessioni senza voti."
+            "Le medie della tabella usano i voti registrati nelle sessioni visualizzate. I voti mancanti sono esclusi; gli zeri registrati contano. Usa Seleziona le sessioni con voti registrati oppure includi manualmente le sessioni senza voti.",
+            "Fino alla fine del quiz vengono mostrati solo i tentativi consegnati. In seguito vengono incluse anche le risposte salvate dagli studenti che non hanno consegnato."
           ],
           "success": "I docenti possono aprire la guida studente dal selettore qui sopra per vedere in anteprima il flusso dello studente prima della lezione."
         },

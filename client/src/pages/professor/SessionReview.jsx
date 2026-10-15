@@ -17,6 +17,7 @@ import {
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import apiClient from '../../api/client';
+import { LiveSessionWebSocketProvider, useLiveSessionWebSocket } from '../../contexts/LiveSessionWebSocketContext';
 import {
   QUESTION_TYPES,
   TYPE_COLORS,
@@ -643,6 +644,55 @@ function DistributionBars({
 // Main component
 // ---------------------------------------------------------------------------
 
+// Refresh quiz results on submission/status events, never on each autosave.
+// Coalesce a submission burst and serialize requests to avoid stale snapshots.
+function QuizReviewUpdates({ onRefresh, refreshAt }) {
+  const { subscribe, registerRefreshHandler } = useLiveSessionWebSocket();
+  useEffect(() => {
+    let timer = null;
+    let inFlight = false;
+    let pending = false;
+    let fullRefresh = false;
+    let stopped = false;
+    const schedule = (full = false) => {
+      if (stopped) return;
+      pending = true;
+      fullRefresh ||= full;
+      // Keep a busy submission stream below the results endpoint’s 30/min limit.
+      if (timer === null && !inFlight) timer = window.setTimeout(run, 2500);
+    };
+    const run = async () => {
+      timer = null;
+      pending = false;
+      inFlight = true;
+      const resultsOnly = !fullRefresh;
+      fullRefresh = false;
+      try {
+        await onRefresh({ resultsOnly });
+      } finally {
+        inFlight = false;
+        if (pending) schedule();
+      }
+    };
+    const unsubscribe = subscribe(({ event }) => {
+      if (event === 'session:quiz-submitted') schedule();
+      if (event === 'session:status-changed' || event === 'session:metadata-changed') schedule(true);
+    });
+    const unregister = registerRefreshHandler(() => schedule(true));
+    const deadlineTimer = Number.isFinite(refreshAt)
+      ? window.setTimeout(() => schedule(true), Math.min(2147483647, Math.max(1000, refreshAt - Date.now() + 100)))
+      : null;
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      window.clearTimeout(deadlineTimer);
+      unsubscribe();
+      unregister();
+    };
+  }, [onRefresh, refreshAt, subscribe, registerRefreshHandler]);
+  return null;
+}
+
 export default function SessionReview() {
   const { courseId, sessionId } = useParams();
   const navigate = useNavigate();
@@ -656,6 +706,7 @@ export default function SessionReview() {
   const [questions, setQuestions] = useState([]);
   const [rawStudentResults, setStudentResults] = useState([]);
   const [anonymousSummary, setAnonymousSummary] = useState(null);
+  const [quizResultsRefreshAt, setQuizResultsRefreshAt] = useState(null);
   const [chatPosts, setChatPosts] = useState([]);
   const [tab, setTab] = useState(0);
   const [togglingReviewable, setTogglingReviewable] = useState(false);
@@ -706,18 +757,29 @@ export default function SessionReview() {
 
   // ---- Data fetching ----
 
-  const fetchResults = useCallback(async () => {
+  const fetchResults = useCallback(async ({ resultsOnly = false } = {}) => {
     try {
       const [{ data }, courseResponse] = await Promise.all([
         apiClient.get(`/sessions/${sessionId}/results`),
-        apiClient.get(`/courses/${courseId}`).catch(() => ({ data: null })),
+        resultsOnly ? Promise.resolve(null) : apiClient.get(`/courses/${courseId}`).catch(() => ({ data: null })),
       ]);
       setSession(data.session);
-      setCourse(courseResponse?.data?.course || courseResponse?.data || null);
-      setQuestions(data.questions || []);
+      if (!resultsOnly) {
+        setCourse(courseResponse?.data?.course || courseResponse?.data || null);
+        setQuestions(data.questions || []);
+      }
       setStudentResults(data.studentResults || []);
       setAnonymousSummary(data.anonymousSummary || null);
+      setQuizResultsRefreshAt(data.quizResultsRefreshAt ?? null);
       setChatPosts(data.chatPosts || []);
+      if (data.session?.quiz) {
+        setWordCloudByRow({});
+        setHistogramByRow({});
+      }
+      if (resultsOnly) {
+        setError(null);
+        return;
+      }
 
       if (data.session?.anonymous) {
         // Anonymous sessions never have grades.
@@ -1426,6 +1488,16 @@ export default function SessionReview() {
       {reviewableWarning ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {reviewableWarning}
+        </Alert>
+      ) : null}
+      {session?.quiz && !session?.practiceQuiz && !anonymousSession ? (
+        <LiveSessionWebSocketProvider sessionId={sessionId}>
+          <QuizReviewUpdates onRefresh={fetchResults} refreshAt={quizResultsRefreshAt} />
+        </LiveSessionWebSocketProvider>
+      ) : null}
+      {session?.quiz && !session?.practiceQuiz && session?.status !== 'done' ? (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t('professor.sessionReview.quizSubmittedResultsOnly')}
         </Alert>
       ) : null}
       {liveInteractiveSession ? (

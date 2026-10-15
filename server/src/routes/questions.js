@@ -1,3 +1,4 @@
+import { getQuizResultsParticipantIds, getQuizResultsResponseFilter } from '../utils/quizResults.js';
 import Question from '../models/Question.js';
 import Session from '../models/Session.js';
 import Course from '../models/Course.js';
@@ -2364,22 +2365,26 @@ export default async function questionRoutes(app) {
       if (!course || !isInstructorOrAdmin(course, request.user)) {
         return reply.code(403).send({ error: 'Forbidden', message: 'Insufficient permissions' });
       }
-      const anonymousSessions = await Session.find({
+      const analysisSessions = await Session.find({
         courseId: String(course._id),
-        anonymous: true,
         $or: [
           { questions: String(question._id) },
           ...(sessionId ? [{ _id: sessionId }] : []),
         ],
       }).lean();
-      if ((await Promise.all(anonymousSessions.map(anonymousResponsesReleasable))).some((released) => !released)) {
+      if ((await Promise.all(analysisSessions.filter((session) => session.anonymous).map(anonymousResponsesReleasable))).some((released) => !released)) {
         return reply.code(409).send({
           error: 'Conflict',
           message: 'Anonymous analysis is available after four respondents answer each answered question and attempt',
         });
       }
 
-      const responses = await Response.find({ questionId: question._id }).lean();
+      const quizFilters = analysisSessions
+        .filter((session) => getQuizResultsParticipantIds(session) !== null)
+        .map(getQuizResultsResponseFilter);
+      const responses = await Response.find({
+        questionId: question._id, ...(quizFilters.length ? { $and: quizFilters } : {}),
+      }).lean();
       const texts = [];
       responses.forEach((response) => {
         if (response.answerWysiwyg && typeof response.answerWysiwyg === 'string') {
@@ -2455,22 +2460,26 @@ export default async function questionRoutes(app) {
       if (!course || !isInstructorOrAdmin(course, request.user)) {
         return reply.code(403).send({ error: 'Forbidden', message: 'Insufficient permissions' });
       }
-      const anonymousSessions = await Session.find({
+      const analysisSessions = await Session.find({
         courseId: String(course._id),
-        anonymous: true,
         $or: [
           { questions: String(question._id) },
           ...(sessionId ? [{ _id: sessionId }] : []),
         ],
       }).lean();
-      if ((await Promise.all(anonymousSessions.map(anonymousResponsesReleasable))).some((released) => !released)) {
+      if ((await Promise.all(analysisSessions.filter((session) => session.anonymous).map(anonymousResponsesReleasable))).some((released) => !released)) {
         return reply.code(409).send({
           error: 'Conflict',
           message: 'Anonymous analysis is available after four respondents answer each answered question and attempt',
         });
       }
 
-      const responses = await Response.find({ questionId: question._id }).lean();
+      const quizFilters = analysisSessions
+        .filter((session) => getQuizResultsParticipantIds(session) !== null)
+        .map(getQuizResultsResponseFilter);
+      const responses = await Response.find({
+        questionId: question._id, ...(quizFilters.length ? { $and: quizFilters } : {}),
+      }).lean();
       const values = [];
       responses.forEach((response) => {
         const numeric = Number(response.answer);

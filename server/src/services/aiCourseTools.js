@@ -1,3 +1,4 @@
+import { getQuizResultsResponseFilter } from '../utils/quizResults.js';
 import Course from '../models/Course.js';
 import Grade from '../models/Grade.js';
 import Question from '../models/Question.js';
@@ -508,14 +509,15 @@ export async function getQuestionResponses(courseId, sessionId, questionId, { of
 
   const pageOffset = clampPageValue(offset, 0, Number.MAX_SAFE_INTEGER);
   const pageSize = clampPageValue(limit, DEFAULT_PAGE_SIZE, MAX_RESPONSE_PAGE_SIZE) || DEFAULT_PAGE_SIZE;
-  const highestAttemptResponse = await Response.findOne({ questionId: String(question._id) })
+  const responseFilter = { questionId: String(question._id), ...getQuizResultsResponseFilter(session) };
+  const highestAttemptResponse = await Response.findOne(responseFilter)
     .sort({ attempt: -1 })
     .select('attempt')
     .lean();
   const highestAttempt = Number(highestAttemptResponse?.attempt) || 0;
   const [responsePage = { metadata: [], responses: [] }] = highestAttempt > 0
     ? await Response.aggregate([
-      { $match: { questionId: String(question._id), attempt: highestAttempt } },
+      { $match: { ...responseFilter, attempt: highestAttempt } },
       { $sort: { studentUserId: 1, updatedAt: -1, submittedAt: -1, createdAt: -1 } },
       { $group: { _id: '$studentUserId', response: { $first: '$$ROOT' } } },
       { $replaceRoot: { newRoot: '$response' } },

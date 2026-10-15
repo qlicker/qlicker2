@@ -1105,6 +1105,35 @@ describe('AI course configuration and chat', () => {
     });
   });
 
+  it('summarizes only submitted quiz responses until Ended', async () => {
+    const professor = await createTestUser({ email: 'submitted-summary@example.com', roles: ['professor'] });
+    const token = await getAuthToken(app, professor);
+    const course = await createCourse(token);
+    await Course.updateOne({ _id: course._id }, { $set: { aiEnabled: true } });
+    await configureAi(course._id);
+    const question = await Question.create({ type: 2, courseId: course._id, creator: professor._id });
+    const session = await Session.create({ name: 'Quiz summary', courseId: course._id,
+      quiz: true, status: 'running', submittedQuiz: ['submitted-user'], questions: [question._id] });
+    await ResponseModel.create([
+      { questionId: question._id, studentUserId: 'submitted-user', attempt: 1, answer: 'FINAL_RESPONSE' },
+      { questionId: question._id, studentUserId: 'draft-user', attempt: 1, answer: 'UNSUBMITTED_RESPONSE' },
+    ]);
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ message: { content: 'Summary' } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    for (const ended of [false, true]) {
+      if (ended) await Session.updateOne({ _id: session._id }, { $set: { status: 'done' } });
+      fetchMock.mockClear();
+      const started = await authenticatedRequest(app, 'POST',
+        `/api/v1/ai/courses/${course._id}/sessions/${session._id}/questions/${question._id}/ai-summary`,
+        { token, payload: { instruction: 'Summarize the responses.' } });
+      expect(started.statusCode).toBe(202);
+      await vi.waitFor(async () => expect((await AiResponseSummary.findById(started.json().summary._id).lean()).status).toBe('completed'));
+      const messages = fetchMock.mock.calls.map(([, options]) => options.body).join(' ');
+      expect(messages).toContain('FINAL_RESPONSE');
+      expect(messages.includes('UNSUBMITTED_RESPONSE')).toBe(ended);
+    }
+  });
+
   it.each([1, 7])('uses custom guidance for every response-summary stage (%i responses)', async (count) => {
     const professor = await createTestUser({ email: 'custom-summary@example.com', roles: ['professor'] });
     const token = await getAuthToken(app, professor);

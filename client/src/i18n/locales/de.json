@@ -1198,6 +1198,7 @@
       "needsGradingCount": "Bewertung erforderlich ({{count}})",
       "sessionStillRunning": "Diese Sitzung läuft noch. Ergebnisse sind nach Beendigung der Sitzung verfügbar.",
       "liveResultsAvailableWhileRunning": "Diese interaktive Live-Sitzung läuft noch. Die Ergebnisse werden hier weiterhin aktualisiert, aber die Bewertung bleibt gesperrt, bis die Sitzung endet.",
+      "quizSubmittedResultsOnly": "Bis zum Ende dieses Quiz werden nur abgegebene Quizversuche angezeigt. Danach werden auch gespeicherte Antworten berücksichtigt, wenn Studierende nicht abgegeben haben.",
       "pageProgress": "Seite {{current}}/{{total}}",
       "questionProgress": "Frage {{current}}/{{total}}",
       "ungradedSummary": "Es {{verb}} {{questions}} unbewertete {{questionWord}}, betrifft {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -2358,7 +2359,8 @@
             "Studierende erhalten eine Benachrichtigung, wenn Sie neues Feedback veröffentlichen. Verwenden Sie daher kurze, umsetzbare Kommentare, die ihnen sagen, was sie wiederholen sollten.",
             "Wenn Gruppenstrukturen während der Aktivität relevant waren, vergleichen Sie die Überprüfungs- und Benotungsdaten mit den Kursgruppen, um ungleichmäßige Teilnahmemuster zu erkennen.",
             "Bei der Einschreibung werden fehlende Noten für abgeschlossene Kursaktivitäten erstellt, auch aus gespeicherten Gastantworten. Versäumte Aufgaben erhalten null Punkte ohne Bewertungsbedarf; schriftliche Antworten müssen eventuell bewertet werden. Vorhandene Noten und Rückmeldungen bleiben erhalten. Anonyme Aktivitäten bleiben unbenotet.",
-            "Die Tabellendurchschnitte verwenden vorhandene Noteneinträge der angezeigten Sitzungen. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit. Nutzen Sie Sitzungen mit Noteneinträgen auswählen oder wählen Sie Sitzungen ohne Noteneinträge manuell aus."
+            "Die Tabellendurchschnitte verwenden vorhandene Noteneinträge der angezeigten Sitzungen. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit. Nutzen Sie Sitzungen mit Noteneinträgen auswählen oder wählen Sie Sitzungen ohne Noteneinträge manuell aus.",
+            "Bis zum Ende dieses Quiz werden nur abgegebene Quizversuche angezeigt. Danach werden auch gespeicherte Antworten berücksichtigt, wenn Studierende nicht abgegeben haben."
           ],
           "success": "Professoren können das Studierenden-Handbuch über den Umschalter oben öffnen, um den Lernenden-Ablauf vor dem Unterricht in der Vorschau anzuzeigen."
         },

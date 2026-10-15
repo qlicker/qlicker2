@@ -297,6 +297,9 @@ Active and upcoming extensions block **Reviewable**. Granting a remaining extens
 
 ## 8. Run an interactive class
 
+For an open quiz, results show only students and guests who have clicked **Submit**, using their final saved answers. The page updates when quizzes are submitted. Once the quiz is **Ended**, saved answers from participants who did not submit are also included and can be graded normally. This applies to result tables, exports, and response analysis. Anonymous quizzes still wait until the activity ends and the privacy threshold is met. Practice quizzes continue to submit per question.
+
+
 Select **Launch** on an interactive session. The professor control view is separate from the student and presentation views.
 
 ![Professor live-session controls for question visibility, attempts, statistics, and chat](../assets/manuals/professor-live-session.png)

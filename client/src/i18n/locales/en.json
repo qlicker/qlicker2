@@ -1198,6 +1198,7 @@
       "needsGradingCount": "Needs grading ({{count}})",
       "sessionStillRunning": "This session is still running. Results will be available after the session ends.",
       "liveResultsAvailableWhileRunning": "This live interactive session is still running. Results continue to update here, but grading stays locked until the session ends.",
+      "quizSubmittedResultsOnly": "Only submitted quizzes are shown until this quiz ends. After it ends, saved answers are included even if the student did not submit.",
       "pageProgress": "Page {{current}}/{{total}}",
       "questionProgress": "Question {{current}}/{{total}}",
       "ungradedSummary": "There {{verb}} {{questions}} ungraded {{questionWord}}, affecting {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -2405,7 +2406,8 @@
             "Students receive a notification when you publish new feedback, so use short, actionable comments that tell them what to revisit.",
             "If group structures mattered during the activity, compare the review and grading data with the course groups so you can spot uneven participation patterns.",
             "Enrollment creates missing grades for completed course activities, including saved guest responses. Missed work receives zero without needing grading; written answers may need grading. Existing grades and feedback are preserved. Anonymous activities remain ungraded.",
-            "Grade-table averages use actual grade items in the displayed sessions. Missing items are excluded; recorded zeros count. Use Select sessions with grade items, or include sessions labelled No grade items manually."
+            "Grade-table averages use actual grade items in the displayed sessions. Missing items are excluded; recorded zeros count. Use Select sessions with grade items, or include sessions labelled No grade items manually.",
+            "Only submitted quizzes are shown until this quiz ends. After it ends, saved answers are included even if the student did not submit."
           ],
           "success": "Professors can open the student manual from the switcher above to preview the learner workflow before class."
         },

@@ -2364,6 +2364,69 @@ describe('Student quiz routes', () => {
     });
   }
 
+  it.each(['visible', 'running'])('quiz results reveal submitted attempts, then all saved answers at Ended (%s)', async (status) => {
+    const { prof, profToken, course, student, studentToken } = await setupCourseWithStudent();
+    const other = await createTestUser({ email: 'unsubmitted-quiz@example.com' });
+    const otherToken = await getAuthToken(app, other);
+    await Course.updateOne({ _id: course._id }, { $addToSet: { students: other._id } });
+    const session = await createOpenQuiz({ profToken, courseId: course._id });
+    await Session.updateOne({ _id: session._id }, { $set: { status } });
+    const question = await addMcQuestion({ profToken, sessionId: session._id, courseId: course._id });
+    const call = (method, suffix, token, payload) => authenticatedRequest(app, method, `/api/v1/sessions/${session._id}${suffix}`, { token, payload });
+    for (const token of [studentToken, otherToken]) {
+      expect((await call('PATCH', '/quiz-response', token, { questionId: question._id, answer: '1' })).statusCode).toBe(200);
+      expect((await call('PATCH', '/quiz-response', token, { questionId: question._id, answer: '0' })).statusCode).toBe(200);
+    }
+    await Question.updateOne({ _id: question._id }, { $set: { 'sessionOptions.attemptStats': [{ number: 1, responseCount: 2 }] } });
+    const pending = await call('GET', '/results', profToken);
+    expect(pending.json().studentResults).toEqual([]);
+    expect(pending.json().questions[0].sessionOptions.attemptStats).toBeUndefined();
+    expect(pending.json().quizResultsRefreshAt).toBe(status === 'visible' ? new Date(session.quizEnd).getTime() : null);
+    expect(await Response.countDocuments({ questionId: question._id })).toBe(2);
+    const sent = vi.spyOn(app, 'wsSendToUsers');
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(200);
+    expect(sent.mock.calls.some(([ids, event, data]) => ids.includes(String(prof._id)) && event === 'session:quiz-submitted' && data.sessionId === session._id)).toBe(true);
+    const submitted = await call('GET', '/results', profToken);
+    expect(submitted.json().studentResults.map((row) => row.studentId)).toEqual([String(student._id)]);
+    expect(submitted.json().studentResults[0].questionResults[0].responses[0].answer).toBe('0');
+    expect((await call('PATCH', '', profToken, { status: 'done' })).statusCode).toBe(200);
+    const ended = await call('GET', '/results', profToken);
+    expect(ended.json().studentResults).toHaveLength(2);
+    const unsubmittedRow = ended.json().studentResults.find((row) => row.studentId === String(other._id));
+    expect(unsubmittedRow.questionResults[0].responses[0].answer).toBe('0');
+    const stored = await Session.findById(session._id).lean();
+    expect(stored.submittedQuiz).not.toContain(String(other._id));
+    const grade = await Grade.findOne({ sessionId: session._id, userId: other._id }).lean();
+    expect(grade.numAnswered).toBe(1);
+    expect(grade.marks[0].responseId).toBe(unsubmittedRow.questionResults[0].responses[0]._id);
+    expect(grade.marks[0].needsGrading).toBe(false);
+    expect(grade.value).toBe(100);
+  });
+
+  it('filters active-quiz word clouds, histograms, and AI response reads to submitted participants', async () => {
+    const { profToken, course, student } = await setupCourseWithStudent();
+    const session = await createOpenQuiz({ profToken, courseId: course._id });
+    const sa = await createQuestionInSession(profToken, { type: 2, content: 'Explain', courseId: course._id, sessionId: session._id });
+    const nu = await createQuestionInSession(profToken, { type: 4, content: 'Number', courseId: course._id, sessionId: session._id });
+    await Session.updateOne({ _id: session._id }, { $set: { submittedQuiz: [student._id] } });
+    for (const [question, answers] of [[sa, ['submittedword', 'draftword']], [nu, ['10', '90']]]) {
+      await Response.create(answers.map((answer, index) => ({ questionId: question._id, studentUserId: index ? 'unsubmitted-user' : student._id, attempt: 1, answer })));
+    }
+    const { getQuestionResponses } = await import('../../src/services/aiCourseTools.js');
+    for (const ended of [false, true]) {
+      if (ended) await Session.updateOne({ _id: session._id }, { $set: { status: 'done' } });
+      const cloud = await authenticatedRequest(app, 'POST', `/api/v1/questions/${sa._id}/word-cloud`, { token: profToken, payload: {} });
+      expect(cloud.statusCode).toBe(200);
+      expect(JSON.stringify(cloud.json())).toContain('submittedword');
+      expect(JSON.stringify(cloud.json()).includes('draftword')).toBe(ended);
+      const histogram = await authenticatedRequest(app, 'POST', `/api/v1/questions/${nu._id}/histogram`, { token: profToken, payload: {} });
+      expect(histogram.statusCode).toBe(200);
+      expect(histogram.json().histogramData.bins.reduce((sum, bin) => sum + bin.count, 0)).toBe(ended ? 2 : 1);
+      const aiResponses = await getQuestionResponses(course._id, session._id, sa._id);
+      expect(JSON.stringify(aiResponses).includes('draftword')).toBe(ended);
+    }
+  });
+
   it('non-practice quiz supports autosave + final submit and blocks re-entry after submission', async (ctx) => {
     if (mongoose.connection.readyState !== 1) ctx.skip();
     const { profToken, course, student, studentToken } = await setupCourseWithStudent();

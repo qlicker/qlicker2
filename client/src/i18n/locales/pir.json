@@ -1198,6 +1198,7 @@
       "needsGradingCount": "Needs reckonin' ({{count}})",
       "sessionStillRunning": "This voyage be still underway. Results will be available after th' voyage ends.",
       "liveResultsAvailableWhileRunning": "This underway interactive voyage be still underway. Results continue to amend here, but reckonin' stays locked until th' voyage ends.",
+      "quizSubmittedResultsOnly": "Only submitted quizzes be shown till this quiz ends, arrr. Once it ends, saved answers come aboard even if the student never hit submit.",
       "pageProgress": "Page {{current}}/{{total}}",
       "questionProgress": "Riddle {{current}}/{{total}}",
       "ungradedSummary": "There {{verb}} {{questions}} unreckoned {{questionWord}}, affecting {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -2358,7 +2359,8 @@
             "Crew get a bulletin when ye proclaim new holler, so use short, actionable remarks that tell 'em what to revisit.",
             "If watch structures mattered durin' th' activity, compare th' recap an' gradin' data with th' ship watches so ye can spot uneven turnout patterns.",
             "Joinin’ a course fills missin’ marks for finished activities, includin’ answers saved as a guest. Missed work earns zero with no reckonin’ needed; written answers may need reckonin’. Existing marks and feedback stay aboard. Anonymous activities stay ungraded.",
-            "The grade table averages the marks aboard the displayed sessions. Missing marks stay out; recorded zeros count. Use Select sessions with marks aboard, or pick sessions with No marks aboard by hand."
+            "The grade table averages the marks aboard the displayed sessions. Missing marks stay out; recorded zeros count. Use Select sessions with marks aboard, or pick sessions with No marks aboard by hand.",
+            "Only submitted quizzes be shown till this quiz ends, arrr. Once it ends, saved answers come aboard even if the student never hit submit."
           ],
           "success": "Professors can open th' crew member manual from th' switcher above to preview th' learner workflow afore class."
         },

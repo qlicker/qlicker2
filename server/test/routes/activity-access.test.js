@@ -350,8 +350,16 @@ describe('outside activity participation', () => {
         });
         expect(saved.statusCode).toBe(200);
       }
+      const beforeResults = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/results`, { token: professorToken });
+      expect(beforeResults.statusCode).toBe(anonymous ? 409 : 200);
+      if (!anonymous) expect(beforeResults.json().studentResults).toEqual([]);
+      const sent = vi.spyOn(app, 'wsSendToUsers');
       const submitted = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${session._id}/submit`, { token: outsiderToken });
       expect(submitted.statusCode).toBe(200);
+      const afterResults = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/results`, { token: professorToken });
+      expect(afterResults.statusCode).toBe(anonymous ? 409 : 200);
+      if (!anonymous) expect(afterResults.json().studentResults.map((row) => row.studentId)).toEqual([String(outsider._id)]);
+      expect(sent.mock.calls.some(([ids, event]) => ids.includes(String(professor._id)) && event === 'session:quiz-submitted')).toBe(!anonymous);
       const response = await Response.findOne({ questionId: questions[0]._id }).lean();
       expect(response.studentUserId === outsider._id).toBe(!anonymous);
       expect(await Grade.countDocuments({ sessionId: session._id })).toBe(0);

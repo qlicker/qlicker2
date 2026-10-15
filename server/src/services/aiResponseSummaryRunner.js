@@ -1,3 +1,4 @@
+import { getQuizResultsResponseFilter } from '../utils/quizResults.js';
 import Course from '../models/Course.js';
 import Session from '../models/Session.js';
 import Response from '../models/Response.js';
@@ -131,19 +132,19 @@ export async function runAiResponseSummary(id, suppliedController = null) {
       { returnDocument: 'after' }
     );
     if (!job) return;
-    const [course, session, settings, responses] = await Promise.all([
+    const [course, session, settings] = await Promise.all([
       Course.findById(job.courseId).lean(),
       Session.findOne({ _id: job.sessionId, courseId: job.courseId, questions: job.questionId }).lean(),
       Settings.findById('settings').lean(),
-      Response.aggregate([
-        { $match: { questionId: String(job.questionId) } },
-        { $sort: { studentUserId: 1, attempt: -1, updatedAt: -1, createdAt: -1 } },
-        { $group: { _id: '$studentUserId', response: { $first: '$$ROOT' } } },
-        { $replaceRoot: { newRoot: '$response' } },
-        { $project: { answer: 1, answerWysiwyg: 1 } },
-      ]),
     ]);
     if (!course || !session) throw new Error('The summary course, session, or question is no longer available');
+    const responses = await Response.aggregate([
+      { $match: { questionId: String(job.questionId), ...getQuizResultsResponseFilter(session) } },
+      { $sort: { studentUserId: 1, attempt: -1, updatedAt: -1, createdAt: -1 } },
+      { $group: { _id: '$studentUserId', response: { $first: '$$ROOT' } } },
+      { $replaceRoot: { newRoot: '$response' } },
+      { $project: { answer: 1, answerWysiwyg: 1 } },
+    ]);
     const model = selected(course, settings || {}, job.backendId, job.modelId);
     if (!model) throw new Error('No available AI model is selected');
     const latest = responses.map((response) => text(response.answerWysiwyg || response.answer)).filter(Boolean);

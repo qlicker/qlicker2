@@ -1,3 +1,4 @@
+import { getQuizResultsParticipantIds, getQuizResultsResponseFilter } from '../utils/quizResults.js';
 import crypto from 'crypto';
 import Session from '../models/Session.js';
 import Course from '../models/Course.js';
@@ -5573,6 +5574,13 @@ export default async function sessionRoutes(app) {
       );
 
       notifyQuizSubmitted(app, course, updated?._id || request.params.id, request.user.userId);
+      if (!anonymousSession) {
+        // No answers or participant IDs in the notification. Review clients
+        // coalesce submissions before loading the submitted-only snapshot.
+        sendToInstructors(app, course, 'session:quiz-submitted', {
+          courseId: String(course._id), sessionId: String(updated._id),
+        });
+      }
 
       return {
         success: true,
@@ -7930,6 +7938,8 @@ export default async function sessionRoutes(app) {
         return reply.code(409).send({ error: 'Conflict', message: 'Anonymous results are available after the session ends' });
       }
 
+      const quizResultParticipantIds = getQuizResultsParticipantIds(session);
+
       // Fetch questions in session order and normalize legacy fields for review.
       const questionIds = session.questions || [];
       const questions = questionIds.length > 0
@@ -7942,15 +7952,22 @@ export default async function sessionRoutes(app) {
         .map((id) => questionMap.get(String(id)))
         .filter(Boolean)
         .map((question) => {
-          if (!isAnonymousSession(session) || !question.sessionOptions) return question;
+          if ((!isAnonymousSession(session) && !(session.quiz && !session.practiceQuiz)) || !question.sessionOptions) return question;
           const sessionOptions = { ...question.sessionOptions };
           delete sessionOptions.attemptStats;
+          if (session.quiz && !session.practiceQuiz) {
+            // Quiz chart snapshots can become stale on submission or ending;
+            // regenerate on demand using the currently visible responses.
+            delete sessionOptions.wordCloudData;
+            delete sessionOptions.histogramData;
+          }
           return { ...question, sessionOptions };
         });
 
-      // Fetch all responses for this session's questions.
+      // Active quizzes expose submitted attempts only. Ended quizzes retain
+      // every saved answer, including students who forgot to submit.
       const allResponses = questionIds.length > 0
-        ? await Response.find({ questionId: { $in: questionIds } }).lean()
+        ? await Response.find({ questionId: { $in: questionIds }, ...getQuizResultsResponseFilter(session) }).lean()
         : [];
 
       const responsesByStudentQuestion = new Map();
@@ -8012,7 +8029,7 @@ export default async function sessionRoutes(app) {
         : null;
       const resultUserIds = anonymousSession
         ? [...respondentIndexById.keys()]
-        : [...new Set([
+        : quizResultParticipantIds ?? [...new Set([
           ...courseStudentIds,
           ...joinedUserIds,
           ...responderUserIds,
@@ -8152,6 +8169,10 @@ export default async function sessionRoutes(app) {
         questions: orderedQuestions,
         studentResults,
         chatPosts,
+        // Date-controlled quizzes have no background status broadcast. Let the
+        // review page refresh once at the final deadline, without polling.
+        quizResultsRefreshAt: session.quiz && !session.practiceQuiz && session.status === 'visible'
+          ? getLatestQuizWindowEndMs(session, getNormalizedQuizExtensions(session)) : null,
         ...(anonymousSession
           ? {
             anonymousSummary: {

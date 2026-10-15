@@ -59,6 +59,12 @@ Setting an interactive session to `running` with `PATCH /sessions/:id` initializ
 
 For participants, `GET /sessions/:id/live` returns a metadata-only snapshot when an interactive session is not `running`: question, attempt, own response, statistics, word cloud, and histogram are null. `hidden` (Draft) redirects the participant to their course or, for outside guests, dashboard; `visible` (Upcoming) shows a waiting screen; `done` shows the ended screen. Existing metadata/status events refresh these states and restore questions when the session resumes. Instructor access, saved responses, and quiz endpoints retain their existing behavior.
 
+## Instructor quiz results
+
+For regular quizzes whose stored status is not `done`, `GET /sessions/:id/results` includes only participants listed in `submittedQuiz` and their saved answers. This includes guests in shared quizzes. Autosaves remain editable and stored but are excluded from result rows, CSV exports, review statistics, word clouds, histograms, and AI response summaries. At `done`, all saved answers become available, including answers from participants who never submitted. This visibility rule does not change response storage, submission records, grading rules, or extension locks. Practice quizzes retain per-question submission behavior; interactive sessions retain their existing results behavior. Anonymous quizzes retain the end-of-session and minimum-respondent requirements below.
+
+Final quiz submission sends an identity-free `session:quiz-submitted` notification to course instructors for non-anonymous quizzes. The review page coalesces these events, loads the submitted-only snapshot, and refreshes fully on status/settings changes or reconnect. It does not fetch on every autosave. `quizResultsRefreshAt` is the final scheduled deadline in epoch milliseconds for date-controlled quizzes, or `null`; it schedules a single review refresh when the quiz expires. Forced-Live quizzes still require the instructor to end them.
+
 ## Anonymous sessions
 
 `POST /api/v1/courses/:courseId/sessions` and `PATCH /api/v1/sessions/:id` accept `anonymous: boolean`. It returns `400` for practice sessions or when enabling anonymity with existing individual quiz extensions. A PATCH that changes anonymity or an anonymous session's quiz/interactive mode after participation returns `409`. The participation check and setting update are atomic. Session export, import, and copy keep the flag. Storage rules are described in the [data model](developer/data-model.md#anonymous-sessions).

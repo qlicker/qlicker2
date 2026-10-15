@@ -1198,6 +1198,7 @@
       "needsGradingCount": "À noter ({{count}})",
       "sessionStillRunning": "Cette session est encore en cours. Les résultats seront disponibles après la fin de la session.",
       "liveResultsAvailableWhileRunning": "Cette séance interactive en direct est encore en cours. Les résultats continuent de se mettre à jour ici, mais l'évaluation reste verrouillée jusqu'à la fin de la séance.",
+      "quizSubmittedResultsOnly": "Seuls les questionnaires soumis sont affichés jusqu’à la fin de ce quiz. Ensuite, les réponses enregistrées sont incluses même si l’étudiant n’a pas soumis son questionnaire.",
       "pageProgress": "Page {{current}}/{{total}}",
       "questionProgress": "Question {{current}}/{{total}}",
       "ungradedSummary": "Il y a {{questions}} {{questionWord}} non noté(es), affectant {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -2358,7 +2359,8 @@
             "Les étudiants reçoivent une notification lorsque vous publiez une nouvelle rétroaction; privilégiez donc des commentaires courts et directement actionnables.",
             "Si la structure des groupes a compté pendant l'activité, comparez les données de révision et de notation avec les groupes du cours afin de repérer une participation inégale.",
             "L’inscription crée les notes manquantes pour les activités terminées du cours, y compris à partir des réponses enregistrées comme invité. Le travail manqué reçoit zéro sans correction requise ; les réponses écrites peuvent nécessiter une correction. Les notes et commentaires existants sont conservés. Les activités anonymes restent sans notes.",
-            "Les moyennes du tableau utilisent les éléments de note existants des séances affichées. Les éléments manquants sont exclus ; les zéros enregistrés comptent. Utilisez Sélectionner les séances avec des éléments de note, ou ajoutez manuellement les séances sans élément de note."
+            "Les moyennes du tableau utilisent les éléments de note existants des séances affichées. Les éléments manquants sont exclus ; les zéros enregistrés comptent. Utilisez Sélectionner les séances avec des éléments de note, ou ajoutez manuellement les séances sans élément de note.",
+            "Seuls les questionnaires soumis sont affichés jusqu’à la fin de ce quiz. Ensuite, les réponses enregistrées sont incluses même si l’étudiant n’a pas soumis son questionnaire."
           ],
           "success": "Les professeurs peuvent ouvrir le guide étudiant depuis le sélecteur ci-dessus afin de prévisualiser le flux de l'apprenant avant un cours."
         },

@@ -1,9 +1,20 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import SessionReview, { buildSessionResultsCsv } from './SessionReview';
 import apiClient from '../../api/client';
 import i18n from '../../i18n';
+
+const quizEvents = vi.hoisted(() => ({ listeners: new Set(), refresh: null }));
+vi.mock('../../contexts/LiveSessionWebSocketContext', () => ({
+  LiveSessionWebSocketProvider: ({ children }) => children,
+  useLiveSessionWebSocket: () => ({
+    subscribe: quizEvents.subscribe,
+    registerRefreshHandler: quizEvents.register,
+  }),
+}));
+quizEvents.subscribe = (handler) => { quizEvents.listeners.add(handler); return () => quizEvents.listeners.delete(handler); };
+quizEvents.register = (handler) => { quizEvents.refresh = handler; return () => { quizEvents.refresh = null; }; };
 
 vi.mock('../../api/client', () => ({
   default: {
@@ -101,6 +112,8 @@ function buildResultsPayload(sessionOverrides = {}) {
 describe('SessionReview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    quizEvents.listeners.clear();
+    quizEvents.refresh = null;
     i18n.changeLanguage('en');
 
     apiClient.get.mockImplementation(async (url) => {
@@ -186,6 +199,36 @@ describe('SessionReview', () => {
     fireEvent.click(joinButton);
     expect(await screen.findByText('Live session destination')).toBeInTheDocument();
   });
+
+  it('refreshes quiz results on coalesced submissions and ending, without refetching on autosaves', async () => {
+    const originalGet = apiClient.get.getMockImplementation();
+    let payload = { ...buildResultsPayload({ quiz: true, status: 'running' }), studentResults: [] };
+    apiClient.get.mockImplementation((url, ...args) => url === '/sessions/session-1/results'
+      ? Promise.resolve({ data: payload }) : originalGet(url, ...args));
+    renderSessionReview();
+    await screen.findByText(/only submitted quizzes are shown/i);
+    fireEvent.click(screen.getByRole('tab', { name: /response data/i }));
+    const resultCalls = () => apiClient.get.mock.calls.filter(([url]) => url.endsWith('/results')).length;
+    const courseCalls = () => apiClient.get.mock.calls.filter(([url]) => url === '/courses/course-1').length;
+    const initialCourses = courseCalls();
+    expect(resultCalls()).toBe(1);
+    act(() => quizEvents.listeners.forEach((handler) => handler({ event: 'session:response-added' })));
+    payload = { ...buildResultsPayload({ quiz: true, status: 'running' }), studentResults: buildResultsPayload().studentResults.slice(0, 1) };
+    act(() => {
+      for (let index = 0; index < 5; index += 1) {
+        quizEvents.listeners.forEach((handler) => handler({ event: 'session:quiz-submitted' }));
+      }
+    });
+    await screen.findByText('Ada Lovelace', {}, { timeout: 4000 });
+    expect(screen.queryByText('Grace Hopper')).not.toBeInTheDocument();
+    expect(resultCalls()).toBe(2);
+    expect(courseCalls()).toBe(initialCourses);
+    payload = buildResultsPayload({ quiz: true, status: 'done' });
+    act(() => quizEvents.listeners.forEach((handler) => handler({ event: 'session:status-changed' })));
+    await screen.findByText('Grace Hopper', {}, { timeout: 4000 });
+    expect(resultCalls()).toBe(3);
+    expect(screen.queryByText(/only submitted quizzes are shown/i)).not.toBeInTheDocument();
+  }, 10000);
 
   it('renders question math in both the results and grading tabs', async () => {
     const defaultGet = apiClient.get.getMockImplementation();
