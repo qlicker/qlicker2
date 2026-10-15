@@ -245,6 +245,10 @@ What changes:
 - The session is never graded and does not appear in the course gradebook. AI grading is unavailable, and session chat does not show authors' names.
 - The setting locks once anyone joins, saves an answer, or submits. Anonymous quiz/interactive mode also locks after participation. Remove any individual quiz extensions before enabling anonymity.
 
+The instructor’s live Controls show an information banner explaining that statistics are hidden until four different participants answer the current question and attempt. After the first release, the banner shows the released response count and explains batching.
+
+![Anonymous live statistics waiting for the privacy minimum](../assets/manuals/professor-anonymous-stats-waiting.png)
+
 Linked rows are needed to correlate survey answers, but a unique or self-identifying answer can expose the rest of that respondent's row. The four-person minimum reduces direct identification by elimination, but does not prevent inference from unique answers or knowledge of who participated. Label numbers do not follow answer order or names.
 
 ### Share a quiz or live activity outside the course

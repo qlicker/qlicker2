@@ -1489,9 +1489,11 @@ function LiveSessionContent() {
             </Box>
 
             {anonymousSession && currentQ && !isSlide && (
-              <Typography variant="body2" color="text.secondary" role="status">
-                {t('professor.liveSession.anonymousStatsBatches', { count: responseStats?.total || 0 })}
-              </Typography>
+              <Alert severity="info" role="status">
+                {responseStats
+                  ? t('professor.liveSession.anonymousStatsBatches', { count: responseStats.total || 0 })
+                  : t('professor.liveSession.anonymousStatsWaiting')}
+              </Alert>
             )}
 
             <Divider />

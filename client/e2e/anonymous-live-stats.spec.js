@@ -37,6 +37,8 @@ test('anonymous live results update in batches without a refresh and Show Stats 
   for (const person of participants.slice(1)) await control('POST', '/join', {}, person.token);
   await page.goto(`/prof/course/${course._id}/session/${session._id}/live`);
   await expect(page.getByText('Anonymous feedback')).toBeVisible();
+  const privacyNotice = page.getByRole('status').filter({ hasText: 'To protect anonymity' });
+  await expect(privacyNotice).toContainText('at least four different participants');
   const presentation = await page.context().newPage();
   const studentContext = await browser.newContext();
   try {
@@ -51,9 +53,11 @@ test('anonymous live results update in batches without a refresh and Show Stats 
       await control('POST', '/respond', { answer: `Anonymous comment ${index + 1}` }, participants[index].token, 201);
     }
     await expect(page.getByText('Anonymous comment 2', { exact: true })).toHaveCount(0);
+    await expect(privacyNotice).toBeVisible();
     await control('POST', '/respond', { answer: 'Anonymous comment 4' }, participants[3].token, 201);
     await expect(page.getByText('Anonymous comment 4', { exact: true })).toBeVisible();
     await expect(page.getByText(/Showing 4 responses/)).toBeVisible();
+    await expect(privacyNotice).toHaveCount(0);
     await expect(presentation.getByText('Anonymous comment 4', { exact: true })).toHaveCount(0);
     const statsSwitch = page.getByRole('switch', { name: 'Show Stats', exact: true });
     await statsSwitch.click();

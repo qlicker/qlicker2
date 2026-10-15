@@ -493,3 +493,27 @@ test('capture practice creation and session admission', async ({ browser, reques
   await studentContext.close();
   await professorContext.close();
 });
+
+
+test('capture anonymous statistics privacy notice', async ({ page, request }) => {
+  test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Run with QCLICKER_CAPTURE_MANUALS=1.');
+  await fs.mkdir(docsOutputDir, { recursive: true });
+  await fs.mkdir(publicOutputDir, { recursive: true });
+  const { admin, professor } = await seedUsers(request);
+  const course = await createCourseViaApi(request, admin.token, { name: 'Introduction to Biology' });
+  await addInstructorToCourseViaApi(request, admin.token, course._id, professor.user._id);
+  const session = await createSessionViaApi(request, professor.token, course._id, {
+    name: 'Anonymous course feedback', anonymous: true,
+  });
+  const question = await createQuestionViaApi(request, professor.token, {
+    courseId: course._id, sessionId: session._id, type: 2, options: [],
+    content: '<p>What helped you learn this week?</p>',
+  });
+  await addQuestionToSessionViaApi(request, professor.token, session._id, question._id);
+  const started = await apiJson(request, 'POST', `/sessions/${session._id}/start`, { token: professor.token });
+  expect(started.response.status()).toBe(200);
+  await loginViaUi(page, professor.email, professor.password, /\/prof$/);
+  await page.goto(`/prof/course/${course._id}/session/${session._id}/live`);
+  await expect(page.getByRole('status').filter({ hasText: 'To protect anonymity' })).toBeVisible();
+  await capture(page, 'professor-anonymous-stats-waiting.png', 1200);
+});
