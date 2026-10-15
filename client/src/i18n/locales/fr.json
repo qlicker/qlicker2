@@ -2370,7 +2370,8 @@
             "Le clavardage du cours est organisé en sujets titrés et étiquetés, avec commentaires et votes. Le personnel enseignant peut filtrer, trier et archiver; les étudiants voient des rôles anonymes tandis que l'identité reste disponible pour la modération.",
             "Activez le clavardage de séance dans les commandes de la séance en direct. Vous pouvez désactiver séparément les publications riches et les commentaires tout en conservant les messages rapides liés à la question courante.",
             "Servez-vous des votes pour repérer les questions fréquentes, marquez un fil résolu comme traité et consultez la conversation après la séance. Les compteurs de messages non lus restent visibles pendant la présentation.",
-            "Expliquez les usages avant le cours : clavardage du cours pour les questions durables, clavardage de séance pour les difficultés immédiates et commandes de réponse pour les réponses notées."
+            "Expliquez les usages avant le cours : clavardage du cours pour les questions durables, clavardage de séance pour les difficultés immédiates et commandes de réponse pour les réponses notées.",
+            "Les invités ayant rejoint une activité partagée en direct peuvent utiliser son chat de séance activé, y compris les messages rapides, commentaires et votes. Cela ne donne pas accès au chat du cours. Dans les activités anonymes, les autres participants et les enseignants ne voient pas l’identité des invités ou des étudiants dans le chat. Évitez de vous identifier dans vos messages."
           ],
           "note": "La visibilité et l'identité des auteurs varient selon le rôle. Consultez le manuel étudiant avant de présenter le clavardage à la classe."
         },
@@ -2493,7 +2494,8 @@
             "Les autres étudiants apparaissent anonymement, tandis que le personnel enseignant conserve l'identité nécessaire à la modération. Vous pouvez modifier ou supprimer vos propres messages selon les commandes offertes.",
             "Pendant une activité en direct, ouvrez le panneau Clavardage. Les messages rapides restent disponibles lorsque les publications riches sont désactivées; commentaires et votes dépendent des paramètres de la séance.",
             "Une discussion traitée ou archivée n'est pas nécessairement supprimée. Elle est masquée dans votre révision étudiante, mais l'équipe enseignante peut la conserver pour révision et modération.",
-            "Un message de clavardage ne remet pas une réponse. Revenez au panneau Question et utilisez le bouton de réponse lorsqu'une note ou la participation est enregistrée."
+            "Un message de clavardage ne remet pas une réponse. Revenez au panneau Question et utilisez le bouton de réponse lorsqu'une note ou la participation est enregistrée.",
+            "Les invités ayant rejoint une activité partagée en direct peuvent utiliser son chat de séance activé, y compris les messages rapides, commentaires et votes. Cela ne donne pas accès au chat du cours. Dans les activités anonymes, les autres participants et les enseignants ne voient pas l’identité des invités ou des étudiants dans le chat. Évitez de vous identifier dans vos messages."
           ]
         },
         {

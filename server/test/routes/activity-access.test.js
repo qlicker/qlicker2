@@ -9,6 +9,7 @@ import Question from '../../src/models/Question.js';
 import Response from '../../src/models/Response.js';
 import { getSessionParticipantId } from '../../src/utils/anonymousSession.js';
 import Session from '../../src/models/Session.js';
+import { getActivityRecipientUserIds } from '../../src/services/activityAccess.js';
 
 let app;
 
@@ -790,4 +791,173 @@ describe('upcoming interactive admission', () => {
       expect((await call('GET', '/live', outsiderToken)).json().isJoined).toBe(true);
     });
   }
+});
+
+describe('shared interactive session chat', () => {
+  afterEach(() => vi.restoreAllMocks());
+  async function chatFixture(anonymous, professorGuest = false) {
+    const context = await fixture({ anonymous, quiz: false, status: 'running' });
+    const question = await addQuestion(context);
+    await Session.updateOne({ _id: context.session._id }, { $set: {
+      currentQuestion: question._id, chatEnabled: true,
+      joinCodeEnabled: true, joinCodeActive: true, currentJoinCode: '123456',
+    } });
+    if (professorGuest) {
+      context.outsider.profile.roles = ['professor'];
+      await context.outsider.save();
+      context.outsiderToken = await getAuthToken(app, context.outsider);
+    }
+    const code = (await issue(context.session._id, context.professorToken)).json().code;
+    expect((await redeem(code, context.outsiderToken)).statusCode).toBe(200);
+    const call = (method, suffix, payload, token = context.outsiderToken) => authenticatedRequest(
+      app, method, `/api/v1/sessions/${context.session._id}${suffix}`, { token, payload }
+    );
+    return { ...context, call, code };
+  }
+
+  it.each([
+    { anonymous: false, professorGuest: false }, { anonymous: true, professorGuest: false },
+    { anonymous: false, professorGuest: true }, { anonymous: true, professorGuest: true },
+  ])('supports guest chat with protected identity (anonymous=$anonymous, professorGuest=$professorGuest)', async ({ anonymous, professorGuest }) => {
+    const { call, outsider, professor, professorToken, course, session } = await chatFixture(anonymous, professorGuest);
+    expect((await call('GET', '/chat')).statusCode).toBe(403);
+    expect((await call('POST', '/chat/posts', { body: 'Too early' })).statusCode).toBe(403);
+    expect((await call('POST', '/join', { joinCode: '123456' })).statusCode).toBe(200);
+    const live = await call('GET', '/live');
+    expect(live.json().session.chatEnabled).toBe(true);
+    const chat = await call('GET', '/chat');
+    expect(chat.statusCode).toBe(200);
+    expect(chat.json()).toMatchObject({ canPost: true, canVote: true, canViewNames: false, canDismiss: false });
+
+    const sent = vi.spyOn(app, 'wsSendToUsers');
+    const created = await call('POST', '/chat/posts', { body: 'Guest discussion' });
+    expect(created.statusCode).toBe(200);
+    const postId = created.json().postId;
+    const comment = await call('POST', `/chat/posts/${postId}/comments`, { body: 'Guest follow-up' });
+    expect(comment.statusCode).toBe(200);
+    expect((await call('PATCH', `/chat/posts/${postId}`, { body: 'Edited guest discussion' })).statusCode).toBe(200);
+    expect((await call('POST', '/chat/quick-posts/1/toggle')).statusCode).toBe(200);
+
+    const profPost = await call('POST', '/chat/posts', { body: 'Instructor discussion' }, professorToken);
+    expect((await call('PATCH', `/chat/posts/${profPost.json().postId}/vote`, { upvoted: true })).statusCode).toBe(200);
+    for (const view of ['', '?view=presentation', '?view=review']) {
+      const review = await call('GET', `/chat${view}`, undefined, professorToken);
+      expect(review.statusCode).toBe(200);
+      const entry = review.json().posts.find((post) => post._id === postId);
+      expect(entry.authorName).toBe(anonymous || view === '?view=presentation' ? null : 'Test User');
+      expect(entry.comments[0].authorName).toBe(anonymous || view === '?view=presentation' ? null : 'Test User');
+      if (anonymous) {
+        expect(JSON.stringify(review.json())).not.toContain(String(outsider._id));
+        expect(JSON.stringify(review.json())).not.toContain(getSessionParticipantId({ ...session, anonymous }, outsider._id));
+        expect(review.json().posts.every((post) => post.upvoterUserIds === undefined)).toBe(true);
+      }
+    }
+    // The existing fanout is asynchronous for shared activities; assert delivery
+    // without introducing sleeps or changing production broadcasting patterns.
+    await vi.waitFor(() => expect(sent.mock.calls.some(([ids, event, payload]) => (
+      ids.includes(String(outsider._id)) && event === 'session:chat-updated' && payload.post?.body === 'Instructor discussion'
+    ))).toBe(true));
+    const instructorGuestEvents = sent.mock.calls.filter(([ids, event, payload]) => (
+      ids.includes(String(professor._id)) && event === 'session:chat-updated' && payload.post?._id === postId
+    ));
+    expect(instructorGuestEvents.length).toBeGreaterThan(0);
+    if (anonymous) {
+      for (const [, , payload] of instructorGuestEvents) {
+        expect(payload.post.authorName).toBeNull();
+        expect(payload.post.comments.every((entry) => entry.authorName === null)).toBe(true);
+        expect(JSON.stringify(payload)).not.toContain(String(outsider._id));
+      }
+    }
+    // A professor account joining as a guest still has participant permissions.
+    expect((await call('PATCH', '/chat-settings', { chatEnabled: false })).statusCode).toBe(403);
+    expect((await call('PATCH', `/chat/posts/${postId}/dismiss`)).statusCode).toBe(403);
+    expect((await call('PATCH', `/chat/posts/${profPost.json().postId}`, { body: 'Hijack' })).statusCode).toBe(403);
+    expect((await call('DELETE', `/chat/posts/${profPost.json().postId}`)).statusCode).toBe(403);
+    expect((await call('DELETE', `/chat/posts/${postId}/comments/${comment.json().commentId}`)).statusCode).toBe(200);
+    expect((await call('DELETE', `/chat/posts/${postId}`)).statusCode).toBe(200);
+    expect((await Course.findById(course._id).lean()).students).not.toContain(outsider._id);
+    expect(await Grade.countDocuments({ sessionId: session._id })).toBe(0);
+  });
+
+  it('keeps ordinary enrolled chat off the activity-grant lookup path', async () => {
+    const context = await fixture({ quiz: false, status: 'running' });
+    const { professorToken, outsiderToken, outsider, session, course } = context;
+    const question = await addQuestion(context);
+    await Course.updateOne({ _id: course._id }, { $addToSet: { students: outsider._id } });
+    await Session.updateOne({ _id: session._id }, { $set: {
+      currentQuestion: question._id, chatEnabled: true, joined: [outsider._id],
+    } });
+    const shareLookup = vi.spyOn(ActivityShare, 'findOne');
+    const grantLookup = vi.spyOn(ActivityGrant, 'exists');
+    const grantRecipients = vi.spyOn(ActivityGrant, 'find');
+    for (const token of [outsiderToken, professorToken]) {
+      expect((await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/chat`, { token })).statusCode).toBe(200);
+      expect((await authenticatedRequest(app, 'POST', `/api/v1/sessions/${session._id}/chat/posts`, {
+        token, payload: { body: 'Ordinary course discussion' },
+      })).statusCode).toBe(200);
+    }
+    expect(shareLookup).not.toHaveBeenCalled();
+    expect(grantLookup).not.toHaveBeenCalled();
+    expect(grantRecipients).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])('enforces admission, scope, revocation and chat settings (anonymous=%s)', async (anonymous) => {
+    const { call, outsiderToken, professorToken, session, course, code, outsider } = await chatFixture(anonymous);
+    expect((await call('POST', '/join', { joinCode: '123456' })).statusCode).toBe(200);
+    const postId = (await call('POST', '/chat/posts', { body: 'Own post' })).json().postId;
+    const commentId = (await call('POST', `/chat/posts/${postId}/comments`, { body: 'Own comment' })).json().commentId;
+    const operations = [
+      ['GET', '/chat'], ['POST', '/chat/posts', { body: 'Forbidden post' }],
+      ['POST', '/chat/quick-posts/1/toggle'], ['PATCH', `/chat/posts/${postId}`, { body: 'Forbidden edit' }],
+      ['PATCH', `/chat/posts/${postId}/vote`, { upvoted: true }],
+      ['POST', `/chat/posts/${postId}/comments`, { body: 'Forbidden comment' }],
+      ['DELETE', `/chat/posts/${postId}`], ['DELETE', `/chat/posts/${postId}/comments/${commentId}`],
+    ];
+    const assertDenied = async () => {
+      for (const [method, suffix, payload] of operations) {
+        expect((await call(method, suffix, payload)).statusCode, `${method} ${suffix}`).toBe(403);
+      }
+    };
+    for (const status of ['hidden', 'visible', 'done']) {
+      await Session.updateOne({ _id: session._id }, { $set: { status } });
+      await assertDenied();
+    }
+    await Session.updateOne({ _id: session._id }, { $set: { status: 'running' } });
+    const unrelated = await Session.create({ name: 'Other activity', courseId: course._id, status: 'running', chatEnabled: true });
+    expect((await authenticatedRequest(app, 'GET', `/api/v1/sessions/${unrelated._id}/chat`, { token: outsiderToken })).statusCode).toBe(403);
+    expect((await authenticatedRequest(app, 'GET', `/api/v1/courses/${course._id}/chat`, { token: outsiderToken })).statusCode).toBe(403);
+
+    // Disabled rich text still permits quick posts; disabling chat blocks writes.
+    expect((await call('PATCH', '/chat-settings', { richTextChatEnabled: false }, professorToken)).statusCode).toBe(200);
+    expect((await call('POST', '/chat/posts', { body: 'Unavailable' })).statusCode).toBe(403);
+    expect((await call('POST', `/chat/posts/${postId}/comments`, { body: 'Unavailable' })).statusCode).toBe(403);
+    expect((await call('POST', '/chat/quick-posts/1/toggle')).statusCode).toBe(200);
+    expect((await call('PATCH', '/chat-settings', { chatEnabled: false }, professorToken)).statusCode).toBe(200);
+    expect((await call('POST', '/chat/quick-posts/1/toggle')).statusCode).toBe(403);
+    expect((await call('PATCH', '/chat-settings', { chatEnabled: true, richTextChatEnabled: true }, professorToken)).statusCode).toBe(200);
+    for (const restriction of [{ allowSharedActivities: false }, { inactive: true }]) {
+      await Course.updateOne({ _id: course._id }, { $set: restriction });
+      await assertDenied();
+      expect(await getActivityRecipientUserIds(await Session.findById(session._id).lean(), await Course.findById(course._id).lean())).toEqual([]);
+      await Course.updateOne({ _id: course._id }, { $set: { allowSharedActivities: true, inactive: false } });
+    }
+    expect((await call('DELETE', '/activity-share', undefined, professorToken)).statusCode).toBe(200);
+    await assertDenied();
+    // Re-enabling does not restore an old grant, even though joined still contains the participant.
+    expect((await issue(session._id, professorToken)).statusCode).toBe(200);
+    await assertDenied();
+    const enrolled = await createTestUser({ email: 'chat-enrolled@example.com' });
+    await Course.updateOne({ _id: course._id }, { $addToSet: { students: enrolled._id } });
+    await Session.updateOne({ _id: session._id }, { $addToSet: { joined: getSessionParticipantId({ ...session, anonymous }, enrolled._id) } });
+    const sent = vi.spyOn(app, 'wsSendToUsers');
+    expect((await call('POST', '/chat/posts', { body: 'Only current participants' }, professorToken)).statusCode).toBe(200);
+    await call('PATCH', '/chat-settings', { chatEnabled: true }, professorToken);
+    // Delivery to the enrolled participant confirms that asynchronous fanout finished.
+    for (const expectedEvent of ['session:chat-updated', 'session:chat-settings-changed']) {
+      await vi.waitFor(() => expect(sent.mock.calls.some(([ids, event]) => ids.includes(String(enrolled._id)) && event === expectedEvent)).toBe(true));
+    }
+    expect(sent.mock.calls.some(([ids, event]) => ids.includes(String(outsider._id)) && event.startsWith('session:chat-'))).toBe(false);
+    expect((await redeem(code, outsiderToken)).statusCode).toBe(200);
+    expect((await call('GET', '/chat')).statusCode).toBe(200);
+  });
 });

@@ -2370,7 +2370,8 @@
             "El chat del curso se organiza en temas con título y etiquetas, comentarios y votos. Los docentes pueden filtrar, ordenar y archivar; los estudiantes ven etiquetas de rol anónimas, mientras el docente conserva la identidad necesaria para moderar.",
             "Active el Chat de la sesión desde los controles de la sesión en vivo. Puede desactivar por separado las publicaciones enriquecidas y los comentarios sin quitar los mensajes rápidos vinculados a la pregunta actual.",
             "Use los votos para detectar preguntas frecuentes, marque un hilo resuelto como atendido y revise la conversación después de la sesión. Los indicadores de mensajes no leídos ayudan durante la presentación.",
-            "Defina las expectativas: chat del curso para preguntas y recursos duraderos, chat de sesión para dudas inmediatas y controles de respuesta para respuestas calificadas."
+            "Defina las expectativas: chat del curso para preguntas y recursos duraderos, chat de sesión para dudas inmediatas y controles de respuesta para respuestas calificadas.",
+            "Los invitados que se hayan unido a una actividad en directo compartida pueden usar su chat de sesión habilitado, incluidos mensajes rápidos, comentarios y votos. Esto no da acceso al chat del curso. En actividades anónimas, los demás participantes y docentes no pueden ver la identidad de invitados ni estudiantes en el chat. Evita identificarte en el texto de los mensajes."
           ],
           "note": "La visibilidad y la identidad del autor cambian según el rol. Revise el manual del estudiante antes de presentar el chat en clase."
         },
@@ -2493,7 +2494,8 @@
             "Sus compañeros aparecen de forma anónima, mientras el docente conserva la identidad necesaria para moderar. Puede editar o eliminar sus propias publicaciones según los controles disponibles.",
             "Durante una actividad en vivo, abra el panel Chat. Los mensajes rápidos siguen disponibles si se desactivan las publicaciones enriquecidas; comentarios y votos dependen de la configuración actual.",
             "Una conversación atendida o archivada no está necesariamente eliminada. No aparece después en su revisión de estudiante, pero el equipo docente puede conservarla para revisión y moderación.",
-            "Un mensaje de chat no envía una respuesta. Regrese al panel Pregunta y use el botón de respuesta cuando se registre la calificación o participación."
+            "Un mensaje de chat no envía una respuesta. Regrese al panel Pregunta y use el botón de respuesta cuando se registre la calificación o participación.",
+            "Los invitados que se hayan unido a una actividad en directo compartida pueden usar su chat de sesión habilitado, incluidos mensajes rápidos, comentarios y votos. Esto no da acceso al chat del curso. En actividades anónimas, los demás participantes y docentes no pueden ver la identidad de invitados ni estudiantes en el chat. Evita identificarte en el texto de los mensajes."
           ]
         },
         {

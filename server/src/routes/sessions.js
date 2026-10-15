@@ -1542,11 +1542,11 @@ async function loadSessionChatPayload({ session, course, request }) {
 
 async function loadSessionChatContext(sessionId) {
   const session = await Session.findById(sessionId)
-    .select('courseId status anonymous joined questions currentQuestion chatEnabled richTextChatEnabled')
+    .select('courseId status anonymous joined questions currentQuestion chatEnabled richTextChatEnabled activityAccessEnabled activityEverShared')
     .lean();
   if (!session) return { session: null, course: null };
   const course = await Course.findById(session.courseId)
-    .select('students instructors')
+    .select('students instructors allowSharedActivities inactive')
     .lean();
   return { session, course };
 }
@@ -6130,8 +6130,8 @@ export default async function sessionRoutes(app) {
             anonymous: anonymousSession,
             joinCodeActive: session.joinCodeActive,
             joinCodeEnabled: session.joinCodeEnabled,
-            chatEnabled: isCourseMember(course, request.user) && session.chatEnabled,
-            richTextChatEnabled: isCourseMember(course, request.user) && isRichTextChatEnabled(session),
+            chatEnabled: isJoined && session.chatEnabled,
+            richTextChatEnabled: isJoined && isRichTextChatEnabled(session),
           },
         currentQuestion: null,
         currentAttempt,
@@ -7304,8 +7304,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const payload = await loadSessionChatPayload({ session, course, request });
@@ -7341,8 +7341,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const viewMode = getChatViewMode(request, isInstructorOrAdmin(course, request.user));
@@ -7401,8 +7401,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const viewMode = getChatViewMode(request, isInstructorOrAdmin(course, request.user));
@@ -7497,8 +7497,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const viewMode = getChatViewMode(request, isInstructorOrAdmin(course, request.user));
@@ -7572,8 +7572,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const viewMode = getChatViewMode(request, isInstructorOrAdmin(course, request.user));
@@ -7663,8 +7663,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const viewMode = getChatViewMode(request, isInstructorOrAdmin(course, request.user));
@@ -7792,8 +7792,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const viewMode = getChatViewMode(request, isInstructorOrAdmin(course, request.user));
@@ -7845,8 +7845,8 @@ export default async function sessionRoutes(app) {
       if (!course) {
         return reply.code(404).send({ error: 'Not Found', message: 'Course not found' });
       }
-      if (!isCourseMember(course, request.user)) {
-        return reply.code(403).send({ error: 'Forbidden', message: 'Not a member of this course' });
+      if (!await hasSessionParticipantAccess(course, session, request.user)) {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Session chat is not available' });
       }
 
       const viewMode = getChatViewMode(request, isInstructorOrAdmin(course, request.user));

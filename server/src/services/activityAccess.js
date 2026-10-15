@@ -91,8 +91,8 @@ export async function hasSessionParticipantAccess(course, session, user) {
 
 export async function getActivityRecipientUserIds(session, course = null) {
   if (!session?.activityAccessEnabled) return [];
-  const activityCourse = course || await Course.findById(session.courseId).select('allowSharedActivities').lean();
-  if (!activityCourse?.allowSharedActivities) return [];
+  const activityCourse = course || await Course.findById(session.courseId).select('allowSharedActivities inactive').lean();
+  if (activityCourse?.inactive || !activityCourse?.allowSharedActivities) return [];
   const share = await ActivityShare.findOne({ sessionId: String(session._id), enabled: true })
     .select('accessEpoch').lean();
   if (!share) return [];

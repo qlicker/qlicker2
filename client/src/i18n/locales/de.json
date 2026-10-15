@@ -2370,7 +2370,8 @@
             "Der Kurschat besteht aus benannten, verschlagworteten Themen mit Kommentaren und positiven Bewertungen. Lehrende können nach Thema oder Autor filtern, Diskussionen sortieren und archivieren; Studierende sehen anonyme Rollenbezeichnungen, während Lehrende die Identitäten zur Moderation sehen.",
             "Aktivieren Sie den Sitzungschat in der Live-Sitzungssteuerung. Rich-Text-Beiträge und Kommentare lassen sich getrennt deaktivieren, während Kurzbeiträge zur aktuellen Frage verfügbar bleiben.",
             "Nutzen Sie Bewertungen, um häufige Fragen zu erkennen, markieren Sie erledigte Themen als bearbeitet und prüfen Sie die Unterhaltung nach der Sitzung. Zähler für ungelesene Beiträge helfen während der Präsentation.",
-            "Legen Sie vor dem Kurs fest: Kurschat für längerfristige Fragen und Materialien, Sitzungschat für unmittelbare Unklarheiten und die Antwortsteuerung für bewertete Antworten."
+            "Legen Sie vor dem Kurs fest: Kurschat für längerfristige Fragen und Materialien, Sitzungschat für unmittelbare Unklarheiten und die Antwortsteuerung für bewertete Antworten.",
+            "Gäste, die einer geteilten Live-Aktivität beigetreten sind, können deren aktivierten Sitzungs-Chat nutzen, einschließlich Schnellbeiträgen, Kommentaren und Stimmen. Dadurch erhalten sie keinen Zugriff auf den Kurs-Chat. Bei anonymen Aktivitäten sehen andere Teilnehmende und Lehrende im Chat keine Identitäten von Gästen oder Studierenden. Vermeiden Sie Angaben im Nachrichtentext, die Sie identifizieren."
           ],
           "note": "Sichtbarkeit und Autorenidentität unterscheiden sich je nach Rolle. Prüfen Sie vor der Einführung des Chats das Studierendenhandbuch."
         },
@@ -2493,7 +2494,8 @@
             "Mitstudierende erscheinen anonym, während Lehrende die Identität zur Moderation sehen. Eigene Beiträge können entsprechend den sichtbaren Steuerelementen bearbeitet oder gelöscht werden.",
             "Öffnen Sie während einer Live-Aktivität den Bereich Chat. Kurzbeiträge bleiben verfügbar, wenn Rich-Text-Beiträge deaktiviert sind; Kommentare und Bewertungen hängen von den Sitzungseinstellungen ab.",
             "Eine erledigte oder archivierte Diskussion ist nicht unbedingt gelöscht. Sie wird später nicht in Ihrer Studierendenübersicht angezeigt, kann aber vom Lehrteam zur Prüfung und Moderation aufbewahrt werden.",
-            "Chatnachrichten übermitteln keine Antwort. Wechseln Sie zum Bereich Frage und verwenden Sie die Antwortschaltfläche, wenn Bewertung oder Teilnahme erfasst wird."
+            "Chatnachrichten übermitteln keine Antwort. Wechseln Sie zum Bereich Frage und verwenden Sie die Antwortschaltfläche, wenn Bewertung oder Teilnahme erfasst wird.",
+            "Gäste, die einer geteilten Live-Aktivität beigetreten sind, können deren aktivierten Sitzungs-Chat nutzen, einschließlich Schnellbeiträgen, Kommentaren und Stimmen. Dadurch erhalten sie keinen Zugriff auf den Kurs-Chat. Bei anonymen Aktivitäten sehen andere Teilnehmende und Lehrende im Chat keine Identitäten von Gästen oder Studierenden. Vermeiden Sie Angaben im Nachrichtentext, die Sie identifizieren."
           ]
         },
         {

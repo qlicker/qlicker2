@@ -54,7 +54,7 @@ You normally enroll only once. The course stays on the dashboard until the instr
 
 Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity.
 
-An activity code opens only its own quiz or live session. It can be used by multiple people, but your account can submit a quiz only once and answer each live question/attempt only once. If the activity code expires after you have used it, you can still enter it again while your access remains enabled. The instructor can disable sharing, which immediately removes outside access. If sharing is enabled again with the same code, enter that code again to regain access. Outside participants cannot use that course's roster, gradebook, or chat. They do not get session chat.
+An activity code opens only its own quiz or live session. It can be used by multiple people, but your account can submit a quiz only once and answer each live question/attempt only once. If the activity code expires after you have used it, you can still enter it again while your access remains enabled. The instructor can disable sharing, which immediately removes outside access. If sharing is enabled again with the same code, enter that code again to regain access. Outside participants cannot use that course's roster, gradebook, or chat. After joining a live activity, they can use its enabled session chat.
 
 In a named code-accessible activity, enrolled students can receive grades, while participants who are outside the course have their responses tracked without receiving grades. Anonymous activities have no grades for anyone. Anonymous responses are correlated across questions under one respondent label, but the instructor sees the answer rows only after the activity ends and at least four people have answered every question and attempt with responses. A distinctive answer may still reveal who wrote it.
 
@@ -301,6 +301,8 @@ Your identity is hidden from other students, but instructors/TAs can identify au
 ### Session chat
 
 When enabled, the **Chat** panel appears beside **Question** during a live activity. A badge shows unseen chat activity while you are answering.
+
+Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.
 
 ![Student Session Chat with quick clarification options, comments, and votes](../assets/manuals/student-session-chat.png)
 

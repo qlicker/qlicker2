@@ -261,7 +261,7 @@ In **Course settings**, turn on **Allow activities to be shared by code**; it is
 
 For activities with identified responses, participant lists and results label enrolled students and guests. A professor participating from outside the course also has a **Professor** badge and remains a guest for grading. Anonymous results show respondent labels only.
 
-Participants select **Join activity** on their dashboard and enter the code. Instructors can use the same action on their dashboard to participate in another course’s shared activity. The code admits signed-in people to this activity only. It does not enroll them in your course or give them course roster, gradebook, chat, or question-library access. Outside participants cannot use session chat. You can choose named or anonymous responses before anyone redeems the code or participates. Once someone redeems it, the anonymity choice is locked. Anonymous responses retain one respondent row across questions and are released only after the activity ends and at least four people answer every question and attempt with responses. Unique answers can still identify a respondent.
+Participants select **Join activity** on their dashboard and enter the code. Instructors can use the same action on their dashboard to participate in another course’s shared activity. The code admits signed-in people to this activity only. It does not enroll them in your course or give them course roster, gradebook, chat, or question-library access. Joined guests can use enabled session chat during a live activity. You can choose named or anonymous responses before anyone redeems the code or participates. Once someone redeems it, the anonymity choice is locked. Anonymous responses retain one respondent row across questions and are released only after the activity ends and at least four people answer every question and attempt with responses. Unique answers can still identify a respondent.
 
 Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity.
 
@@ -399,6 +399,8 @@ The retention setting automatically archives older topics. Choose a period long 
 ![Professor Session Chat showing a live question discussion and moderation controls](../assets/manuals/professor-session-chat.png)
 
 Session chat supports normal posts, comments, and votes when rich text is enabled. Students can also use quick posts associated with the current or an earlier question. Quick posts remain available when rich text is disabled, giving you a lower-distraction clarification channel.
+
+Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.
 
 Use **Dismiss** when a question has been resolved but should remain in the record. Delete only when content truly needs removal. The instructor review page retains the conversation, including dismissed items, after the session ends.
 

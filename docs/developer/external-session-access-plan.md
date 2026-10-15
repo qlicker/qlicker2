@@ -47,7 +47,7 @@ The server is authoritative. Before the first grant is redeemed or any join, ans
 | Code-accessible activity + existing grades | Reject enabling sharing until existing grade state is resolved explicitly; never silently delete grades. Once sharing is enabled, block grade creation and editing for all participants. |
 | Quiz window/status/reviewability | Apply current open/closed rules to all valid grants. Anonymous answers and respondent rows appear only when the session has ended, subject to the four-respondent release rule for every answered question and attempt. No anonymous grades. |
 | Interactive join code | Activity code grants session access; the rotating join code may still be required to enter a running session. Neither code enrolls the person in the course. |
-| Chat | Decide whether outside participants may use session chat. In anonymous mode, chat must not reveal account identity or create a timing side channel to responses; otherwise disable it for that activity. |
+| Chat | Joined guests can use enabled live-session chat with the same settings and ownership rules as students. Current grants, active sharing, and a running session are required. Anonymous chat hides participant names and account IDs and exposes no response pseudonyms; self-identifying message content remains possible. Course chat stays restricted to course members. |
 
 ## Participant flow
 
@@ -63,7 +63,7 @@ The server is authoritative. Before the first grant is redeemed or any join, ans
 1. Completed in merged PR #46: anonymous-session privacy and toggle guards, the four-respondent release minimum for every answered question and attempt, and stable cross-question respondent rows.
 2. Add sharing models, code generation/redemption, grant checks, rate limits, and route schemas in a focused backend change. The absence of an `ActivityShare` means course-only access. Test legacy sessions and course codes unchanged. This foundation is implemented in the draft PR and grants are accepted by session participant routes.
 3. Enforce enrolled-only grading for a named code-accessible activity, and no grading for an anonymous one. Permit existing enrolled grades when sharing a named activity, but reject guest grades and individual extensions. Extend quiz and review routes, then add the dashboard code dispatch and activity route. Signed-in outside quizzes/surveys in both named and anonymous mode are implemented in the draft PR.
-4. Live joins, targeted WebSocket delivery, and presentation behavior are implemented. Outside session chat is disabled; measure classroom-scale fan-out and test multiple replicas on staging.
+4. Live joins, targeted WebSocket delivery, and presentation behavior are implemented. Outside session chat uses the same admission checks, identity filtering, targeted deltas, and vote coalescing as enrolled chat; measure classroom-scale fan-out and test multiple replicas on staging.
 5. Update all locales, user manuals, API/data-model docs, and real screenshots. Roll out behind the sharing flag; no migration of existing enrollment or response records is required. Complete final staging tests before merge.
 
 ## Acceptance checks

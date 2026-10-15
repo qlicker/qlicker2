@@ -2370,7 +2370,8 @@
             "Course parley has titled, tagged topics with replies an' votes. Captains can filter, sort, an' archive; learners see anonymous role flags while captains keep th' names needed to moderate.",
             "Hoist Session Chat from th' live-voyage controls. Ye may lower rich-text posts an' comments separately while quick posts tied to th' current riddle remain aboard.",
             "Use votes to spot common questions, dismiss a settled thread without sinkin' it, an' inspect th' talk after th' voyage. Unseen counters warn ye while presentin'.",
-            "Set th' ship rules first: course parley fer lasting questions an' stores, voyage parley fer immediate confusion, an' answer controls fer graded responses."
+            "Set th' ship rules first: course parley fer lasting questions an' stores, voyage parley fer immediate confusion, an' answer controls fer graded responses.",
+            "Guests who’ve boarded a shared live activity can use its enabled session chat, quick posts, comments, and votes, arrr. This grants no passage to course chat. In anonymous activities, other crew and instructors cannot see guest or student identities in chat. Keep yer identity out of message text."
           ],
           "note": "Who sees a name depends on their role. Read th' learner manual before openin' parley to th' whole crew."
         },
@@ -2493,7 +2494,8 @@
             "Yer mates appear anonymous while captains keep th' names needed to moderate. Ye may edit or sink yer own posts when th' shown controls allow it.",
             "During a live voyage, open th' Chat panel fer talk about th' current riddle. Quick posts remain when rich text be lowered; replies an' votes follow th' voyage settings.",
             "A dismissed or archived yarn may still be kept. It be hidden from yer learner review, but th' captains may keep it fer review an' moderation.",
-            "A parley message does not submit yer answer. Return to Question an' use th' response button when grades or participation be counted."
+            "A parley message does not submit yer answer. Return to Question an' use th' response button when grades or participation be counted.",
+            "Guests who’ve boarded a shared live activity can use its enabled session chat, quick posts, comments, and votes, arrr. This grants no passage to course chat. In anonymous activities, other crew and instructors cannot see guest or student identities in chat. Keep yer identity out of message text."
           ]
         },
         {
