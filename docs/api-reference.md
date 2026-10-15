@@ -107,6 +107,7 @@ Server messages have an event name and data payload. Important event families in
 - `session:question-changed`, `session:question-updated`, and `session:status-changed`
 - `session:response-added`, `session:attempt-changed`, and aggregate/statistics updates
 - `session:participant-joined`, join-code, visibility, and quiz-submission updates
+  - `session:join-code-changed` carries admission flags when settings change. Code rotations send only `currentJoinCode` and routing metadata to instructors; they send nothing to participants. Clients retain absent fields, so a delayed rotation cannot reopen a closed join period.
 - `session:chat-settings-changed` and `session:chat-updated`
 - `session:feedback-updated`
 - course question/library and course-chat updates

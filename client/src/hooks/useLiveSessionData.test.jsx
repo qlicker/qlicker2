@@ -71,6 +71,19 @@ describe('shared student/presentation live state', () => {
     expect(apiClient.get).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps a closed join period closed when a delayed code-only rotation arrives', async () => {
+    const { result } = renderHook(() => useLiveSessionData({ sessionId: 's1', role: 'presentation' }));
+    await waitFor(() => expect(result.current.liveData).toEqual(initial));
+    act(() => {
+      emit('session:join-code-changed', { joinCodeEnabled: true, joinCodeActive: true, currentJoinCode: '123456' });
+      emit('session:join-code-changed', { joinCodeEnabled: true, joinCodeActive: false, currentJoinCode: '' });
+      emit('session:join-code-changed', { currentJoinCode: '654321' });
+    });
+    expect(result.current.liveData.session).toMatchObject({ joinCodeEnabled: true, joinCodeActive: false });
+    expect(result.current.liveData.currentQuestion).toEqual(initial.currentQuestion);
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  });
+
   it('does not replay a chat event when panel callbacks change', async () => {
     const onChatEvent = vi.fn();
     const { result, rerender } = renderHook((props) => useLiveSessionData({ sessionId: 's1', role: 'presentation', ...props }), { initialProps: { onChatEvent } });

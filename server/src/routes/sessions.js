@@ -7136,7 +7136,14 @@ export default async function sessionRoutes(app) {
         };
       }
 
-      notifyJoinCodeChanged(app, course, updated);
+      // Rotation changes only the displayed code. A delayed rotation event must
+      // not restore stale admission flags after another request closes the period.
+      // Participants never need code rotations (and must not receive the code).
+      sendToInstructors(app, course, 'session:join-code-changed', {
+        courseId: String(course._id),
+        sessionId: String(updated._id),
+        currentJoinCode: normalizeAnswerValue(updated.currentJoinCode),
+      });
 
       return { joinCode: updated.currentJoinCode, expiresAt: updated.joinCodeExpiresAt };
     }

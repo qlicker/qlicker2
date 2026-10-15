@@ -3375,6 +3375,47 @@ describe('Live session websocket delta events', () => {
     expect(studentCall[2].currentJoinCode).toBeUndefined();
   });
 
+  it('a delayed code rotation cannot reopen a closed join period in connected clients', async () => {
+    const { prof, profToken, course, student } = await setupCourseWithStudent();
+    const session = (await createSessionInCourse(profToken, course._id)).json().session;
+    const call = (method, suffix, payload) => authenticatedRequest(app, method,
+      `/api/v1/sessions/${session._id}${suffix}`, { token: profToken, payload });
+    await call('POST', '/start');
+    await call('PATCH', '/join-code-settings', { joinCodeEnabled: true, joinCodeActive: true });
+    const sent = vi.spyOn(app, 'wsSendToUsers');
+    let releaseRotation;
+    let rotationWritten;
+    const written = new Promise((resolve) => { rotationWritten = resolve; });
+    const released = new Promise((resolve) => { releaseRotation = resolve; });
+    const update = Session.findOneAndUpdate.bind(Session);
+    const delayed = vi.spyOn(Session, 'findOneAndUpdate').mockImplementationOnce(async (...args) => {
+      const updated = await update(...args);
+      rotationWritten();
+      await released;
+      return updated;
+    });
+    const refreshing = call('POST', '/refresh-join-code', { force: true });
+    try {
+      await written;
+      const closed = await call('PATCH', '/join-code-settings', { joinCodeActive: false });
+      expect(closed.statusCode).toBe(200);
+      releaseRotation();
+      expect((await refreshing).statusCode).toBe(200);
+      expect((await Session.findById(session._id).lean()).joinCodeActive).toBe(false);
+      // Replay delivery order as clients do. Rotation may update a displayed code,
+      // but must never undo the instructor's subsequent close action.
+      for (const userId of [student._id, prof._id]) {
+        const events = sent.mock.calls.filter(([ids, event]) => ids.includes(String(userId)) && event === 'session:join-code-changed');
+        const state = events.reduce((current, [, , payload]) => ({ ...current, ...payload }), {});
+        expect(state.joinCodeActive).toBe(false);
+      }
+    } finally {
+      releaseRotation();
+      await refreshing;
+      delayed.mockRestore();
+    }
+  });
+
   it('returns the same join code for concurrent automatic refresh requests', async (ctx) => {
     if (mongoose.connection.readyState !== 1) ctx.skip();
     const { prof, profToken, course, student } = await setupCourseWithStudent();
@@ -3410,12 +3451,13 @@ describe('Live session websocket delta events', () => {
     expect(secondRefreshRes.json().joinCode).toBe(firstRefreshRes.json().joinCode);
 
     const joinCodeCalls = wsSendToUsersSpy.mock.calls.filter(([, event]) => event === 'session:join-code-changed');
-    expect(joinCodeCalls).toHaveLength(2);
+    expect(joinCodeCalls).toHaveLength(1);
 
     const instructorCall = joinCodeCalls.find(([userIds]) => userIds.includes(String(prof._id)));
-    const studentCall = joinCodeCalls.find(([userIds]) => userIds.includes(String(student._id)));
     expect(instructorCall[2].currentJoinCode).toBe(firstRefreshRes.json().joinCode);
-    expect(studentCall[2].currentJoinCode).toBeUndefined();
+    expect(instructorCall[2]).not.toHaveProperty('joinCodeActive');
+    expect(instructorCall[2]).not.toHaveProperty('joinCodeEnabled');
+    expect(joinCodeCalls.some(([userIds]) => userIds.includes(String(student._id)))).toBe(false);
   });
 
   it('sends response-added deltas only to joined students when live stats are visible', async (ctx) => {
