@@ -26,6 +26,9 @@ import imageRoutes from './routes/images.js';
 import courseRoutes from './routes/courses.js';
 import courseChatRoutes from './routes/courseChat.js';
 import sessionRoutes from './routes/sessions.js';
+import ActivityShare from './models/ActivityShare.js';
+import ActivityGrant from './models/ActivityGrant.js';
+import activityAccessRoutes from './routes/activityAccess.js';
 import questionRoutes from './routes/questions.js';
 import gradeRoutes from './routes/grades.js';
 import groupRoutes from './routes/groups.js';
@@ -147,6 +150,9 @@ export async function buildApp(opts = {}) {
   // Database (skip in test if opts.skipDb)
   if (!opts.skipDb) {
     await app.register(dbPlugin, { uri: app.config.mongoUri });
+    // New independent collections need their unique indexes even when the
+    // production Mongo connection has autoIndex disabled.
+    await Promise.all([ActivityShare.createIndexes(), ActivityGrant.createIndexes()]);
   }
 
   try {
@@ -257,6 +263,7 @@ export async function buildApp(opts = {}) {
   await app.register(aiRoutes, { prefix: '/api/v1/ai' });
   await app.register(aiMediaRoutes, { prefix: '/ai' });
   await app.register(sessionRoutes, { prefix: '/api/v1' });
+  await app.register(activityAccessRoutes, { prefix: '/api/v1' });
   await app.register(questionRoutes, { prefix: '/api/v1' });
   await app.register(gradeRoutes, { prefix: '/api/v1' });
   await app.register(groupRoutes, { prefix: '/api/v1/courses' });

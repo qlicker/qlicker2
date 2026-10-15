@@ -1,5 +1,12 @@
 {
   "common": {
+    "backToDashboard": "Volver al panel",
+    "participantRoles": {
+      "student": "Estudiante",
+      "guest": "Invitado",
+      "instructor": "Instructor",
+      "professor": "Profesor"
+    },
     "appName": "Qlicker",
     "loading": "Cargando…",
     "cancel": "Cancelar",
@@ -61,7 +68,8 @@
     "option": "Opción {{letter}}",
     "ta": "TA",
     "redirecting": "Redirigiendo…",
-    "confirm": "Confirmar"
+    "confirm": "Confirmar",
+    "rowsPerPage": "Filas por página"
   },
   "autoSave": {
     "errorNotSaved": "No se pudieron guardar los cambios. Su último cambio no se registró.",
@@ -868,7 +876,11 @@
       "aiRequiresAdminAuthorization": "Requiere autorización de administración",
       "aiHelperHelp": "Active un asistente de IA para ayudar con la calificación, generar preguntas y administrar sesiones y estudiantes.",
       "enrollmentCodeHelp": "Este es el código que los estudiantes necesitan para inscribirse en el curso.",
-      "anonymousSession": "Anónima"
+      "anonymousSession": "Anónima",
+      "allowSharedActivities": "Permitir compartir actividades mediante código",
+      "allowSharedActivitiesHelp": "Permite compartir por código cuestionarios y sesiones interactivas de este curso con personas que han iniciado sesión y no están inscritas. Al desactivarlo, se revoca su acceso.",
+      "searchSessionsPlaceholder": "Buscar por nombre de sesión",
+      "noSessionsMatchFilters": "Ninguna sesión coincide con los filtros actuales."
     },
     "sessionEditor": {
       "sessionSettings": "Configuración de la sesión",
@@ -1006,7 +1018,27 @@
       "anonymousHelp": "El profesorado ve las respuestas pero no quién las dio. Los estudiantes siguen iniciando sesión y solo pueden responder una vez. Las sesiones anónimas no se califican ni aparecen en el libro de calificaciones.",
       "anonymousEnabledNote": "Las respuestas y la asistencia se guardan sin la identidad de los estudiantes. Esta sesión no se calificará.",
       "anonymousNoExtensions": "Las prórrogas individuales no están disponibles para las sesiones anónimas.",
-      "anonymousLockedNote": "El anonimato no se puede cambiar después de que los estudiantes se hayan unido o hayan respondido."
+      "anonymousLockedNote": "El anonimato no se puede cambiar después de que los estudiantes se hayan unido o hayan respondido.",
+      "activityCodeTitle": "Compartir mediante código de actividad",
+      "activityCodeHelp": "Los usuarios que hayan iniciado sesión pueden acceder a esta actividad con el código sin inscribirse en el curso. Los estudiantes inscritos pueden recibir calificaciones; las respuestas de los invitados se registran sin calificarse. Si las respuestas también se anonimizan, la actividad puede funcionar como una encuesta, sin calificaciones para nadie.",
+      "sharedNamedGradingInfo": "Los estudiantes inscritos pueden recibir calificaciones. Las respuestas de invitados se registran, pero no generan calificaciones ni entradas en el libro de notas.",
+      "sharedAnonymousSurveyInfo": "Compartir de forma anónima crea una encuesta: las respuestas se vinculan entre preguntas y nadie recibe calificación. Las filas aparecen solo tras cuatro respuestas por pregunta e intento.",
+      "activityCodeExpires": "El código caduca el {{date}}",
+      "activityCodeLabel": "Código de actividad",
+      "generateActivityCode": "Generar código",
+      "rotateActivityCode": "Regenerar código",
+      "disableActivityCode": "Desactivar código",
+      "activityCodeError": "No se pudo cambiar el acceso a la actividad.",
+      "removeExtensionsBeforeSharing": "Elimina las ampliaciones individuales del cuestionario antes de generar un código de actividad.",
+      "sharedNoExtensions": "Las ampliaciones individuales del cuestionario no están disponibles después de compartir esta actividad mediante un código.",
+      "courseSharingDisabled": "Activa primero el uso compartido por código en la configuración del curso.",
+      "allowActivityCodeAccess": "Permitir compartir esta actividad fuera del curso",
+      "disableActivityCodeHelp": "Al desactivarlo, el código guardado deja de funcionar y se revoca el acceso externo. Al activarlo de nuevo se reutiliza el mismo código. Regenerar código lo sustituye e invalida el anterior. Los estudiantes inscritos conservan la posibilidad de recibir calificaciones en una actividad identificada.",
+      "activityCodeUnavailable": "Este código no se puede mostrar. Regenéralo para ver un nuevo código permanente.",
+      "sessionName": "Nombre de la sesión",
+      "tags": "Etiquetas de la sesión",
+      "tagsPlaceholder": "Añadir una etiqueta de tema",
+      "tagsHelp": "Crea las etiquetas en la configuración del curso y luego selecciona las que describan esta sesión y sus preguntas."
     },
     "liveSession": {
       "currentQuestion": "Pregunta actual",
@@ -1100,6 +1132,8 @@
       "studentsJoined": "{{count}} estudiantes se unieron.",
       "studentsResponded": "{{responded}} de {{total}} estudiantes respondieron.",
       "respondedSummary": "{{responded}} / {{total}} respondieron",
+      "anonymousStatsWaiting": "Para proteger el anonimato, las estadísticas permanecen ocultas hasta que al menos cuatro participantes distintos respondan esta pregunta en este intento. Después, los resultados se actualizan en grupos de al menos cuatro participantes nuevos.",
+      "anonymousStatsBatches": "Los resultados en directo se actualizan en grupos de al menos cuatro participantes nuevos. Se muestran {{count}} respuestas.",
       "respondedSummaryAria": "{{responded}} de {{total}} estudiantes han respondido",
       "questionControls": "Controles de la pregunta",
       "controlsTab": "Controles",
@@ -1133,6 +1167,10 @@
       "name": "Nombre",
       "email": "Correo electrónico",
       "grade": "Calificación",
+      "guest": "Invitado",
+      "guestNoGrade": "Sin calificación",
+      "guestResponses": "Respuestas de invitados",
+      "guestResponsesHelp": "Las respuestas de invitados se registran aquí para su revisión. Los invitados no reciben calificaciones.",
       "participation": "Participación",
       "noQuestions": "Esta sesión no tiene preguntas.",
       "noResults": "No hay resultados de estudiantes disponibles.",
@@ -1160,6 +1198,7 @@
       "needsGradingCount": "Requiere calificación ({{count}})",
       "sessionStillRunning": "Esta sesión aún está en curso. Los resultados estarán disponibles después de que finalice la sesión.",
       "liveResultsAvailableWhileRunning": "Esta sesión interactiva en vivo aún está en curso. Los resultados se siguen actualizando aquí, pero la calificación permanece bloqueada hasta que finalice la sesión.",
+      "quizSubmittedResultsOnly": "Hasta que termine este cuestionario, solo se muestran los intentos entregados. Después, se incluyen las respuestas guardadas aunque el estudiante no haya entregado el cuestionario.",
       "pageProgress": "Página {{current}}/{{total}}",
       "questionProgress": "Pregunta {{current}}/{{total}}",
       "ungradedSummary": "Hay {{verb}} {{questions}} {{questionWord}} sin calificar, lo que afecta a {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -1215,7 +1254,8 @@
       "noAnswersMatch": "Ninguna respuesta coincide con el filtro.",
       "anonymousResponsesTable": "Respuestas anónimas",
       "response": "Respuesta",
-      "correctColumn": "Correcta"
+      "correctColumn": "Correcta",
+      "unsavedSummaryInstructionWarning": "Guarde o cancele los cambios en las instrucciones antes de generar el resumen."
     },
     "secondDesktop": {
       "joinCode": "Código de acceso",
@@ -1276,6 +1316,13 @@
     "dashboard": {
       "myCourses": "Mis cursos",
       "enrollInCourse": "Inscribirse en un curso",
+      "joinActivity": "Unirse a una actividad",
+      "activityCode": "Código de actividad",
+      "activityCodeHelp": "Introduce un código de actividad que empiece por S- para abrir un cuestionario o una sesión interactiva sin inscribirte en el curso.",
+      "activityCodeRequired": "Introduce un código de actividad que empiece por S-.",
+      "activityCodeUseJoin": "Este es un código de actividad. Usa Unirse a una actividad.",
+      "failedJoinActivity": "No se pudo acceder a la actividad.",
+      "joiningActivity": "Accediendo a la actividad…",
       "noCoursesYet": "Aún no hay cursos",
       "enrollMessage": "Use un código de inscripción de su instructor para unirse a un curso.",
       "section": "Sección: {{section}}",
@@ -1286,7 +1333,11 @@
       "enrollSuccess": "Inscripción exitosa en el curso",
       "failedEnroll": "No se pudo realizar la inscripción",
       "inactiveCourseCannotEnroll": "Este curso está inactivo y no se puede unir en este momento.",
-      "failedLoadCourses": "No se pudieron cargar los cursos"
+      "failedLoadCourses": "No se pudieron cargar los cursos",
+      "enterJoinCode": "Introducir un código",
+      "courseOrActivityCode": "Código de curso o actividad",
+      "courseOrActivityCodeHelp": "Introduce un código de inscripción al curso o un código de actividad de tu instructor.",
+      "continueWithCode": "Continuar"
     },
     "course": {
       "lectures": "Clases",
@@ -1307,6 +1358,7 @@
       "quizSubmitted": "Cuestionario enviado",
       "upcomingQuiz": "Próximo cuestionario",
       "joinLive": "Unirse en vivo",
+      "openWaitingPage": "Abrir página de espera",
       "startQuiz": "Comenzar cuestionario",
       "resumeQuiz": "Reanudar cuestionario",
       "submitQuiz": "Enviar cuestionario",
@@ -1384,6 +1436,7 @@
       "correctVisible": "La respuesta correcta es visible.",
       "sessionNotFound": "Sesión no encontrada",
       "sessionEnded": "La sesión ha finalizado.",
+      "sessionNotStarted": "Esta sesión aún no ha comenzado. Espera a tu instructor.",
       "liveSessionFallback": "Sesión en vivo",
       "attemptLabel": "Intento {{number}}",
       "responseSubmittedCheck": "✓ Respuesta enviada",
@@ -1753,6 +1806,10 @@
       "noAutoConflicts": "No hay conflictos calificables automáticamente para aplicar.",
       "appliedAutoPartial": "Se aplicaron notas automáticas donde fue posible. {{count}} conflicto(s) requieren manejo manual.",
       "avgParticipation": "Participación prom.",
+      "avgGrade": "Calificación prom.",
+      "noGradeItems": "Sin registros de calificación",
+      "selectWithGradeItems": "Seleccionar sesiones con registros de calificación",
+      "notApplicable": "No aplica",
       "firstName": "Nombre",
       "lastName": "Apellido",
       "all": "Todos",
@@ -2013,7 +2070,8 @@
     "groupMembersTitle": "{{category}} — {{group}}",
     "uncategorizedGroup": "Sin categorizar",
     "removeFromCourse": "Quitar del curso",
-    "confirmRemove": "Confirmar eliminación"
+    "confirmRemove": "Confirmar eliminación",
+    "noStudentsMatch": "Ningún estudiante coincide con la búsqueda actual."
   },
   "video": {
     "title": "Videochat",
@@ -2228,7 +2286,7 @@
           "title": "Construya sesiones teniendo en cuenta preguntas, diapositivas y visibilidad",
           "subtitle": "Las sesiones son flujos de aprendizaje ordenados, no solo contenedores.",
           "bullets": [
-            "Use el editor de sesión para establecer el nombre, la descripción, la visibilidad, la posibilidad de revisión, el requisito de código de acceso, la ventana del cuestionario, las extensiones y el método de calificación de selección múltiple.",
+            "Use el editor de sesión para establecer el nombre, la descripción, la visibilidad, la posibilidad de revisión, el requisito de código de acceso, la ventana del cuestionario, las extensiones y el método de calificación de selección múltiple. Crea las etiquetas en la configuración del curso y luego selecciona las que describan esta sesión y sus preguntas.",
             "Agregue preguntas nuevas, elija de la biblioteca de preguntas, importe JSON de sesión o inserte diapositivas en cualquier parte de la secuencia.",
             "Las diapositivas son páginas de solo contenido, así que son ideales para instrucciones, ejemplos resueltos o temas de discusión entre preguntas calificadas.",
             "La visibilidad de la pregunta importa: mantenga privado el contenido privado, comparta el material público del curso de manera intencional y use la visibilidad en todo Qlicker solo cuando realmente se desee una reutilización amplia."
@@ -2269,7 +2327,10 @@
             "Los cuestionarios de práctica se sienten más como un ensayo guiado y son adecuados para el autoestudio o el refuerzo opcional.",
             "Si una sesión depende de códigos de acceso, grupos o estadísticas visibles, confirme esos ajustes antes de que los estudiantes empiecen a unirse.",
             "Las listas de sesiones mantienen la búsqueda, los filtros y la paginación dentro de Buscar sesiones. Mientras una sesión interactiva está en vivo, abrir su tarjeta se une directamente a los controles en vivo; las tarjetas de cuestionario en vivo aún abren el editor.",
-            "Activa Respuestas anónimas en el editor de sesiones para encuestas y evaluaciones del curso. Los estudiantes siguen iniciando sesión y responden cada pregunta una sola vez, pero ves las respuestas con etiquetas como Participante 1 en lugar de nombres, la vista en vivo solo muestra cuántos estudiantes se unieron, y la sesión nunca se califica ni se añade al libro de calificaciones. El ajuste se bloquea en cuanto alguien se une o responde, y los grupos muy pequeños aún pueden identificarse por descarte. Las filas de participantes aparecen solo cuando termina la actividad y al menos cuatro personas han respondido cada pregunta e intento con respuestas; las respuestas únicas o que revelan la identidad aún pueden identificar a alguien."
+            "Las respuestas y la asistencia se guardan sin la identidad de los estudiantes. Esta sesión no se calificará. El anonimato no se puede cambiar después de que los estudiantes se hayan unido o hayan respondido. Las estadísticas anónimas en directo y las listas de respuestas sin vincular se actualizan cuando al menos cuatro personas nuevas responden a la pregunta en ese intento. Se ocultan los nombres y las horas de respuesta. Las filas vinculadas por participante solo están disponibles al finalizar la actividad y cuando al menos cuatro personas hayan respondido a cada pregunta e intento con respuestas. Una respuesta singular aún puede identificar a alguien. Un aviso informativo en los controles en vivo explica el mínimo de cuatro personas mientras las estadísticas están ocultas; después muestra el número de respuestas publicadas y la regla de actualización por grupos.",
+            "El editor de sesiones solo muestra los controles para compartir cuando el curso permite compartir actividades. Usa el interruptor de la sesión para activar o desactivar el acceso; el código activo sigue visible tras recargar y se puede regenerar. Activa primero el uso compartido por código en la configuración del curso; está desactivado de forma predeterminada. Desactivarlo revoca los códigos existentes y el acceso externo. Elimina las ampliaciones individuales antes de compartir; después seguirán sin estar disponibles. Para invitar a personas con cuenta ajenas al curso, crea un cuestionario o sesión en directo dentro del curso y genera un código de actividad S- en el editor. Cópialo al aparecer; regenerarlo impide nuevos accesos con el código anterior y desactivarlo revoca el acceso externo. Al volver a activar el acceso se reutiliza el mismo código; solo regenerarlo lo sustituye. En una actividad identificada, los estudiantes inscritos pueden recibir calificaciones; las respuestas de invitados se registran sin generar notas. Activa el anonimato para una encuesta sin calificaciones para nadie. Elige respuestas identificadas o anónimas antes de que alguien use el código. Las filas anónimas solo aparecen al terminar y tras cuatro respuestas por pregunta e intento. Una respuesta singular aún puede identificar a alguien. El código rotativo de la sesión sigue siendo necesario si está activado. Los códigos de actividad no funcionan mientras la actividad está en Borrador, ni siquiera para quienes ya participaron. El mismo código vuelve a estar disponible cuando el docente publica la actividad. Los códigos de actividad empiezan por S- seguido de siete letras o dígitos. El código activo también aparece en los controles de la sesión en directo del docente.",
+            "Si el instructor cambia una sesión en directo a Próxima, los participantes ven una pantalla de espera hasta que vuelva a estar en directo. Borrador devuelve a los estudiantes inscritos al curso y a los invitados a su panel. Las respuestas guardadas se conservan.",
+            "En una sesión interactiva próxima, los estudiantes pueden seleccionar Abrir página de espera; los invitados pueden introducir su código de actividad S-. La espera no registra asistencia. El docente aún puede editar la sesión y exigir un código de acceso en directo. Cuando la sesión pasa a estar en directo, los participantes esperan una pregunta o introducen el código cuando el docente abre el período de acceso."
           ]
         },
         {
@@ -2277,7 +2338,7 @@
           "subtitle": "Controle la entrada a una sesión interactiva en vivo y admita individualmente a quienes lleguen tarde.",
           "bullets": [
             "El código de inscripción permite unirse al curso; el código de sesión de seis dígitos admite a un estudiante ya inscrito a una sesión en vivo. Para controlar la asistencia, active Requerir código de acceso antes de que entren.",
-            "Iniciar la sesión no abre automáticamente la admisión. En los controles en vivo, active Período de ingreso y abra la ventana de presentación para mostrar el código actual en el aula. Los estudiantes abren la sesión e introducen ese código.",
+            "Cuando una sesión interactiva pasa a En vivo, Qlicker selecciona la primera pregunta o diapositiva si no hay ningún elemento activo. Se conserva el elemento que ya esté activo. El primer elemento recién seleccionado permanece oculto hasta que lo muestre, igual que al pulsar Iniciar. Iniciar la sesión no abre automáticamente la admisión. En los controles en vivo, active Período de ingreso y abra la ventana de presentación para mostrar el código actual en el aula. Los estudiantes abren la sesión e introducen ese código.",
             "Ajuste la actualización entre 5 y 120 segundos y mantenga abiertos los controles del profesor para la rotación automática. Puede actualizar el código inmediatamente. Quienes aún no hayan sido admitidos deben usar el código actual.",
             "Tras el registro de asistencia, desactive Período de ingreso, pero mantenga Requerir código de acceso activado. Sin ese requisito, los estudiantes inscritos pueden entrar en una sesión en curso sin código.",
             "Para una llegada tardía, abra Estudiantes, despliegue Esperando para entrar, filtre por nombre o correo y seleccione Admitir junto al estudiante verificado. Debe estar inscrito. La admisión manual funciona durante la sesión incluso con el período de ingreso cerrado.",
@@ -2296,7 +2357,10 @@
             "La pestaña de resultados ahora muestra la calificación real de la sesión de cada estudiante antes de la participación, y hacer clic en el avatar de un estudiante en la pestaña Estudiantes abre la foto de perfil más grande.",
             "Los diálogos de detalle de calificación ahora etiquetan las filas de preguntas con el número y el tipo, como P1(OM) o P2(RC), y resaltan visualmente las filas que aún requieren calificación mientras ignoran los indicadores obsoletos de calificación en cero puntos.",
             "Los estudiantes reciben una notificación cuando usted publica nueva retroalimentación, así que use comentarios breves y accionables que les digan qué repasar.",
-            "Si las estructuras de grupo importaron durante la actividad, compare los datos de revisión y calificación con los grupos del curso para detectar patrones desiguales de participación."
+            "Si las estructuras de grupo importaron durante la actividad, compare los datos de revisión y calificación con los grupos del curso para detectar patrones desiguales de participación.",
+            "Al inscribirse, se crean las calificaciones que faltan para las actividades finalizadas del curso, incluidas las respuestas guardadas como invitado. Las actividades no realizadas reciben cero sin necesitar corrección; las respuestas escritas pueden necesitarla. Se conservan las calificaciones y los comentarios existentes. Las actividades anónimas siguen sin calificarse.",
+            "Los promedios de la tabla utilizan los registros de calificación existentes de las sesiones mostradas. Se excluyen los registros ausentes; los ceros registrados cuentan. Use Seleccionar sesiones con registros de calificación o incluya manualmente sesiones sin registros.",
+            "Hasta que termine este cuestionario, solo se muestran los intentos entregados. Después, se incluyen las respuestas guardadas aunque el estudiante no haya entregado el cuestionario."
           ],
           "success": "Los profesores pueden abrir el manual del estudiante desde el selector de arriba para previsualizar el flujo de trabajo del estudiante antes de la clase."
         },
@@ -2308,7 +2372,9 @@
             "El chat del curso se organiza en temas con título y etiquetas, comentarios y votos. Los docentes pueden filtrar, ordenar y archivar; los estudiantes ven etiquetas de rol anónimas, mientras el docente conserva la identidad necesaria para moderar.",
             "Active el Chat de la sesión desde los controles de la sesión en vivo. Puede desactivar por separado las publicaciones enriquecidas y los comentarios sin quitar los mensajes rápidos vinculados a la pregunta actual.",
             "Use los votos para detectar preguntas frecuentes, marque un hilo resuelto como atendido y revise la conversación después de la sesión. Los indicadores de mensajes no leídos ayudan durante la presentación.",
-            "Defina las expectativas: chat del curso para preguntas y recursos duraderos, chat de sesión para dudas inmediatas y controles de respuesta para respuestas calificadas."
+            "Defina las expectativas: chat del curso para preguntas y recursos duraderos, chat de sesión para dudas inmediatas y controles de respuesta para respuestas calificadas.",
+            "Los invitados que se hayan unido a una actividad en directo compartida pueden usar su chat de sesión habilitado, incluidos mensajes rápidos, comentarios y votos. Esto no da acceso al chat del curso. En actividades anónimas, los demás participantes y docentes no pueden ver la identidad de invitados ni estudiantes en el chat. Evita identificarte en el texto de los mensajes.",
+            "El chat de sesión muestra primero la conversación con actividad más reciente. Una nueva publicación, comentario o voto positivo la coloca al principio. Los indicadores de mensajes no leídos se borran al abrir el chat."
           ],
           "note": "La visibilidad y la identidad del autor cambian según el rol. Revise el manual del estudiante antes de presentar el chat en clase."
         },
@@ -2322,7 +2388,8 @@
             "En Revisión de sesión, genere un resumen de respuestas con IA para una pregunta usando un modelo y una instrucción guardada. Puede supervisarlo, detenerlo, repetirlo y verlo sin cambiar calificaciones.",
             "En Calificación, use el asistente de calificación con IA solo después de guardar instrucciones separadas de evaluación y retroalimentación. Revise el progreso, informe, registro, puntos y comentarios antes de publicarlos.",
             "Administre y copie instrucciones reutilizables de calificación, retroalimentación y resumen en Configuración de IA.",
-            "El Chat de IA para estudiantes se habilita por separado. Elija modelos permitidos, un valor predeterminado, orientación y límite de turnos; los estudiantes solo acceden a datos visibles o revisables y a sus propias calificaciones."
+            "El Chat de IA para estudiantes se habilita por separado. Elija modelos permitidos, un valor predeterminado, orientación y límite de turnos; los estudiantes solo acceden a datos visibles o revisables y a sus propias calificaciones.",
+            "Guarde las instrucciones de resumen modificadas antes de generarlo. Las instrucciones seleccionadas determinan el idioma, el enfoque y el formato de cada etapa del resumen."
           ],
           "warning": "La IA puede producir resultados incompletos o incorrectos. Verifique contenido, resúmenes, notas, comentarios, fechas y acciones propuestas."
         },
@@ -2356,7 +2423,9 @@
             "Las listas de sesiones mantienen la búsqueda, los filtros y la paginación dentro de un área plegable de Buscar sesiones para que pueda expandir los controles solo cuando los necesite.",
             "Si su institución requiere correo verificado o SSO, complete primero esa configuración antes de suponer que el código de inscripción es incorrecto.",
             "Por lo general, solo necesita el código de acceso una vez por curso. Después de que funcione, el curso permanece en su panel hasta que se le quite o el curso se archive para su cuenta.",
-            "Observe la insignia en su avatar en la barra de la aplicación para ver notificaciones activas, y luego abra Notificaciones desde el menú de la cuenta para leerlas o descartarlas."
+            "Observe la insignia en su avatar en la barra de la aplicación para ver notificaciones activas, y luego abra Notificaciones desde el menú de la cuenta para leerlas o descartarlas.",
+            "Selecciona Unirse a una actividad en el panel e introduce un código S- para abrir un cuestionario o una sesión sin inscribirte en el curso. Una sesión en directo puede pedir también su código rotativo. Si no estás inscrito en el curso, se registran tus respuestas pero no recibes calificación. Los estudiantes inscritos pueden recibir notas en actividades identificadas; las actividades anónimas no tienen notas. Las estadísticas anónimas en directo y las listas de respuestas sin vincular se actualizan cuando al menos cuatro personas nuevas responden a la pregunta en ese intento. Se ocultan los nombres y las horas de respuesta. Las filas vinculadas por participante solo están disponibles al finalizar la actividad y cuando al menos cuatro personas hayan respondido a cada pregunta e intento con respuestas. Una respuesta singular aún puede identificar a alguien. Los códigos de actividad no funcionan mientras la actividad está en Borrador, ni siquiera para quienes ya participaron. El mismo código vuelve a estar disponible cuando el docente publica la actividad.",
+            "Al inscribirse, se crean las calificaciones que faltan para las actividades finalizadas del curso, incluidas las respuestas guardadas como invitado. Las actividades no realizadas reciben cero sin necesitar corrección; las respuestas escritas pueden necesitarla. Se conservan las calificaciones y los comentarios existentes. Las actividades anónimas siguen sin calificarse."
           ],
           "screenshot": {
             "variant": "studentCourse",
@@ -2375,7 +2444,9 @@
             "Si su instructor revela estadísticas para una nube de palabras o un histograma, la vista debería actualizarse automáticamente sin necesidad de recargar.",
             "Para las preguntas de respuesta corta, la lista de respuestas compartida se puede mostrar u ocultar por separado de la nube de palabras, por lo que puede ver una sin la otra.",
             "Al desplazarte sobre una respuesta numérica, su valor no cambia y el campo pierde el foco para que la página pueda desplazarse. Haz clic en el campo o vuelve a él con la tecla Tab para seguir editando.",
-            "La etiqueta Anónima significa que tu docente ve tus respuestas sin tu nombre. Sigues iniciando sesión y solo puedes responder cada pregunta una vez, puedes revisar tus propias respuestas más adelante, y la sesión no se califica."
+            "La etiqueta Anónima significa que tu docente ve tus respuestas sin tu nombre. Sigues iniciando sesión y solo puedes responder cada pregunta una vez, puedes revisar tus propias respuestas más adelante, y la sesión no se califica.",
+            "Si el instructor cambia una sesión en directo a Próxima, los participantes ven una pantalla de espera hasta que vuelva a estar en directo. Borrador devuelve a los estudiantes inscritos al curso y a los invitados a su panel. Las respuestas guardadas se conservan.",
+            "En una sesión interactiva próxima, los estudiantes pueden seleccionar Abrir página de espera; los invitados pueden introducir su código de actividad S-. La espera no registra asistencia. El docente aún puede editar la sesión y exigir un código de acceso en directo. Cuando la sesión pasa a estar en directo, los participantes esperan una pregunta o introducen el código cuando el docente abre el período de acceso."
           ]
         },
         {
@@ -2392,9 +2463,10 @@
           "title": "Revise las sesiones una pregunta a la vez y use la retroalimentación",
           "subtitle": "El modo de revisión es una de las mejores herramientas de estudio de la aplicación.",
           "bullets": [
-            "Abra las sesiones revisables desde la página del curso después de que su instructor finalice la actividad y active la revisión.",
+            "Abra las sesiones revisables desde la página del curso después de que su instructor finalice la actividad y active la revisión. Haz clic en una nota de la tabla de calificaciones para abrir la revisión de la sesión.",
             "Avance una pregunta a la vez para comparar su respuesta, la respuesta publicada, la explicación y cualquier retroalimentación del instructor sin pasar por alto los detalles.",
-            "Esté atento a las notificaciones de retroalimentación porque le avisan cuándo hay nuevos comentarios o actualizaciones de calificación disponibles."
+            "Esté atento a las notificaciones de retroalimentación porque le avisan cuándo hay nuevos comentarios o actualizaciones de calificación disponibles.",
+            "Los promedios de calificación y participación utilizan sus registros visibles de sesiones finalizadas y disponibles para revisión. Se excluyen los registros ausentes; los ceros registrados cuentan."
           ],
           "success": "Los estudiantes suelen mejorar más rápido cuando leen la retroalimentación y luego intentan de inmediato una pregunta similar de nuevo.",
           "screenshot": {
@@ -2425,7 +2497,9 @@
             "Sus compañeros aparecen de forma anónima, mientras el docente conserva la identidad necesaria para moderar. Puede editar o eliminar sus propias publicaciones según los controles disponibles.",
             "Durante una actividad en vivo, abra el panel Chat. Los mensajes rápidos siguen disponibles si se desactivan las publicaciones enriquecidas; comentarios y votos dependen de la configuración actual.",
             "Una conversación atendida o archivada no está necesariamente eliminada. No aparece después en su revisión de estudiante, pero el equipo docente puede conservarla para revisión y moderación.",
-            "Un mensaje de chat no envía una respuesta. Regrese al panel Pregunta y use el botón de respuesta cuando se registre la calificación o participación."
+            "Un mensaje de chat no envía una respuesta. Regrese al panel Pregunta y use el botón de respuesta cuando se registre la calificación o participación.",
+            "Los invitados que se hayan unido a una actividad en directo compartida pueden usar su chat de sesión habilitado, incluidos mensajes rápidos, comentarios y votos. Esto no da acceso al chat del curso. En actividades anónimas, los demás participantes y docentes no pueden ver la identidad de invitados ni estudiantes en el chat. Evita identificarte en el texto de los mensajes.",
+            "El chat de sesión muestra primero la conversación con actividad más reciente. Una nueva publicación, comentario o voto positivo la coloca al principio. Los indicadores de mensajes no leídos se borran al abrir el chat."
           ]
         },
         {

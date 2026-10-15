@@ -292,6 +292,8 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await professorPage.getByRole('tab', { name: /^Course Settings$/i }).click();
   await expect(professorPage.getByText(new RegExp(course.enrollmentCode))).toBeVisible();
   await capture(professorPage, 'professor-course-settings.png');
+  await professorPage.getByLabel('Allow activities to be shared by code').click();
+  await expect(professorPage.getByLabel('Allow activities to be shared by code')).toBeChecked();
   await professorPage.getByRole('tab', { name: /^Course Chat/i }).click();
   await expect(professorPage.getByText(/facilitated diffusion differs from active transport/i)).toBeVisible();
   await capture(professorPage, 'professor-course-chat.png');
@@ -305,8 +307,19 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await professorPage.getByRole('button', { name: /^Create$/i }).click();
   await expect(professorPage.getByText(/^Group 1$/i)).toBeVisible();
   await capture(professorPage, 'professor-groups.png');
+  await apiJson(request, 'PATCH', `/courses/${course._id}`, {
+    token: admin.token, payload: { allowSharedActivities: false },
+  });
   await professorPage.goto(`/prof/course/${course._id}/session/${interactive._id}`);
   await expect(professorPage.getByText('Cell Structure Check-in').first()).toBeVisible();
+  await expect(professorPage.getByLabel('Enable sharing this activity outside the course')).toHaveCount(0);
+  await capture(professorPage, 'session-editor-sharing-disabled.png');
+  await apiJson(request, 'PATCH', `/courses/${course._id}`, {
+    token: admin.token, payload: { allowSharedActivities: true },
+  });
+  await professorPage.reload();
+  await professorPage.getByLabel('Enable sharing this activity outside the course').click();
+  await expect(professorPage.getByTestId('activity-share-code')).toHaveText(/^S-[A-HJ-NP-Z2-9]{7}$/);
   await capture(professorPage, 'session-editor.png');
 
   await professorPage.goto(`/prof/course/${course._id}`);
@@ -319,6 +332,7 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   const richTextChatToggle = professorPage.getByLabel(/^Enable rich text chat$/i);
   if (!(await richTextChatToggle.isChecked())) await richTextChatToggle.click();
   await expect(professorPage.getByText(/Which organelle produces most of a cell's ATP/i)).toBeVisible();
+  await expect(professorPage.getByTestId('activity-share-code')).toHaveText(/^S-[A-HJ-NP-Z2-9]{7}$/);
   await capture(professorPage, 'professor-live-session.png');
   const studentJoin = await apiJson(request, 'POST', `/sessions/${interactive._id}/join`, {
     token: student.token,
@@ -342,7 +356,11 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await professorPage.getByRole('tab', { name: /^Grades$/i }).click();
   await professorPage.getByRole('button', { name: /^Show Grade Table$/i }).click();
   const gradeDialog = professorPage.getByRole('dialog', { name: /select sessions for grade table/i });
-  await gradeDialog.getByText('Cell Biology Review Quiz').click();
+  await expect(gradeDialog.getByText('No grade items').first()).toBeVisible();
+  await expect(gradeDialog.getByRole('button', { name: 'Select sessions with grade items' })).toBeEnabled();
+  await capture(professorPage, 'professor-grade-session-picker.png');
+  await gradeDialog.getByRole('button', { name: 'Select sessions with grade items' }).click();
+  await expect(gradeDialog.getByRole('checkbox', { name: 'Toggle selection for Cell Biology Review Quiz' })).toBeChecked();
   await gradeDialog.getByRole('button', { name: /^Show Table$/i }).click();
   await expect(professorPage.getByText(student.email)).toBeVisible();
   await capture(professorPage, 'professor-grades.png');
@@ -475,4 +493,28 @@ test('capture practice creation and session admission', async ({ browser, reques
   expect(rejoined.body.alreadyJoined).toBe(true);
   await studentContext.close();
   await professorContext.close();
+});
+
+
+test('capture anonymous statistics privacy notice', async ({ page, request }) => {
+  test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Run with QCLICKER_CAPTURE_MANUALS=1.');
+  await fs.mkdir(docsOutputDir, { recursive: true });
+  await fs.mkdir(publicOutputDir, { recursive: true });
+  const { admin, professor } = await seedUsers(request);
+  const course = await createCourseViaApi(request, admin.token, { name: 'Introduction to Biology' });
+  await addInstructorToCourseViaApi(request, admin.token, course._id, professor.user._id);
+  const session = await createSessionViaApi(request, professor.token, course._id, {
+    name: 'Anonymous course feedback', anonymous: true,
+  });
+  const question = await createQuestionViaApi(request, professor.token, {
+    courseId: course._id, sessionId: session._id, type: 2, options: [],
+    content: '<p>What helped you learn this week?</p>',
+  });
+  await addQuestionToSessionViaApi(request, professor.token, session._id, question._id);
+  const started = await apiJson(request, 'POST', `/sessions/${session._id}/start`, { token: professor.token });
+  expect(started.response.status()).toBe(200);
+  await loginViaUi(page, professor.email, professor.password, /\/prof$/);
+  await page.goto(`/prof/course/${course._id}/session/${session._id}/live`);
+  await expect(page.getByRole('status').filter({ hasText: 'To protect anonymity' })).toBeVisible();
+  await capture(page, 'professor-anonymous-stats-waiting.png', 1200);
 });

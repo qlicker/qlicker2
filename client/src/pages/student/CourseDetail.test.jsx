@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { getStudentSessionAction, sortSessions } from '../../utils/studentSessions';
 
 describe('getStudentSessionAction', () => {
+  it('opens a waiting page for upcoming interactive sessions, while upcoming quizzes stay closed', () => {
+    expect(getStudentSessionAction({ _id: 'upcoming', status: 'visible', quiz: false }, 'course-1')).toMatchObject({
+      clickable: true, path: '/student/course/course-1/session/upcoming/live', label: 'student.course.openWaitingPage',
+    });
+    expect(getStudentSessionAction({ _id: 'quiz', status: 'visible', quiz: true }, 'course-1').clickable).toBe(false);
+    expect(getStudentSessionAction({ _id: 'draft', status: 'hidden', quiz: false }, 'course-1').clickable).toBe(false);
+  });
+
   it('shows start quiz when a running quiz has no saved responses', () => {
     const action = getStudentSessionAction({
       _id: 'session-1',

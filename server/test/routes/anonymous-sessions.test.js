@@ -683,3 +683,189 @@ describe('anonymous quizzes', () => {
     expectNoIdentity(profListRes.json(), students);
   });
 });
+
+describe('anonymous live statistics batches', () => {
+  it.each([
+    [0, 'distribution'], [1, 'distribution'], [2, 'shortAnswer'],
+    [3, 'distribution'], [4, 'numerical'],
+  ])('publishes type %i through cached HTTP and WebSocket snapshots in groups of four', async (type, statsType) => {
+    const { prof, profToken, course, students } = await setupCourse({ studentCount: 8 });
+    const sessionId = (await createSession(profToken, course._id, { anonymous: true })).json().session._id;
+    const questionId = await addMcQuestion(profToken, sessionId, course._id);
+    await Question.updateOne({ _id: questionId }, { $set: { type, ...([2, 4].includes(type) ? { options: [] } : {}) } });
+    await startLiveQuestion(profToken, sessionId);
+    for (const { token } of students) {
+      expect((await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/join`, { token, payload: {} })).statusCode).toBe(200);
+    }
+    await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${sessionId}/question-visibility`, {
+      token: profToken, payload: { stats: true },
+    });
+    const sendSpy = vi.spyOn(app, 'wsSendToUsers');
+    const findSpy = vi.spyOn(Response, 'find');
+    for (let index = 0; index < students.length; index += 1) {
+      sendSpy.mockClear();
+      findSpy.mockClear();
+      const answer = type === 2 ? `batchword${index}` : type === 4 ? String(index + 1) : type === 3 ? ['0', '1'] : String(index % 2);
+      const res = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/respond`, {
+        token: students[index].token, payload: { answer },
+      });
+      expect(res.statusCode).toBe(201);
+      // No per-answer response-list reload: only the fourth and eighth answers rebuild.
+      expect(findSpy.mock.calls.filter(([filter]) => filter.questionId === questionId)).toHaveLength((index + 1) % 4 === 0 ? 1 : 0);
+      const events = sendSpy.mock.calls.filter(([, event]) => event === 'session:response-added');
+      const professorEvent = events.find(([ids]) => ids.includes(String(prof._id)))?.[2];
+      expect(professorEvent.response).toBeUndefined();
+      expect(professorEvent.responseSubmittedAt).toBeUndefined();
+      expectNoIdentity(professorEvent, students);
+      expect(JSON.stringify(professorEvent)).not.toMatch(/anon_|createdAt|updatedAt|studentUserId/);
+      if ((index + 1) % 4 === 0) {
+        expect(professorEvent.responseStats).toMatchObject({ type: statsType, total: index + 1 });
+        const studentEvent = events.find(([ids]) => ids.includes(String(students[0].user._id)))?.[2];
+        expect(studentEvent.responseStats.total).toBe(index + 1);
+        expect(professorEvent.audience.responseStats).toEqual(studentEvent.responseStats);
+        if (statsType === 'distribution') {
+          expect(studentEvent.responseStats.distribution.every((entry) => !('correct' in entry))).toBe(true);
+        }
+      } else {
+        expect(professorEvent.responseStats).toBeUndefined();
+      }
+      const live = (await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/live`, { token: profToken })).json();
+      expect(live.allResponses).toEqual([]);
+      expect(live.responseStats?.total || 0).toBe(Math.floor((index + 1) / 4) * 4);
+      if (index === 4) {
+        // Closing/reopening the implicit first attempt must keep its released
+        // cache: resetting it would expose just the fifth answer by subtraction.
+        for (const closed of [true, false]) {
+          const toggled = await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${sessionId}/toggle-responses`, {
+            token: profToken, payload: { closed },
+          });
+          expect(toggled.statusCode).toBe(200);
+          expect(toggled.json().question.sessionOptions.attemptStats[0].total).toBe(4);
+        }
+        // Repeated visibility changes and navigation must not expose the fifth answer.
+        await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${sessionId}/question-visibility`, {
+          token: profToken, payload: { stats: false },
+        });
+        await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${sessionId}/question-visibility`, {
+          token: profToken, payload: { stats: true },
+        });
+        await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${sessionId}/current`, {
+          token: profToken, payload: { questionId },
+        });
+        const navigation = sendSpy.mock.calls.filter(([, event]) => event === 'session:question-changed');
+        expect(navigation.find(([ids]) => ids.includes(String(prof._id)))[2].responseStats.total).toBe(4);
+        for (const [token, suffix] of [[students[0].token, ''], [profToken, '?view=presentation']]) {
+          const snapshot = (await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/live${suffix}`, { token })).json();
+          expect(snapshot.showStats).toBe(true);
+          expect(snapshot.responseStats.total).toBe(4);
+          expect(JSON.stringify(snapshot.responseStats)).not.toMatch(/anon_|createdAt|updatedAt|studentUserId/);
+        }
+        if (type === 2) {
+          const cloud = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/word-cloud`, { token: profToken, payload: {} });
+          expect(cloud.statusCode).toBe(200);
+          expect(JSON.stringify(cloud.json())).toContain('batchword0');
+          expect(JSON.stringify(cloud.json())).not.toContain('batchword4');
+        }
+        if (type === 4) {
+          const histogram = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/histogram`, { token: profToken, payload: {} });
+          expect(histogram.statusCode).toBe(200);
+          const data = histogram.json().histogramData;
+          expect(data.bins.reduce((sum, bin) => sum + bin.count, data.overflowLow + data.overflowHigh)).toBe(4);
+        }
+      }
+    }
+    expect((await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/results`, { token: profToken })).statusCode).toBe(409);
+    const cache = (await Question.findById(questionId).lean()).sessionOptions.attemptStats[0];
+    expect(cache.total).toBe(8);
+    expect(JSON.stringify(cache)).not.toMatch(/anon_|createdAt|updatedAt/);
+    if (statsType === 'numerical') {
+      const live = (await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/live`, { token: profToken })).json();
+      expect(live.responseStats).toMatchObject({ total: 8, mean: 4.5, min: 1, max: 8 });
+    }
+    // Authoring metadata cannot cause an already-published attempt number to
+    // be reused and its cache reset by the live new-attempt control.
+    const edited = await authenticatedRequest(app, 'PATCH', `/api/v1/questions/${questionId}`, {
+      token: profToken, payload: { sessionOptions: { attempts: [{ number: 0, closed: true }] } },
+    });
+    expect(edited.statusCode).toBe(200);
+    const newAttempt = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/new-attempt`, { token: profToken });
+    expect(newAttempt.json().attemptNumber).toBe(2);
+    expect(newAttempt.json().question.sessionOptions.attemptStats.find((entry) => entry.number === 1).total).toBe(8);
+    expect(newAttempt.statusCode).toBe(200);
+    const fresh = (await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/live`, { token: profToken })).json();
+    expect(fresh.responseStats).toBeNull();
+    expect(fresh.wordCloudData.wordFrequencies).toEqual([]);
+    expect(fresh.wordCloudData.visible).toBe(false);
+    expect(fresh.histogramData.bins).toEqual([]);
+    expect(fresh.histogramData.visible).toBe(false);
+  });
+
+  it.each([3, 7])('keeps counts consistent when an answer arrives during publication after %i responses', async (initialCount) => {
+    const { prof, profToken, course, students } = await setupCourse({ studentCount: initialCount + 2 });
+    const sessionId = (await createSession(profToken, course._id, { anonymous: true })).json().session._id;
+    const questionId = await addMcQuestion(profToken, sessionId, course._id);
+    await startLiveQuestion(profToken, sessionId);
+    for (const { token } of students) {
+      await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/join`, { token, payload: {} });
+    }
+    await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${sessionId}/question-visibility`, {
+      token: profToken, payload: { stats: true },
+    });
+    for (const { token } of students.slice(0, initialCount)) {
+      expect((await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/respond`, {
+        token, payload: { answer: '0' },
+      })).statusCode).toBe(201);
+    }
+    const countDocuments = Response.countDocuments.bind(Response);
+    // Reproduce a second request persisting its answer between the count query
+    // and the publication query. The aggregate can legitimately include it.
+    vi.spyOn(Response, 'countDocuments').mockImplementationOnce(async (filter) => {
+      const count = await countDocuments(filter);
+      await Response.create({ questionId, attempt: 1, answer: '1',
+        studentUserId: getAnonymousParticipantId(sessionId, students[initialCount + 1].user._id),
+        createdAt: new Date(), submittedAt: new Date() });
+      return count;
+    });
+    const sendSpy = vi.spyOn(app, 'wsSendToUsers');
+    expect((await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/respond`, {
+      token: students[initialCount].token, payload: { answer: '0' },
+    })).statusCode).toBe(201);
+    const events = sendSpy.mock.calls.filter(([, event, data]) => event === 'session:response-added' && data.responseStats);
+    expect(events.some(([ids]) => ids.includes(String(prof._id)))).toBe(true);
+    expect(events.some(([ids]) => ids.includes(String(students[0].user._id)))).toBe(true);
+    for (const [, , data] of events) {
+      expect(data.responseStats.total).toBe(initialCount + 2);
+      expect(data.responseCount).toBeGreaterThanOrEqual(data.responseStats.total);
+      expectNoIdentity(data, students);
+    }
+    const stored = await Question.findById(questionId).lean();
+    expect(stored.sessionProperties.lastAttemptResponseCount).toBe(initialCount + 2);
+  });
+
+  it('reserves batch rebuilds under concurrent submissions and repairs an interrupted publication', async () => {
+    const { prof, profToken, course, students } = await setupCourse({ studentCount: 12 });
+    const sessionId = (await createSession(profToken, course._id, { anonymous: true })).json().session._id;
+    const questionId = await addMcQuestion(profToken, sessionId, course._id);
+    await startLiveQuestion(profToken, sessionId);
+    for (const { token } of students) {
+      await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/join`, { token, payload: {} });
+    }
+    const sendSpy = vi.spyOn(app, 'wsSendToUsers');
+    const findSpy = vi.spyOn(Response, 'find');
+    const results = await Promise.all(students.map(({ token }) => authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/respond`, {
+      token, payload: { answer: '0' },
+    })));
+    expect(results.every((res) => res.statusCode === 201)).toBe(true);
+    const publications = sendSpy.mock.calls.filter(([ids, event, data]) => (
+      event === 'session:response-added' && ids.includes(String(prof._id)) && data.responseStats
+    )).map(([, , data]) => data.responseStats.total).sort((a, b) => a - b);
+    expect(publications.length).toBeGreaterThan(0);
+    publications.forEach((total, index) => expect(total - (publications[index - 1] || 0)).toBeGreaterThanOrEqual(4));
+    expect(findSpy.mock.calls.filter(([filter]) => filter.questionId === questionId).length).toBeLessThanOrEqual(3);
+    // A process can stop after reserving a batch. An instructor snapshot repairs
+    // from its already-loaded responses without requiring another student answer.
+    await Question.updateOne({ _id: questionId }, { $set: { 'sessionOptions.attemptStats': [] } });
+    const live = (await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/live`, { token: profToken })).json();
+    expect(live.responseStats.total).toBe(12);
+  });
+});

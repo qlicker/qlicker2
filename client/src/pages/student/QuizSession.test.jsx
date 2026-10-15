@@ -6,6 +6,9 @@ import apiClient from '../../api/client';
 import i18n from '../../i18n';
 import { QUESTION_TYPES } from '../../components/questions/constants';
 
+const authState = vi.hoisted(() => ({ user: { profile: { roles: ['student'] } } }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => authState }));
+
 vi.mock('../../api/client', () => ({
   default: {
     get: vi.fn(),
@@ -18,6 +21,7 @@ vi.mock('../../api/client', () => ({
 describe('Student QuizSession', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.user.profile.roles = ['student'];
     i18n.changeLanguage('en');
 
     apiClient.get.mockImplementation(async (url) => {
@@ -145,4 +149,20 @@ describe('Student QuizSession', () => {
     }
     expect(apiClient.patch).not.toHaveBeenCalled();
   });
+  it.each([['student', '/student'], ['professor', '/prof']])('returns an activity participant to the %s dashboard', async (role, destination) => {
+    authState.user.profile.roles = [role];
+    render(
+      <MemoryRouter initialEntries={['/activity/course-1/session/session-1/quiz']}>
+        <Routes>
+          <Route path="/activity/:courseId/session/:sessionId/quiz" element={<QuizSession />} />
+          <Route path={destination} element={<div>Participant dashboard</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const back = await screen.findByRole('button', { name: 'Back to dashboard' });
+    expect(screen.queryByRole('button', { name: 'Back to Course' })).not.toBeInTheDocument();
+    fireEvent.click(back);
+    expect(await screen.findByText('Participant dashboard')).toBeInTheDocument();
+  });
+
 });

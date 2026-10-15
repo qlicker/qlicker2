@@ -353,7 +353,7 @@ describe('SessionEditor inline close behavior', () => {
     apiClientMock.get.mockImplementation(async (url) => {
       const response = await originalGet(url);
       if (url === '/sessions/session-1') {
-        response.data.session = { ...response.data.session, anonymous: true, joinedCount: 4 };
+        response.data.session = { ...response.data.session, anonymous: true, joinedCount: 1 };
       }
       return response;
     });
@@ -393,6 +393,97 @@ describe('SessionEditor inline close behavior', () => {
     expect(await screen.findByLabelText('professor.sessionEditor.anonymous')).toBeChecked();
     expect(screen.queryByRole('button', { name: 'professor.sessionEditor.manageExtensions' })).not.toBeInTheDocument();
     expect(screen.getByText('professor.sessionEditor.anonymousNoExtensions')).toBeInTheDocument();
+  });
+
+  it('hides activity sharing until course opt-in and prevents extensions on shared quizzes', async () => {
+    const originalGet = apiClientMock.get.getMockImplementation();
+    const renderWith = async ({ allowSharedActivities, quizExtensions = [], activityEverShared = false }) => {
+      apiClientMock.get.mockImplementation(async (url) => {
+        const response = await originalGet(url);
+        if (url === '/courses/course-1') response.data.course.allowSharedActivities = allowSharedActivities;
+        if (url === '/sessions/session-1') Object.assign(response.data.session, {
+          quiz: true, quizExtensions, activityEverShared,
+        });
+        return response;
+      });
+      return render(<SessionEditor />);
+    };
+    let view = await renderWith({ allowSharedActivities: false });
+    await screen.findByLabelText('professor.sessionEditor.anonymous');
+    expect(screen.queryByLabelText('professor.sessionEditor.allowActivityCodeAccess')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('professor.sessionEditor.activityCodeTitle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('activity-share-code')).not.toBeInTheDocument();
+    expect(screen.queryByText('professor.sessionEditor.courseSharingDisabled')).not.toBeInTheDocument();
+    view.unmount();
+
+    view = await renderWith({ allowSharedActivities: true, quizExtensions: [{ userId: 'student-1' }] });
+    expect(await screen.findByLabelText('professor.sessionEditor.allowActivityCodeAccess')).toBeDisabled();
+    expect(screen.getByText('professor.sessionEditor.removeExtensionsBeforeSharing')).toBeInTheDocument();
+    view.unmount();
+
+    await renderWith({ allowSharedActivities: true, activityEverShared: true });
+    expect(await screen.findByLabelText('professor.sessionEditor.allowActivityCodeAccess')).toBeEnabled();
+    fireEvent.mouseOver(screen.getByLabelText('professor.sessionEditor.activityCodeTitle'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('professor.sessionEditor.activityCodeHelp');
+    expect(screen.queryByRole('button', { name: 'professor.sessionEditor.manageExtensions' })).not.toBeInTheDocument();
+    expect(screen.getByText('professor.sessionEditor.sharedNoExtensions')).toBeInTheDocument();
+  });
+
+  it('shows the active code after reload and turns sharing off through the switch', async () => {
+    const originalGet = apiClientMock.get.getMockImplementation();
+    let enabled = true;
+    apiClientMock.get.mockImplementation(async (url) => {
+      if (url === '/sessions/session-1/activity-share') {
+        return { data: { enabled, code: enabled ? 'S-ABCDEFG' : null, expiresAt: enabled ? '2026-10-20T12:00:00.000Z' : null } };
+      }
+      const response = await originalGet(url);
+      if (url === '/courses/course-1') response.data.course.allowSharedActivities = true;
+      return response;
+    });
+    apiClientMock.delete.mockImplementation(async () => { enabled = false; return { data: { enabled: false } }; });
+    render(<SessionEditor />);
+    const shareSwitch = await screen.findByLabelText('professor.sessionEditor.allowActivityCodeAccess');
+    await waitFor(() => expect(shareSwitch).toBeChecked());
+    expect(screen.getByTestId('activity-share-code')).toHaveTextContent('S-ABCDEFG');
+    expect(screen.getByRole('button', { name: 'professor.sessionEditor.rotateActivityCode' })).toBeInTheDocument();
+    fireEvent.click(shareSwitch);
+    await waitFor(() => expect(apiClientMock.delete).toHaveBeenCalledWith('/sessions/session-1/activity-share'));
+    await waitFor(() => expect(shareSwitch).not.toBeChecked());
+    expect(screen.queryByTestId('activity-share-code')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'professor.sessionEditor.rotateActivityCode' })).not.toBeInTheDocument();
+  });
+
+  it('uses explicit regeneration only for the Regenerate button', async () => {
+    const originalGet = apiClientMock.get.getMockImplementation();
+    let enabled = true;
+    let code = 'S-ABCDEFG';
+    apiClientMock.get.mockImplementation(async (url) => {
+      if (url === '/sessions/session-1/activity-share') {
+        return { data: { enabled, code: enabled ? code : null, expiresAt: enabled ? '2026-10-20T12:00:00.000Z' : null } };
+      }
+      const response = await originalGet(url);
+      if (url === '/courses/course-1') response.data.course.allowSharedActivities = true;
+      return response;
+    });
+    apiClientMock.post.mockImplementation(async (url, payload) => {
+      expect(url).toBe('/sessions/session-1/activity-share');
+      if (payload.regenerate) code = 'S-HJKLMNP';
+      enabled = true;
+      return { data: { code, expiresAt: '2026-10-20T12:00:00.000Z' } };
+    });
+    apiClientMock.delete.mockImplementation(async () => { enabled = false; return { data: { enabled: false } }; });
+    render(<SessionEditor />);
+    const shareSwitch = await screen.findByLabelText('professor.sessionEditor.allowActivityCodeAccess');
+    await waitFor(() => expect(shareSwitch).toBeChecked());
+
+    fireEvent.click(screen.getByRole('button', { name: 'professor.sessionEditor.rotateActivityCode' }));
+    await waitFor(() => expect(apiClientMock.post).toHaveBeenCalledWith('/sessions/session-1/activity-share', { regenerate: true }));
+    await waitFor(() => expect(screen.getByTestId('activity-share-code')).toHaveTextContent(code));
+    fireEvent.click(shareSwitch);
+    await waitFor(() => expect(shareSwitch).not.toBeChecked());
+    fireEvent.click(shareSwitch);
+    await waitFor(() => expect(apiClientMock.post).toHaveBeenLastCalledWith('/sessions/session-1/activity-share', {}));
+    await waitFor(() => expect(screen.getByTestId('activity-share-code')).toHaveTextContent(code));
   });
 
   it('refreshes server status at the exact schedule boundaries while the editor stays open', async () => {

@@ -1903,3 +1903,72 @@ describe('Quiz grading readiness and saved-answer coverage', () => {
     expect(read.json().gradingLockReason).toBe('extensions');
   });
 });
+
+describe('course grade averages', () => {
+  async function fixture() {
+    const context = await setupCourseWithStudents({ prefix: 'average', studentCount: 2 });
+    const { course, prof, students } = context;
+    const makeSession = (name, overrides = {}) => Session.create({
+      name, courseId: course._id, creator: prof._id, status: 'done', reviewable: true, ...overrides,
+    });
+    const makeGrade = (session, value, participation, overrides = {}) => Grade.create({
+      courseId: course._id, sessionId: session._id, userId: students[0]._id,
+      value, participation, visibleToStudents: true, ...overrides,
+    });
+    const first = await makeSession('First');
+    const second = await makeSession('Second', { quiz: true });
+    const missed = await makeSession('Missed');
+    await makeGrade(first, 80, 100);
+    await makeGrade(second, 40, 50);
+    await makeGrade(missed, 0, 0);
+    const empty = await makeSession('No grade items');
+    const hiddenGrade = await makeSession('Unpublished grade');
+    await makeGrade(hiddenGrade, 100, 100, { visibleToStudents: false });
+    const excluded = [];
+    for (const [name, overrides] of [
+      ['Draft', { status: 'hidden' }], ['Upcoming', { status: 'visible' }],
+      ['Live', { status: 'running' }], ['Not reviewable', { reviewable: false }],
+      ['Anonymous', { anonymous: true }],
+      ['Quiz with extension', { quiz: true, quizExtensions: [{ userId: students[1]._id, quizEnd: new Date(Date.now() + 86400000) }] }],
+      ['Another student practice', { studentCreated: true, creator: students[1]._id }],
+    ]) {
+      const session = await makeSession(name, overrides);
+      excluded.push(session);
+      await makeGrade(session, 100, 100);
+    }
+    return { ...context, first, second, missed, empty, hiddenGrade, excluded, makeSession, makeGrade };
+  }
+
+  it('averages only visible grade items in ended reviewable sessions, including earned zeros', async () => {
+    const f = await fixture();
+    const res = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades`, { token: f.studentTokens[0] });
+    expect(res.statusCode).toBe(200);
+    const { sessions, rows } = res.json();
+    expect(sessions.map((s) => s._id).sort()).toEqual([f.first, f.second, f.missed, f.empty, f.hiddenGrade].map((s) => s._id).sort());
+    expect(rows[0]).toMatchObject({ avgParticipation: 50, avgGrade: 40 });
+    expect(rows[0].grades.find((g) => g.sessionId === f.missed._id)).toMatchObject({ hasGradeItem: true, value: 0 });
+    expect(rows[0].grades.find((g) => g.sessionId === f.hiddenGrade._id)).toMatchObject({ hasGradeItem: false });
+    expect(sessions.find((s) => s._id === f.hiddenGrade._id).hasGradeItems).toBe(false);
+    const bypass = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${f.excluded.map((s) => s._id).join(',')}`, { token: f.studentTokens[0] });
+    expect(bypass.json().sessions).toEqual([]);
+    expect(bypass.json().rows[0]).toMatchObject({ avgParticipation: null, avgGrade: null });
+  });
+
+  it('uses only selected actual grade items for instructor averages and reports empty sessions', async () => {
+    const f = await fixture();
+    const ids = [f.first, f.second, f.missed, f.empty].map((s) => s._id).join(',');
+    const res = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${ids}`, { token: f.profToken });
+    expect(res.statusCode).toBe(200);
+    const { sessions, rows } = res.json();
+    expect(sessions).toHaveLength(4);
+    expect(sessions.find((s) => s._id === f.empty._id).hasGradeItems).toBe(false);
+    expect(sessions.filter((s) => s.hasGradeItems)).toHaveLength(3);
+    expect(rows.find((r) => r.student.studentId === f.students[0]._id)).toMatchObject({ avgParticipation: 50, avgGrade: 40 });
+    expect(rows.find((r) => r.student.studentId === f.students[1]._id)).toMatchObject({ avgParticipation: null, avgGrade: null });
+    const one = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${f.first._id}`, { token: f.profToken });
+    expect(one.json().rows[0]).toMatchObject({ avgParticipation: 100, avgGrade: 80 });
+    const hidden = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${f.hiddenGrade._id}`, { token: f.profToken });
+    expect(hidden.json().rows[0]).toMatchObject({ avgParticipation: 100, avgGrade: 100 });
+    expect(hidden.json().sessions[0].hasGradeItems).toBe(true);
+  });
+});

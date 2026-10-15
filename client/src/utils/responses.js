@@ -98,7 +98,9 @@ export function applyLiveResponseAddedDelta(prev, payload = {}) {
   const currentStats = prev?.responseStats;
   let nextResponseStats = currentStats;
 
-  if (payload?.responseStats && typeof payload.responseStats === 'object') {
+  const staleAnonymousStats = prev.session?.anonymous
+    && Number(payload?.responseStats?.total || 0) < Number(currentStats?.total || 0);
+  if (payload?.responseStats && typeof payload.responseStats === 'object' && !staleAnonymousStats) {
     if (payload.responseStats.type === 'distribution') {
       nextResponseStats = payload.responseStats;
     } else {
@@ -125,7 +127,9 @@ export function applyLiveResponseAddedDelta(prev, payload = {}) {
 
   return {
     ...prev,
-    responseCount: payload?.responseCount ?? prev?.responseCount,
+    responseCount: prev.session?.anonymous
+      ? Math.max(Number(payload?.responseCount || 0), Number(prev?.responseCount || 0))
+      : payload?.responseCount ?? prev?.responseCount,
     session: prev?.session
       ? {
         ...prev.session,

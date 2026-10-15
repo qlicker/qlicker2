@@ -344,20 +344,24 @@ export default async function gradeRoutes(app) {
         }
       }
 
-      const gradeQuery = instructorView
-        ? { sessionId: String(session._id), courseId: String(course._id) }
-        : studentVisibleGradeQuery(course._id, session._id, request.user);
-
       if (session.anonymous) {
         return {
           sessionId: String(session._id),
           courseId: String(course._id),
           instructorView,
-          anonymous: true,
+          anonymous: !!session.anonymous,
           ...(instructorView ? { gradingLockReason: 'anonymous' } : {}),
           grades: [],
         };
       }
+
+      const eligibleStudents = session.activityEverShared
+        ? (course.students || [])
+        : [];
+      const gradeQuery = instructorView
+        ? { sessionId: String(session._id), courseId: String(course._id),
+          ...(session.activityEverShared ? { userId: { $in: eligibleStudents } } : {}) }
+        : studentVisibleGradeQuery(course._id, session._id, request.user);
 
       let grades = await normalizeGradesManualGradingState(await Grade.find(gradeQuery).lean());
       if (!instructorView) grades = grades.map(sanitizeStudentVisibleGrade);
@@ -767,10 +771,11 @@ export default async function gradeRoutes(app) {
         sessionQuery.studentCreated = { $ne: true };
       } else {
         Object.assign(sessionQuery, studentReviewableSessionQuery({ includeStudentCreated: true }));
+        sessionQuery.$or = [{ studentCreated: { $ne: true } }, { creator: request.user.userId }];
       }
 
       const sessions = await Session.find(sessionQuery)
-        .select('_id name status date quizStart quizEnd quizExtensions createdAt reviewable quiz practiceQuiz questions joined submittedQuiz')
+        .select('_id name status date quizStart quizEnd quizExtensions createdAt reviewable quiz practiceQuiz questions joined submittedQuiz activityEverShared')
         .lean();
 
       sessions.sort((a, b) => {
@@ -865,6 +870,7 @@ export default async function gradeRoutes(app) {
           if (grade) {
             return {
               ...grade,
+              hasGradeItem: true,
               ...(instructorView ? { gradingLockReason: getSessionGradingLockReason(session) } : {}),
               name: grade.name || session.name,
               submitted,
@@ -873,6 +879,7 @@ export default async function gradeRoutes(app) {
 
           return {
             sessionId,
+            hasGradeItem: false,
             courseId: String(course._id),
             userId: studentId,
             name: session.name,
@@ -893,9 +900,14 @@ export default async function gradeRoutes(app) {
           };
         });
 
-        const avgParticipation = gradeEntries.length > 0
-          ? Math.round((gradeEntries.reduce((sum, grade) => sum + toFiniteNumber(grade.participation, 0), 0) / gradeEntries.length) * 10) / 10
-          : 0;
+        // Missing/hidden items are not earned zeros. Actual zero-valued grade
+        // items (including absences) still count; anonymous sessions are excluded above.
+        const applicableGrades = gradeEntries.filter((grade) => grade.hasGradeItem && !grade.notApplicable);
+        const average = (field) => applicableGrades.length > 0
+          ? Math.round((applicableGrades.reduce((sum, grade) => sum + toFiniteNumber(grade[field], 0), 0) / applicableGrades.length) * 10) / 10
+          : null;
+        const avgParticipation = average('participation');
+        const avgGrade = average('value');
 
         return {
           student: {
@@ -908,10 +920,12 @@ export default async function gradeRoutes(app) {
             profileThumbnail: normalizeAnswerValue(student?.profile?.profileThumbnail),
           },
           avgParticipation,
+          avgGrade,
           grades: gradeEntries,
         };
       });
 
+      const sessionsWithGradeItems = new Set(grades.map((grade) => String(grade.sessionId)));
       const sessionPayload = sessions.map((session) => {
         const sessionId = String(session._id);
         const ungraded = ungradedSummaryBySessionId[sessionId] || {
@@ -929,6 +943,8 @@ export default async function gradeRoutes(app) {
         return {
           _id: sessionId,
           name: session.name,
+          createdAt: session.createdAt,
+          hasGradeItems: sessionsWithGradeItems.has(sessionId),
           status: session.status,
           ...(instructorView ? { gradingLockReason: getSessionGradingLockReason(session) } : {}),
           reviewable: !!session.reviewable,

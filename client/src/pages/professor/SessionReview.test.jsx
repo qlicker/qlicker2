@@ -1,9 +1,20 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import SessionReview, { buildSessionResultsCsv } from './SessionReview';
 import apiClient from '../../api/client';
 import i18n from '../../i18n';
+
+const quizEvents = vi.hoisted(() => ({ listeners: new Set(), refresh: null }));
+vi.mock('../../contexts/LiveSessionWebSocketContext', () => ({
+  LiveSessionWebSocketProvider: ({ children }) => children,
+  useLiveSessionWebSocket: () => ({
+    subscribe: quizEvents.subscribe,
+    registerRefreshHandler: quizEvents.register,
+  }),
+}));
+quizEvents.subscribe = (handler) => { quizEvents.listeners.add(handler); return () => quizEvents.listeners.delete(handler); };
+quizEvents.register = (handler) => { quizEvents.refresh = handler; return () => { quizEvents.refresh = null; }; };
 
 vi.mock('../../api/client', () => ({
   default: {
@@ -101,6 +112,8 @@ function buildResultsPayload(sessionOverrides = {}) {
 describe('SessionReview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    quizEvents.listeners.clear();
+    quizEvents.refresh = null;
     i18n.changeLanguage('en');
 
     apiClient.get.mockImplementation(async (url) => {
@@ -186,6 +199,36 @@ describe('SessionReview', () => {
     fireEvent.click(joinButton);
     expect(await screen.findByText('Live session destination')).toBeInTheDocument();
   });
+
+  it('refreshes quiz results on coalesced submissions and ending, without refetching on autosaves', async () => {
+    const originalGet = apiClient.get.getMockImplementation();
+    let payload = { ...buildResultsPayload({ quiz: true, status: 'running' }), studentResults: [] };
+    apiClient.get.mockImplementation((url, ...args) => url === '/sessions/session-1/results'
+      ? Promise.resolve({ data: payload }) : originalGet(url, ...args));
+    renderSessionReview();
+    await screen.findByText(/only submitted quizzes are shown/i);
+    fireEvent.click(screen.getByRole('tab', { name: /response data/i }));
+    const resultCalls = () => apiClient.get.mock.calls.filter(([url]) => url.endsWith('/results')).length;
+    const courseCalls = () => apiClient.get.mock.calls.filter(([url]) => url === '/courses/course-1').length;
+    const initialCourses = courseCalls();
+    expect(resultCalls()).toBe(1);
+    act(() => quizEvents.listeners.forEach((handler) => handler({ event: 'session:response-added' })));
+    payload = { ...buildResultsPayload({ quiz: true, status: 'running' }), studentResults: buildResultsPayload().studentResults.slice(0, 1) };
+    act(() => {
+      for (let index = 0; index < 5; index += 1) {
+        quizEvents.listeners.forEach((handler) => handler({ event: 'session:quiz-submitted' }));
+      }
+    });
+    await screen.findByText('Ada Lovelace', {}, { timeout: 4000 });
+    expect(screen.queryByText('Grace Hopper')).not.toBeInTheDocument();
+    expect(resultCalls()).toBe(2);
+    expect(courseCalls()).toBe(initialCourses);
+    payload = buildResultsPayload({ quiz: true, status: 'done' });
+    act(() => quizEvents.listeners.forEach((handler) => handler({ event: 'session:status-changed' })));
+    await screen.findByText('Grace Hopper', {}, { timeout: 4000 });
+    expect(resultCalls()).toBe(3);
+    expect(screen.queryByText(/only submitted quizzes are shown/i)).not.toBeInTheDocument();
+  }, 10000);
 
   it('renders question math in both the results and grading tabs', async () => {
     const defaultGet = apiClient.get.getMockImplementation();
@@ -345,6 +388,33 @@ describe('SessionReview', () => {
     expect(csvExport.csvContent).toContain(',B,4');
   });
 
+  it.each(['en', 'fr'])('labels True/False responses in the table and CSV in %s', async (locale) => {
+    await i18n.changeLanguage(locale);
+    const payload = buildResultsPayload();
+    // Reversed option order also occurs in imported questions; respect the option text.
+    payload.questions[0] = { ...payload.questions[0], type: 1, options: [
+      { _id: 'false-option', content: '<p>False</p>' },
+      { _id: 'true-option', content: '<p>True</p>' },
+    ] };
+    payload.studentResults[0].questionResults[0].responses[0].answer = { optionId: 'true-option' };
+    const defaultGet = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (url) => url.endsWith('/results')
+      ? { data: payload } : defaultGet(url));
+    renderSessionReview();
+    fireEvent.click(await screen.findByRole('tab', { name: i18n.t('professor.sessionReview.responseData') }));
+    const trueLabel = i18n.t('questions.editor.true');
+    const falseLabel = i18n.t('questions.editor.false');
+    expect(await screen.findByRole('cell', { name: `${trueLabel} (4)`, exact: true })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: `${falseLabel} (1)`, exact: true })).toBeInTheDocument();
+    const csv = buildSessionResultsCsv({
+      csvQuestionAttempts: [{ question: payload.questions[0], questionNumber: 1, attempts: [1, 2] }],
+      studentResults: payload.studentResults, gradesByStudentId: {}, sessionName: 'True False',
+      t: i18n.t.bind(i18n),
+    });
+    expect(csv.csvContent).toContain(`,${trueLabel},`);
+    expect(csv.csvContent).toContain(`,${falseLabel},`);
+  });
+
   it('builds anonymous CSV rows without identity, grade, or join columns', () => {
     const csvExport = buildSessionResultsCsv({
       anonymous: true,
@@ -457,6 +527,40 @@ describe('SessionReview', () => {
     expect(screen.queryByText('Question navigator')).not.toBeInTheDocument();
   });
 
+  it('grades enrolled students and shows guest answers without grade controls in a shared named activity', async () => {
+    const defaultGet = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === '/sessions/session-1/results') {
+        const payload = buildResultsPayload({ activityEverShared: true });
+        Object.assign(payload.studentResults[0], { guest: false, participantRole: 'student', isProfessor: false });
+        Object.assign(payload.studentResults[1], { guest: true, participantRole: 'guest', isProfessor: true });
+        return { data: payload };
+      }
+      if (url === '/sessions/session-1/grades') {
+        return { data: { grades: [{
+          _id: 'grade-1', userId: 'student-1', value: 87.5,
+          marks: [{ questionId: 'q-1', points: 4, outOf: 5, needsGrading: false }],
+        }] } };
+      }
+      return defaultGet(url);
+    });
+
+    renderSessionReview();
+    expect(await screen.findByText(/Enrolled students can receive grades/)).toBeInTheDocument();
+    expect(apiClient.get).toHaveBeenCalledWith('/sessions/session-1/grades');
+    fireEvent.click(screen.getByRole('tab', { name: /response data/i }));
+    const resultsTable = await screen.findByRole('table', { name: /student results/i });
+    const guestRow = within(resultsTable).getByText('Grace Hopper').closest('tr');
+    expect(within(guestRow).getByText('Guest')).toBeInTheDocument();
+    expect(within(guestRow).getByText('Professor')).toBeInTheDocument();
+    const enrolledRow = within(resultsTable).getByText('Ada Lovelace').closest('tr');
+    expect(within(enrolledRow).getByText('Student')).toBeInTheDocument();
+    expect(within(guestRow).getByText('No grade')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /grading/i }));
+    expect(await screen.findByText('Guest responses')).toBeInTheDocument();
+    expect(screen.getByText(/Guests do not receive grades/)).toBeInTheDocument();
+  });
+
   it('opens the student avatar image from the response data tab', async () => {
     renderSessionReview();
 
@@ -563,6 +667,54 @@ describe('SessionReview', () => {
       expect(apiClient.patch).toHaveBeenCalledWith('/sessions/session-1/reviewable', { reviewable: true });
       expect(toggle).toBeChecked();
     });
+  });
+
+  it('sends the selected saved guidance and blocks generation while editing it', async () => {
+    const defaultGet = apiClient.get.getMockImplementation();
+    const custom = { _id: 'custom-summary', kind: 'summary', name: 'French quotes', content: 'Give quotes in French.' };
+    apiClient.get.mockImplementation(async (url) => {
+      if (url === '/sessions/session-1/results') {
+        const payload = buildResultsPayload();
+        payload.questions[0] = { ...payload.questions[0], type: 2, options: [] };
+        return { data: payload };
+      }
+
+      if (url.endsWith('/grading-instructions')) return { data: { instructions: [
+        { _id: 'basic-summary', kind: 'summary', name: 'Basic summary', content: 'Default guidance.' }, custom,
+      ] } };
+      if (url.endsWith('/config')) return { data: { approvedModels: [
+        { backendId: 'local', modelId: 'model', displayName: 'Test model' },
+      ], defaultBackendId: 'local', defaultModelId: 'model' } };
+      return defaultGet(url);
+    });
+    apiClient.post.mockImplementation(async (url, payload) => {
+      if (url.endsWith('/grading-instructions')) return { data: { instruction: { ...payload, _id: custom._id } } };
+      return { data: { summary: { status: 'completed', summary: 'Custom output' } } };
+    });
+    renderSessionReview();
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Generate AI Response summary' }))[0]);
+    const dialog = screen.getByRole('dialog');
+    const generate = within(dialog).getByRole('button', { name: 'Generate AI Response summary' });
+    await waitFor(() => expect(generate).toBeEnabled());
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Summary instructions' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'French quotes' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit' }));
+    expect(generate).toBeDisabled();
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Summary instructions' }), {
+      target: { value: 'Only quote responses in French, in a table.' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(generate).toBeEnabled());
+    expect(within(dialog).queryByRole('textbox', { name: 'Summary instructions' })).not.toBeInTheDocument();
+    fireEvent.click(generate);
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith(
+      '/ai/courses/course-1/sessions/session-1/questions/q-1/ai-summary', {
+        instruction: 'Only quote responses in French, in a table.', backendId: 'local', modelId: 'model',
+      }
+    ));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Generate AI Response summary' }))[0]);
+    await waitFor(() => expect(within(screen.getByRole('dialog')).getByRole('combobox', { name: 'Summary instructions' })).toHaveTextContent('French quotes'));
   });
 
   it('shows a halt control while an AI response summary is running', async () => {

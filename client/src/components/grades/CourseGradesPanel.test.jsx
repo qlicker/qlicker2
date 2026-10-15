@@ -35,6 +35,7 @@ function buildGradesPayload() {
           email: 'ada@example.edu',
         },
         avgParticipation: 92.5,
+        avgGrade: 87.5,
         grades: [
           {
             _id: 'grade-1',
@@ -125,6 +126,15 @@ describe('CourseGradesPanel', () => {
     expect(screen.queryByText(/5 ungraded/i)).not.toBeInTheDocument();
   });
 
+  it('opens session review for student grade clicks without opening instructor dialogs', async () => {
+    const onOpenSession = vi.fn();
+    render(<CourseGradesPanel courseId="course-1" instructorView={false} onOpenSession={onOpenSession} />);
+    fireEvent.click(await screen.findByRole('button', { name: '87.5%' }));
+    expect(onOpenSession).toHaveBeenCalledWith('session-1');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(apiClient.get.mock.calls.every(([url]) => url === '/courses/course-1/grades')).toBe(true);
+  });
+
   it('starts hidden for instructors and shows selected-session grades after modal confirmation', async () => {
     render(
       <CourseGradesPanel
@@ -142,6 +152,18 @@ describe('CourseGradesPanel', () => {
     expect(screen.getByLabelText(/search students/i)).toBeInTheDocument();
     expect(screen.getByText(/5 ungraded/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /87.5%/i })).toBeInTheDocument();
+  });
+
+  it('shows a later-enrolled activity guest as not applicable instead of zero', async () => {
+    const payload = buildGradesPayload();
+    payload.rows[0].avgParticipation = null;
+    payload.rows[0].avgGrade = null;
+    payload.rows[0].grades = [{ sessionId: 'session-1', notApplicable: true }];
+    apiClient.get.mockResolvedValue({ data: payload });
+    render(<CourseGradesPanel courseId="course-1" instructorView availableSessions={payload.sessions} />);
+    await openInstructorGradeTable();
+    expect(screen.getAllByText('Not applicable')).toHaveLength(4);
+    expect(screen.queryByRole('button', { name: /87.5%/i })).not.toBeInTheDocument();
   });
 
   it('locks grade and question editors when an ended quiz has remaining extensions', async () => {
@@ -365,4 +387,44 @@ describe('CourseGradesPanel', () => {
     expect(questionRow).toBeTruthy();
     expect(within(questionRow).queryByText(/^needs grading$/i)).not.toBeInTheDocument();
   });
+});
+
+it('flags sessions without grade items and offers a graded-only selection without preventing manual inclusion', async () => {
+  vi.clearAllMocks();
+  const payload = buildGradesPayload();
+  apiClient.get.mockResolvedValue({ data: payload });
+  render(<CourseGradesPanel courseId="course-1" instructorView
+    availableSessions={[
+      { _id: 'session-1', name: 'Week 1' },
+      { _id: 'empty', name: 'Draft without grades', status: 'hidden' },
+      { _id: 'survey', name: 'Anonymous survey', anonymous: true },
+    ]}
+    gradingSummaryBySessionId={{ 'session-1': { hasGradeItems: true }, empty: { hasGradeItems: false } }} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Show Grade Table' }));
+  const dialog = await screen.findByRole('dialog', { name: /select sessions for grade table/i });
+  expect(within(dialog).getByText('No grade items')).toBeInTheDocument();
+  expect(within(dialog).queryByText('Anonymous survey')).not.toBeInTheDocument();
+  fireEvent.click(within(dialog).getByText('Draft without grades'));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Select sessions with grade items' }));
+  expect(within(dialog).getByRole('checkbox', { name: 'Toggle selection for Week 1' })).toBeChecked();
+  expect(within(dialog).getByRole('checkbox', { name: 'Toggle selection for Draft without grades' })).not.toBeChecked();
+  fireEvent.click(within(dialog).getByText('Draft without grades'));
+  expect(within(dialog).getByRole('checkbox', { name: 'Toggle selection for Draft without grades' })).toBeChecked();
+  apiClient.get.mockResolvedValue({ data: payload });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Show Table' }));
+  await waitForElementToBeRemoved(dialog);
+  expect(apiClient.get).toHaveBeenCalledWith('/courses/course-1/grades', { params: { sessionIds: 'session-1,empty' } });
+  expect(screen.getByRole('columnheader', { name: /avg. grade/i })).toBeInTheDocument();
+});
+
+it('loads grade-item availability when no session options are supplied', async () => {
+  vi.clearAllMocks();
+  const payload = buildGradesPayload();
+  payload.sessions[0].hasGradeItems = true;
+  apiClient.get.mockResolvedValue({ data: payload });
+  render(<CourseGradesPanel courseId="course-1" instructorView />);
+  await waitFor(() => expect(apiClient.get).toHaveBeenCalledWith('/courses/course-1/grades'));
+  fireEvent.click(screen.getByRole('button', { name: 'Show Grade Table' }));
+  const dialog = await screen.findByRole('dialog', { name: /select sessions for grade table/i });
+  expect(within(dialog).getByRole('button', { name: 'Select sessions with grade items' })).toBeEnabled();
 });

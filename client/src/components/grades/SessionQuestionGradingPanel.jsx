@@ -47,6 +47,7 @@ import {
 } from '../questions/richTextUtils';
 import RichTextEditor from '../questions/RichTextEditor';
 import { getLatestResponse } from '../../utils/responses';
+import ParticipantRoleBadges from '../common/ParticipantRoleBadges';
 
 const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -507,6 +508,7 @@ const GradingTableRow = memo(function GradingTableRow({
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="body2" noWrap>{row.displayName}</Typography>
+            <ParticipantRoleBadges participant={row.student} />
             <Typography variant="caption" noWrap sx={{
               color: "text.secondary"
             }}>{row.email || '—'}</Typography>

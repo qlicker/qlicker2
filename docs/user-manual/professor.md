@@ -217,12 +217,14 @@ Use **Set all question points** only after considering ungraded slides and delib
 
 ### Session-level controls
 
-- **Status** controls whether the activity is hidden/draft, visible, running, or ended.
+- **Status** controls whether the activity is hidden/draft, visible, running, or ended. When an interactive session becomes Live, Qlicker selects the first question or slide if none is active. An existing active item is preserved. A newly selected first item starts hidden until you reveal it, just as with Launch.
 - **Reviewable** controls whether students can later see review/grades; it is not the same as ending the session.
 - **Join code/passcode** and refresh interval provide controlled entry for live activities.
 - **Multi-select scoring** applies to multi-select questions in the session.
 - **Anonymous responses** hides who gave each answer. See [Run an anonymous survey](#run-an-anonymous-survey).
-- Session tags help organize and apply tags to questions.
+- Create tags in **Course Settings**, then select them in the session editor to organize the session and apply tags to questions.
+
+For an **Upcoming** interactive session, enrolled students can select **Open waiting page**; guests can enter its **S- activity code** through **Join activity**. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes **Live**, participants wait for a question or enter the join code once the instructor opens the join period. Redeeming an activity code still locks the anonymity setting.
 
 Do a student-view rehearsal before a high-stakes activity. Confirm the session appears on the intended tab and that solutions are not exposed early.
 
@@ -237,12 +239,33 @@ Use **Anonymous responses** for course feedback, sensitive check-ins, or any int
 What changes:
 
 - Students still sign in and can answer each question (or each attempt) only once. A quiz can still be submitted only once. Students see a notice that the session is anonymous and can review their own answers later.
-- During an anonymous live activity, the instructor view shows response counts without individual answers. After the activity ends, review shows answer rows only when at least four people have answered every question and attempt that has responses. Otherwise it shows a count and explains that rows are withheld. The joined-student list, manual admission, and individual quiz extensions are unavailable. Share the live join code if one is required.
+- Changing a live interactive session to **Upcoming** replaces participants’ questions with a waiting screen; returning to **Live** restores the session and their saved answers. **Draft** returns enrolled students to the course page and guests to their dashboard.
+- During an anonymous live activity, response counts update immediately. Statistics and unlinked answer lists update after at least four new people respond to that question and attempt. Show Stats controls what participants and the presentation window see; the instructor sees released statistics even while Show Stats is off. Word clouds and histograms use those same released answers. The last one to three answers wait for the next batch. After the activity ends, review shows answer rows only when at least four people have answered every question and attempt that has responses. Otherwise it shows a count and explains that rows are withheld. The joined-student list, manual admission, and individual quiz extensions are unavailable. Share the live join code if one is required.
 - After the session ends, review shows respondents as **Respondent 1**, **Respondent 2**, and so on, with one row per respondent across questions but without join times or grades. The CSV export uses the same labels. The **Responses by question** tab replaces grading with a read-only list of each respondent's answer and whether it was correct.
 - The session is never graded and does not appear in the course gradebook. AI grading is unavailable, and session chat does not show authors' names.
 - The setting locks once anyone joins, saves an answer, or submits. Anonymous quiz/interactive mode also locks after participation. Remove any individual quiz extensions before enabling anonymity.
 
+The instructor’s live Controls show an information banner explaining that statistics are hidden until four different participants answer the current question and attempt. After the first release, the banner shows the released response count and explains batching.
+
+![Anonymous live statistics waiting for the privacy minimum](../assets/manuals/professor-anonymous-stats-waiting.png)
+
 Linked rows are needed to correlate survey answers, but a unique or self-identifying answer can expose the rest of that respondent's row. The four-person minimum reduces direct identification by elimination, but does not prevent inference from unique answers or knowledge of who participated. Label numbers do not follow answer order or names.
+
+### Share a quiz or live activity outside the course
+
+The session editor shows sharing controls only when the course allows activity sharing.
+
+![Session editor with sharing controls hidden because course sharing is disabled](../assets/manuals/session-editor-sharing-disabled.png)
+
+In **Course settings**, turn on **Allow activities to be shared by code**; it is off by default. Turning it off later revokes all codes and outside access for that course. Create the activity inside the course, add its questions, and set its normal quiz window or live settings. In the session editor, switch on **Enable sharing this activity outside the course** to generate a code beginning with `S-` followed by seven letters or digits. The current code stays visible to course instructors after a refresh and also appears in the live session controls. Switching sharing off makes the stored code unusable and revokes all outside grants. Switching it on again reuses the same code; prior participants must redeem it again. **Regenerate code** replaces the code, invalidates the old one for new redemptions, and retains existing grants. Codes expire for new participants after 30 days by default; a participant who already redeemed a code can still re-enter it until sharing is disabled. The separate rotating six-digit live join code remains in force when **Require Passcode** is on.
+
+For activities with identified responses, participant lists and results label enrolled students and guests. A professor participating from outside the course also has a **Professor** badge and remains a guest for grading. Anonymous results show respondent labels only.
+
+Participants select **Join activity** on their dashboard and enter the code. Instructors can use the same action on their dashboard to participate in another course’s shared activity. The code admits signed-in people to this activity only. It does not enroll them in your course or give them course roster, gradebook, chat, or question-library access. Joined guests can use enabled session chat during a live activity. You can choose named or anonymous responses before anyone redeems the code or participates. Once someone redeems it, the anonymity choice is locked. Anonymous responses retain one respondent row across questions and are released only after the activity ends and at least four people answer every question and attempt with responses. Unique answers can still identify a respondent.
+
+Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity.
+
+**In a named shared activity, enrolled students can receive grades; guests have tracked responses but no grade items.** The instructor review shows both groups and marks guests as ungraded. Only enrolled students appear in the grading controls and course gradebook. If a guest later enrolls as a student (including someone with a professor account), Qlicker creates missing grades from their saved responses in finished activities. Missed activities receive zeros without a needs-grading flag; written answers may need grading. Existing marks and feedback are preserved. Anonymous activities remain ungraded. For someone already enrolled before this update, **Create grade items** fills missing rows. Turning on anonymity makes the activity a survey: no one receives grades, but respondents retain one linked row across questions after the privacy threshold is met. Existing enrolled-student grades do not prevent a named activity from being shared; existing grades for people outside the course or any grades on an anonymous activity do. Remove individual quiz extensions before sharing. Extensions stay unavailable after a code is issued, even if sharing is later disabled. Practice quizzes and student-created sessions cannot be shared by activity code.
 
 ## 7. Configure and deliver a quiz
 
@@ -273,6 +296,9 @@ Open the quiz editor and use **Manage extensions** to assign enrolled students t
 Active and upcoming extensions block **Reviewable**. Granting a remaining extension switches off existing student review and grade visibility; it cannot undo answers students have already seen. After the last extension expires or is removed, recalculate grades to include late responses, complete manual marking, and explicitly enable **Reviewable**. Review never becomes available automatically.
 
 ## 8. Run an interactive class
+
+For an open quiz, results show only students and guests who have clicked **Submit**, using their final saved answers. The page updates when quizzes are submitted. Once the quiz is **Ended**, saved answers from participants who did not submit are also included and can be graded normally. This applies to result tables, exports, and response analysis. Anonymous quizzes still wait until the activity ends and the privacy threshold is met. Practice quizzes continue to submit per question.
+
 
 Select **Launch** on an interactive session. The professor control view is separate from the student and presentation views.
 
@@ -377,6 +403,10 @@ The retention setting automatically archives older topics. Choose a period long 
 
 Session chat supports normal posts, comments, and votes when rich text is enabled. Students can also use quick posts associated with the current or an earlier question. Quick posts remain available when rich text is disabled, giving you a lower-distraction clarification channel.
 
+Session chat shows the most recently active discussion first. A new post, comment, or upvote moves the discussion to the top. Unread badges clear when you open Chat. Dismissed discussions remain below active ones for instructors.
+
+Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.
+
 Use **Dismiss** when a question has been resolved but should remain in the record. Delete only when content truly needs removal. The instructor review page retains the conversation, including dismissed items, after the session ends.
 
 ### Chat operating practices
@@ -441,7 +471,7 @@ Large rosters, response sets, chats, and grade tables are paginated. If the assi
 From **Session Review**, locate an individual question and select **Generate AI Response summary**:
 
 1. Choose an approved model.
-2. Select or create a reusable summary instruction.
+2. Select or create a reusable summary instruction. Save edits before generating; generation is disabled while instructions are being edited. The saved selection stays selected when you reopen the dialog, and its language, focus, and output-format guidance is sent at every summarization stage.
 3. Start the job and monitor its progress.
 4. View the finished summary, or halt and regenerate it if needed.
 
@@ -496,7 +526,13 @@ Review tabs can include result summaries, per-question response data, students, 
 
 ### Course grade table
 
-Open the course **Grades** tab, choose **Show Grade Table**, select sessions, and show the table. Select a percentage cell to inspect the student's grade; select a question label such as `Q1(SA)` to grade that response.
+Open the course **Grades** tab and choose **Show Grade Table**. Use **Select sessions with grade items** to select the matching sessions that have grades. Sessions labelled **No grade items** remain available for manual selection or **Select All**.
+
+![Session picker identifying sessions without grade items](../assets/manuals/professor-grade-session-picker.png)
+
+Average grade and participation use only each student's actual, applicable grade items from the displayed sessions. Missing grade items appear as **Not applicable** and do not reduce the average; recorded zeros do count. With no applicable grade items, the average is **Not applicable**. CSV exports use the same averages.
+
+Select a percentage cell to inspect the student's grade; select a question label such as `Q1(SA)` to grade that response.
 
 ![Course grade table with a completed quiz selected](../assets/manuals/professor-grades.png)
 

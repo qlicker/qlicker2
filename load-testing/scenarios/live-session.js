@@ -17,11 +17,18 @@
 
 import http from 'k6/http';
 import ws from 'k6/ws';
+import { WebSocket } from 'k6/websockets';
+import * as timers from 'k6/timers';
 import { check, group, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
-import { connectionFailureDetails } from './connection-diagnostics.js';
+import { answerFailureDetails, connectionErrorKind, connectionFailureDetails } from './connection-diagnostics.js';
+import { createAnonymousStatsValidator, privacyFailureReasons } from './anonymous-diagnostics.js';
+import { createResponseMerger } from './response-merge.js';
+import { createSocketConnector } from './socket-client.js';
+import { canAnswer, createAttemptScheduler, getLiveAttemptKey, readLiveVisibilityFlag } from './attempt-scheduler.js';
+import { createResponseCoverage, hasCompleteResultRows } from './response-coverage.js';
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -69,7 +76,7 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:3001';
 const API = `${BASE_URL}/api/v1`;
 const WS_URL = BASE_URL.replace(/^http/, 'ws') + '/ws';
 const STATE_FILE = __ENV.STATE_FILE || '../state.json';
-const SESSION_CHAT_ENABLED = parseBoolean(__ENV.SESSION_CHAT_ENABLED ?? 'true', true);
+const LIVE_STATS_DURING_ANSWERS = parseBoolean(__ENV.LIVE_STATS_DURING_ANSWERS, false);
 
 const ANSWER_WINDOW_S = parseNonNegativeInt(__ENV.ANSWER_WINDOW_S || '30', 30);
 const STATS_PAUSE_S = parseNonNegativeInt(__ENV.STATS_PAUSE_S || '15', 15);
@@ -90,11 +97,34 @@ const CHAT_EVENT_REFRESH_DEBOUNCE_MS = 150;
 const PROFESSOR_OBSERVER_TICK_MS = 250;
 
 const state = JSON.parse(open(STATE_FILE));
+const external = !!state.session.external;
+const anonymous = !!state.session.anonymous;
+const SESSION_CHAT_ENABLED = parseBoolean(__ENV.SESSION_CHAT_ENABLED, !external && !anonymous);
+if (state.session.quiz) throw new Error('The live workload requires an interactive fixture');
+if (SESSION_CHAT_ENABLED && (external || anonymous)) {
+  throw new Error('Use SESSION_CHAT_ENABLED=false for shared/anonymous comparisons and their baseline');
+}
+if (external && __ENV.ENROLLED_PERCENT !== undefined
+  && Number(__ENV.ENROLLED_PERCENT) !== state.session.enrolledPercent) {
+  throw new Error('Enrollment mix differs from the fixture; reseed before comparing runs');
+}
+let participantKind = 'enrolled';
 const students = new SharedArray('students', () => state.students);
 const responseQuestionCount = (Array.isArray(state.questions) ? state.questions : [])
   .filter((question) => normalizeQuestionType(question) !== 6)
   .length;
 const expectedResponseCount = students.length * responseQuestionCount;
+
+const redeemDuration = new Trend('activity_redeem_duration', true);
+const redeemSuccess = new Rate('activity_redeem_success');
+const resultsDuration = new Trend('results_duration', true);
+const resultsSuccess = new Rate('results_success');
+const gradeContractSuccess = new Rate('grade_contract_success');
+const privacySuccess = new Rate('anonymous_privacy_success');
+const privacyFailures = new Counter('anonymous_privacy_failures');
+const responseEventChars = new Trend('response_event_chars');
+const anonymousBatchStatsSuccess = new Rate('anonymous_batch_stats_success');
+const questionResponseCountSuccess = new Rate('question_response_count_success');
 
 const loginDuration = new Trend('login_duration', true);
 const loginBlockedDuration = new Trend('login_blocked_duration', true);
@@ -116,6 +146,9 @@ const responseToProfessorDuration = new Trend('response_to_professor_duration', 
 const responseServerProcessingDuration = new Trend('response_server_processing_duration', true);
 const responseDeliveryToProfessorDuration = new Trend('response_delivery_to_professor_duration', true);
 const professorObserverLoopLag = new Trend('professor_observer_loop_lag', true);
+const studentObserverLoopLag = new Trend('student_observer_loop_lag', true);
+const responseTimerLag = new Trend('respond_timer_lag', true);
+const professorResponseCoverageSuccess = new Rate('professor_response_coverage_success');
 
 const wsConnections = new Counter('ws_connections');
 const wsErrors = new Counter('ws_errors');
@@ -160,7 +193,12 @@ const thresholds = {
   professor_driver_completions: ['count==1'],
   professor_viewer_completions: ['count==1'],
   student_flow_completions: [`count==${students.length}`],
-  professor_response_events: [`count==${expectedResponseCount}`],
+  // Anonymous snapshot repair may publish additional aggregate notifications.
+  // Exact persisted answers and per-question observed counts are checked separately.
+  professor_response_events: [`count${anonymous ? '>=' : '=='}${expectedResponseCount}`],
+  professor_response_coverage_success: ['rate==1'],
+  professor_observer_loop_lag: ['p(99)<250'],
+  student_observer_loop_lag: ['p(99)<250'],
   respond_attempts: [`count==${expectedResponseCount}`],
   respond_successful_submissions: [`count==${expectedResponseCount}`],
   respond_conflict_failures: ['count==0'],
@@ -176,7 +214,16 @@ const thresholds = {
   'ws_connect_success{role:professor}': ['rate==1'],
   professor_action_success: ['rate==1'],
   professor_action_duration: ['p(95)<3000'],
-  response_to_professor_duration: ['p(95)<3000'],
+  ...(!anonymous ? { response_to_professor_duration: ['p(95)<3000'] } : {}),
+  response_delivery_to_professor_duration: ['p(99)<3000'],
+  results_success: ['rate==1'],
+  grade_contract_success: ['rate==1'],
+  question_response_count_success: ['rate==1'],
+  results_duration: ['p(95)<3000'],
+  ...(anonymous ? { anonymous_privacy_success: ['rate==1'], anonymous_batch_stats_success: ['rate==1'],
+    ...Object.fromEntries(privacyFailureReasons.map((reason) => [`anonymous_privacy_failures{reason:${reason}}`, ['count==0']])),
+  } : {}),
+  ...(external ? { activity_redeem_success: ['rate==1'], activity_redeem_duration: ['p(95)<3000'] } : {}),
   session_completion: ['rate==1'],
   'login_duration{role:student}': ['p(95)<3000'],
   'login_duration{role:professor}': ['p(95)<3000'],
@@ -187,6 +234,13 @@ const thresholds = {
   'event_sync_duration{role:student}': ['p(99)<3000'],
   'event_sync_duration{role:professor}': ['p(99)<3000'],
 };
+
+for (const kind of ['enrolled', 'guest']) {
+  if (!students.some((student) => (student.enrolled === false ? 'guest' : 'enrolled') === kind)) continue;
+  for (const metric of ['join_duration', 'respond_duration', 'live_refresh_duration', 'event_sync_duration']) {
+    thresholds[`${metric}{participant:${kind}}`] = ['p(95)<3000', 'p(99)<3000'];
+  }
+}
 
 if (SESSION_CHAT_ENABLED) {
   Object.assign(thresholds, {
@@ -203,6 +257,13 @@ if (SESSION_CHAT_ENABLED) {
 }
 
 export const options = {
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
+  tags: {
+    scenario_name: state.session.scenario,
+    enrolled_percent: String(state.session.enrolledPercent ?? 100),
+    shared: String(external), anonymous: String(anonymous),
+    live_stats: String(LIVE_STATS_DURING_ANSWERS),
+  },
   scenarios: {
     professor: {
       executor: 'shared-iterations',
@@ -232,7 +293,7 @@ export const options = {
 };
 
 function metricTags(role, extra = {}) {
-  return { role, ...extra };
+  return { role, ...(role === 'student' ? { participant: participantKind } : {}), ...extra };
 }
 
 function apiHeaders(token) {
@@ -377,27 +438,91 @@ function fetchLive(token, role, reason = 'live_refresh') {
 
   return {
     ok: true,
-    data: parseJson(res),
+    data: checkLivePrivacy(parseJson(res), role),
     res,
     startedAtMs,
     completedAtMs,
   };
 }
 
-function readLiveVisibilityFlag(data, key) {
-  if (key === 'hidden') {
-    if (data?.questionHidden !== undefined) return Boolean(data.questionHidden);
-    return Boolean(data?.currentQuestion?.sessionOptions?.hidden);
+// k6 module state is private to each VU. Preserve checks across out-of-order
+// events and reconnects, but keep failure samples bounded and identity-free.
+const validateAnonymousStats = createAnonymousStatsValidator();
+const privacySamples = new Map();
+function recordPrivacy(reasons, details = {}) {
+  privacySuccess.add(reasons.length === 0);
+  for (const reason of reasons) {
+    privacyFailures.add(1, { reason });
+    const samples = privacySamples.get(reason) || 0;
+    // The professor observer sees all publications; one student VU supplies a
+    // participant view. Never log thousands of copies of the same failure.
+    if ((details.role === 'professor' || exec.vu.idInTest <= 3) && samples < 3) {
+      privacySamples.set(reason, samples + 1);
+      console.warn(`Anonymous privacy check failed: ${JSON.stringify({ reason, ...details })}`);
+    }
   }
-  if (key === 'stats') {
-    if (data?.showStats !== undefined) return Boolean(data.showStats);
-    return Boolean(data?.currentQuestion?.sessionOptions?.stats);
+}
+
+function checkResponsePrivacy(data, role) {
+  const { reasons, ...counts } = validateAnonymousStats(data.responseStats, data.responseCount, data.questionId, data.attempt);
+  if (data.response != null) reasons.push('response_identity');
+  if (data.responseSubmittedAt != null) reasons.push('response_timestamp');
+  if (reasons.length === 0) { privacySuccess.add(true); return; }
+  recordPrivacy(reasons, { role, source: 'response_event',
+    question: state.questions.findIndex((question) => String(question.id) === String(data.questionId)) + 1,
+    attempt: data.attempt, ...counts });
+}
+
+function checkLivePrivacy(snapshot, role) {
+  if (anonymous && role === 'professor') {
+    const serialized = JSON.stringify(snapshot);
+    const { reasons, ...counts } = validateAnonymousStats(snapshot?.responseStats, snapshot?.responseCount,
+      snapshot?.currentQuestion?._id, snapshot?.currentAttempt?.number);
+    if (!snapshot) reasons.push('missing_snapshot');
+    if ((snapshot?.allResponses || []).length !== 0) reasons.push('live_response_rows');
+    if ((snapshot?.session?.joinedStudents || []).length !== 0) reasons.push('live_joined_rows');
+    if (students.some((student) => serialized?.includes(student.id))) reasons.push('participant_identity');
+    recordPrivacy(reasons, { role, source: 'live_snapshot', ...counts });
   }
-  if (key === 'correct') {
-    if (data?.showCorrect !== undefined) return Boolean(data.showCorrect);
-    return Boolean(data?.currentQuestion?.sessionOptions?.correct);
+  return snapshot;
+}
+
+export function setup() {
+  if (anonymous) privacyFailureReasons.forEach((reason) => privacyFailures.add(0, { reason }));
+  console.log(JSON.stringify({ workload: state.session.scenario, participants: students.length,
+    enrolled: students.filter((student) => student.enrolled !== false).length,
+    anonymous, shared: external, chat: SESSION_CHAT_ENABLED, liveStats: LIVE_STATS_DURING_ANSWERS,
+    timing: { answerWindowS: ANSWER_WINDOW_S, statsPauseS: STATS_PAUSE_S,
+      correctPauseS: CORRECT_PAUSE_S, joinGraceS: JOIN_GRACE_S,
+      responseJitterMs: RESPONSE_JITTER_MS, studentLoginSpreadS: STUDENT_LOGIN_SPREAD_S } }));
+}
+
+function verifyFinalResults(token) {
+  const response = jsonRequest('GET', `/sessions/${state.session.id}/results`, token, undefined, 'final_results');
+  resultsDuration.add(response.timings.duration);
+  const payload = parseJson(response) || {};
+  const rows = payload.studentResults || [];
+  const questions = state.questions.filter((question) => normalizeQuestionType(question) !== 6);
+  const complete = response.status === 200 && hasCompleteResultRows(rows,
+    questions.map((question) => question.id), students.map((student) => student.id), anonymous);
+  resultsSuccess.add(complete);
+  check(response, { 'all participants have correlated, complete result rows': () => complete });
+  if (anonymous) {
+    const serialized = JSON.stringify(payload);
+    recordPrivacy(!serialized.includes('anon_') && students.every((student) =>
+      !serialized.includes(student.id) && !serialized.includes(student.email)) ? [] : ['result_identity'],
+    { role: 'professor', source: 'final_results' });
   }
-  return undefined;
+  const grades = jsonRequest('GET', `/sessions/${state.session.id}/grades`, token, undefined, 'final_grades');
+  const gradeRows = parseJson(grades)?.grades || [];
+  const enrolledIds = new Set(students.filter((student) => student.enrolled !== false).map((student) => student.id));
+  const contractOk = grades.status === 200
+    && gradeRows.length === (anonymous ? 0 : enrolledIds.size)
+    && new Set(gradeRows.map((grade) => grade.userId)).size === gradeRows.length
+    && gradeRows.every((grade) => enrolledIds.has(grade.userId))
+    && (anonymous || rows.every((row) => !!row.guest === !enrolledIds.has(row.studentId)));
+  gradeContractSuccess.add(contractOk);
+  check(grades, { 'only eligible enrolled participants receive grades': () => contractOk });
 }
 
 function validateLiveState(data, expectation = {}) {
@@ -604,44 +729,9 @@ function applyChatEventData(previousData, eventPayload) {
   return nextData;
 }
 
-function getResponseMergeKey(response = {}) {
-  const responseId = String(response?._id || '').trim();
-  if (responseId) return `id:${responseId}`;
-
-  return [
-    Number(response?.attempt || 0),
-    String(response?.questionId || ''),
-    String(response?.studentName || ''),
-    String(response?.answer ?? ''),
-    String(response?.answerWysiwyg ?? ''),
-    getTimestampMs(response?.updatedAt || response?.createdAt),
-  ].join('|');
-}
-
-function sortResponsesNewestFirst(responses = []) {
-  return responses
-    .map((response) => ({
-      response,
-      timestamp: getTimestampMs(response?.updatedAt || response?.createdAt),
-      id: String(response?._id || ''),
-    }))
-    .sort((a, b) => {
-      const timestampDiff = b.timestamp - a.timestamp;
-      if (timestampDiff !== 0) return timestampDiff;
-      return b.id.localeCompare(a.id);
-    })
-    .map(({ response }) => response);
-}
-
-function mergeResponsesNewestFirst(existingResponses = [], incomingResponses = []) {
-  const mergedByKey = new Map();
-  [...(Array.isArray(existingResponses) ? existingResponses : []), ...(Array.isArray(incomingResponses) ? incomingResponses : [])]
-    .forEach((response) => {
-      if (!response) return;
-      mergedByKey.set(getResponseMergeKey(response), response);
-    });
-  return sortResponsesNewestFirst([...mergedByKey.values()]);
-}
+// k6 is a protocol consumer, with no React rendering or retained snapshot history.
+// Keep identical values/order while updating the owned lists in place.
+const mergeResponsesNewestFirst = createResponseMerger({ mutable: true });
 
 function applyLiveResponseAddedDelta(previousData, eventPayload = {}) {
   if (!previousData) return previousData;
@@ -666,7 +756,9 @@ function applyLiveResponseAddedDelta(previousData, eventPayload = {}) {
   const currentStats = previousData?.responseStats;
   let nextResponseStats = currentStats;
 
-  if (eventPayload?.responseStats && typeof eventPayload.responseStats === 'object') {
+  const staleAnonymousStats = previousData.session?.anonymous
+    && Number(eventPayload?.responseStats?.total || 0) < Number(currentStats?.total || 0);
+  if (eventPayload?.responseStats && typeof eventPayload.responseStats === 'object' && !staleAnonymousStats) {
     if (eventPayload.responseStats.type === 'distribution') {
       nextResponseStats = eventPayload.responseStats;
     } else {
@@ -695,7 +787,9 @@ function applyLiveResponseAddedDelta(previousData, eventPayload = {}) {
 
   return {
     ...previousData,
-    responseCount: eventPayload?.responseCount ?? previousData?.responseCount,
+    responseCount: previousData.session?.anonymous
+      ? Math.max(Number(eventPayload?.responseCount || 0), Number(previousData?.responseCount || 0))
+      : eventPayload?.responseCount ?? previousData?.responseCount,
     session: previousData?.session
       ? {
         ...previousData.session,
@@ -1050,13 +1144,6 @@ function buildResponsePayload(question) {
   return { answer: '' };
 }
 
-function getLiveAttemptKey(snapshot) {
-  const questionId = String(snapshot?.currentQuestion?._id || '').trim();
-  const attemptNumber = Number(snapshot?.currentAttempt?.number || 0);
-  if (!questionId || attemptNumber <= 0) return null;
-  return `${questionId}:${attemptNumber}`;
-}
-
 function recordResponseFailure(res) {
   const status = Number(res?.status || 0);
   if (status === 409) {
@@ -1070,7 +1157,11 @@ function recordResponseFailure(res) {
   respondServerFailures.add(1, { status: String(status || 'network') });
 }
 
-function submitResponse(token, liveData) {
+// k6 globals are isolated per VU; this measures gaps between that student's answers.
+let previousAnswerCompletedAtMs = 0;
+let answerFailureWarnings = 0;
+
+async function submitResponse(token, liveData) {
   const question = liveData?.currentQuestion;
   const attemptNumber = Number(liveData?.currentAttempt?.number || 0);
   if (!question || !attemptNumber) {
@@ -1080,12 +1171,13 @@ function submitResponse(token, liveData) {
   const payload = buildResponsePayload(question);
   const start = Date.now();
   respondAttempts.add(1);
-  const res = http.post(
+  const res = await http.asyncRequest('POST',
     `${API}/sessions/${state.session.id}/respond`,
     JSON.stringify(payload),
     { headers: apiHeaders(token), tags: { name: 'respond' } },
   );
-  respondDuration.add(Date.now() - start);
+  const completedAt = Date.now();
+  respondDuration.add(completedAt - start, metricTags('student'));
 
   const ok = res.status === 200 || res.status === 201;
   respondSuccess.add(ok);
@@ -1093,7 +1185,15 @@ function submitResponse(token, liveData) {
     respondSuccessfulSubmissions.add(1);
   } else {
     recordResponseFailure(res);
+    if (answerFailureWarnings < 2) {
+      answerFailureWarnings += 1;
+      console.warn(`Answer submission failed: ${JSON.stringify(answerFailureDetails(res, {
+        startedAt: start, completedAt, previousCompletedAt: previousAnswerCompletedAtMs,
+        questionType: Number(question.type), attemptNumber,
+      }))}`);
+    }
   }
+  previousAnswerCompletedAtMs = completedAt;
   return {
     ok,
     key: `${String(question._id || '')}:${attemptNumber}`,
@@ -1284,7 +1384,7 @@ export function professorFlow() {
         'PATCH',
         `/sessions/${sessionId}/question-visibility`,
         professorToken,
-        { hidden: false, stats: false, correct: false },
+        { hidden: false, stats: LIVE_STATS_DURING_ANSWERS, correct: false },
         'show_question',
       );
     });
@@ -1301,6 +1401,14 @@ export function professorFlow() {
       );
     });
 
+    const snapshot = fetchLive(professorToken, role, 'question_final_count').data;
+    questionResponseCountSuccess.add(snapshot?.responseCount === students.length);
+    if (anonymous) {
+      const published = Number(snapshot?.responseStats?.total || 0);
+      anonymousBatchStatsSuccess.add(students.length < 4 ? published === 0
+        : published >= 4 && students.length - published >= 0 && students.length - published < 4);
+    }
+
     group(`question_${questionNumber}_stats`, () => {
       professorRequest(
         'PATCH',
@@ -1310,7 +1418,7 @@ export function professorFlow() {
         'show_stats',
       );
 
-      if (Number(question.type) === 2) {
+      if ((!anonymous || students.length >= 4) && Number(question.type) === 2) {
         professorRequest(
           'POST',
           `/sessions/${sessionId}/word-cloud`,
@@ -1320,7 +1428,7 @@ export function professorFlow() {
         );
       }
 
-      if (Number(question.type) === 4) {
+      if ((!anonymous || students.length >= 4) && Number(question.type) === 4) {
         professorRequest(
           'POST',
           `/sessions/${sessionId}/histogram`,
@@ -1353,6 +1461,7 @@ export function professorFlow() {
   group('end_session', () => {
     professorRequest('POST', `/sessions/${sessionId}/end`, professorToken, {}, 'end_session');
   });
+  verifyFinalResults(professorToken);
   professorDriverCompletions.add(1);
 }
 
@@ -1365,6 +1474,8 @@ export function professorViewerFlow() {
   let chatEnabled = false;
   let sessionEnded = false;
   let nextObserverTickAtMs = null;
+  const coverage = createResponseCoverage(state.questions
+    .filter((question) => normalizeQuestionType(question) !== 6).map((question) => question.id), students.length);
 
   group('professor_viewer_login', () => {
     const start = Date.now();
@@ -1509,6 +1620,9 @@ export function professorViewerFlow() {
         case 'session:response-added':
           {
             professorResponseEvents.add(1);
+            coverage.observe(data);
+            if (anonymous) checkResponsePrivacy(data, role);
+            responseEventChars.add(raw.length, metricTags(role));
             const submittedAtMs = parseTimestampMs(data?.responseSubmittedAt);
             const emittedAtMs = parseTimestampMs(data?.emittedAt);
             if (submittedAtMs != null && submittedAtMs <= receivedAtMs) {
@@ -1590,16 +1704,20 @@ export function professorViewerFlow() {
   if (!sessionEnded && liveData?.session?.status !== 'done') {
     chatData = chatData || null;
   }
+  coverage.results().forEach((ok) => professorResponseCoverageSuccess.add(ok));
   professorViewerCompletions.add(1);
 }
 
-export function studentFlow() {
+const connectStudentSocket = createSocketConnector(WebSocket, timers);
+
+export async function studentFlow() {
   const studentIndex = exec.scenario.iterationInTest;
   if (studentIndex < 0 || studentIndex >= students.length) {
     return;
   }
 
   const student = students[studentIndex];
+  participantKind = student.enrolled === false ? 'guest' : 'enrolled';
   const sessionId = state.session.id;
   const role = 'student';
   const watchesChat = SESSION_CHAT_ENABLED
@@ -1636,6 +1754,15 @@ export function studentFlow() {
     return;
   }
 
+  if (external) {
+    const redeemed = jsonRequest('POST', '/activity-codes/redeem', token,
+      { code: state.session.activityCode }, 'activity_redeem');
+    redeemDuration.add(redeemed.timings.duration, metricTags(role));
+    const okay = redeemed.status === 200 && parseJson(redeemed)?.sessionId === sessionId;
+    redeemSuccess.add(okay, metricTags(role));
+    if (!okay) { sessionCompletion.add(false); return; }
+  }
+
   liveData = fetchLive(token, role, 'student_initial_live').data;
   chatEnabled = SESSION_CHAT_ENABLED && Boolean(liveData?.session?.chatEnabled);
 
@@ -1648,7 +1775,7 @@ export function studentFlow() {
         JSON.stringify({}),
         { headers: apiHeaders(token), tags: { name: 'join_session' } },
       );
-      joinDuration.add(Date.now() - start);
+      joinDuration.add(Date.now() - start, metricTags(role));
 
       if (res.status === 200) {
         joined = true;
@@ -1679,17 +1806,14 @@ export function studentFlow() {
   }
 
   let studentFlowCompleted = false;
-  group('student_ws_session', () => {
+  { // Async socket lifetime is awaited outside k6's synchronous group API.
     const wsUrl = `${WS_URL}?token=${encodeURIComponent(token)}`;
-    const submittedAttempts = {};
-    const scheduledAttempts = {};
     const completedChatWaves = new Set();
     const ownPostIds = new Set();
     let createdRandomPostCount = 0;
     let sessionEnded = false;
-    let responseWindowAttemptKey = null;
 
-    const response = ws.connect(wsUrl, {}, (socket) => {
+    const response = await connectStudentSocket(wsUrl, (socket) => {
       const ensureChatSnapshot = (reason) => {
         if (!chatEnabled || !usesChat) return chatData;
         const refreshed = fetchChat(token, role, reason).data;
@@ -1699,91 +1823,25 @@ export function studentFlow() {
         return chatData;
       };
 
-      const updateResponseWindow = (snapshot) => {
-        const attemptKey = getLiveAttemptKey(snapshot);
-        const responseWindowIsOpen = Boolean(
-          attemptKey
-          && snapshot?.currentQuestion
-          && snapshot?.currentAttempt
-          && !readLiveVisibilityFlag(snapshot, 'hidden')
-          && !readLiveVisibilityFlag(snapshot, 'stats')
-          && !readLiveVisibilityFlag(snapshot, 'correct')
-          && !snapshot.currentAttempt.closed
-        );
-        responseWindowAttemptKey = responseWindowIsOpen ? attemptKey : null;
-        return responseWindowAttemptKey;
-      };
-
-      const maybeSubmitCurrentAttempt = (snapshot) => {
-        const currentQuestion = snapshot?.currentQuestion;
-        const currentAttempt = snapshot?.currentAttempt;
-        if (!currentQuestion || !currentAttempt) return;
-        if (snapshot?.questionHidden) return;
-        if (currentAttempt.closed) return;
-        if (snapshot?.studentResponse) return;
-
-        const attemptKey = getLiveAttemptKey(snapshot);
-        if (
-          !attemptKey
-          || responseWindowAttemptKey !== attemptKey
-          || submittedAttempts[attemptKey]
-          || scheduledAttempts[attemptKey]
-        ) {
-          return;
-        }
-
-        scheduledAttempts[attemptKey] = true;
-        const responseDelayMs = seededRatio(
-          studentIndex,
-          Number(snapshot?.questionNumber || 0),
-          Number(currentAttempt?.number || 0),
-        ) * RESPONSE_JITTER_MS;
-        socket.setTimeout(() => {
-          // Match the browser: submit from the websocket-synchronized snapshot
-          // instead of issuing an extra /live request immediately beforehand.
-          const latest = liveData || snapshot;
-          liveData = latest;
-          chatEnabled = SESSION_CHAT_ENABLED && Boolean(latest?.session?.chatEnabled);
-
-          // A timer may have been created from a visibility event immediately
-          // before the professor opened a new attempt. Never let that stale
-          // timer submit against whichever attempt happens to be current when
-          // it wakes; schedule the current attempt through the normal path.
-          if (getLiveAttemptKey(latest) !== attemptKey || responseWindowAttemptKey !== attemptKey) {
-            respondStaleTimerSkips.add(1);
-            delete scheduledAttempts[attemptKey];
-            maybeSubmitCurrentAttempt(latest);
-            return;
+      const maybeSubmitCurrentAttempt = createAttemptScheduler({
+        getSnapshot: () => liveData,
+        isOpen: (snapshot) => canAnswer(snapshot, LIVE_STATS_DURING_ANSWERS),
+        delayFor: (snapshot) => seededRatio(studentIndex, Number(snapshot.questionNumber || 0),
+          Number(snapshot.currentAttempt.number || 0)) * RESPONSE_JITTER_MS,
+        setTimeout: (callback, delay) => socket.setTimeout(callback, delay),
+        onTimer: (lag) => responseTimerLag.add(lag, metricTags(role)),
+        onStale: (reason) => respondStaleTimerSkips.add(1, { reason }),
+        submit: async (latest) => {
+          const submitted = await submitResponse(token, latest);
+          if (submitted.ok && submitted.response?.response
+            && getLiveAttemptKey(liveData) === getLiveAttemptKey(latest)) {
+            // Preserve stats and visibility received while the HTTP request was pending.
+            liveData = { ...liveData, studentResponse: submitted.response.response };
           }
-
-          if (
-            !latest?.currentQuestion
-            || latest?.questionHidden
-            || latest?.currentAttempt?.closed
-            || latest?.studentResponse
-          ) {
-            delete scheduledAttempts[attemptKey];
-            return;
-          }
-
-          const submitted = submitResponse(token, latest);
-          if (submitted.ok) {
-            submittedAttempts[attemptKey] = true;
-            if (submitted.response?.response) {
-              liveData = {
-                ...latest,
-                studentResponse: submitted.response.response,
-              };
-            }
-          } else if (submitted.res?.status === 409) {
-            // A conflict means this student already has a response for this
-            // attempt. Treat it as submitted so later events do not retry it.
-            submittedAttempts[attemptKey] = true;
-          }
-
-          delete scheduledAttempts[attemptKey];
-        }, normalizeSocketTimeoutMs(responseDelayMs));
-      };
+          // Keep conflicts visible as failures, but do not retry an existing answer.
+          return submitted.ok || submitted.res?.status === 409;
+        },
+      });
 
       const refreshForEvent = (reason, expectation = {}, syncContext = null) => {
         const refreshed = refreshLiveAfterEvent(token, role, reason, expectation, syncContext);
@@ -1891,8 +1949,13 @@ export function studentFlow() {
         if (chatEnabled && watchesChat) {
           chatData = fetchChat(token, role, 'student_ws_open_chat').data || chatData;
         }
-        updateResponseWindow(liveData);
-        maybeSubmitCurrentAttempt(liveData);
+        maybeSubmitCurrentAttempt();
+        let nextTick = Date.now() + 1000;
+        socket.setInterval(() => {
+          const now = Date.now();
+          studentObserverLoopLag.add(Math.max(0, now - nextTick), metricTags(role));
+          nextTick = now + 1000;
+        }, 1000);
         socket.setInterval(() => {
           socket.send(JSON.stringify({ event: 'ping' }));
         }, 15000);
@@ -1919,7 +1982,6 @@ export function studentFlow() {
 
         switch (event) {
           case 'session:status-changed':
-            responseWindowAttemptKey = null;
             liveData = refreshLiveAfterEvent(
               token,
               role,
@@ -1935,7 +1997,6 @@ export function studentFlow() {
             break;
 
           case 'session:question-changed':
-            responseWindowAttemptKey = null;
             if (Object.prototype.hasOwnProperty.call(data || {}, 'question')) {
               liveData = syncLiveAfterEvent(
                 liveData,
@@ -1972,12 +2033,9 @@ export function studentFlow() {
                 correct: data.correct,
               }, syncContext);
             }
-            updateResponseWindow(liveData);
-            maybeSubmitCurrentAttempt(liveData);
             break;
 
           case 'session:attempt-changed':
-            responseWindowAttemptKey = null;
             liveData = syncLiveAfterEvent(
               liveData,
               role,
@@ -2031,6 +2089,8 @@ export function studentFlow() {
             break;
 
           case 'session:response-added':
+            if (anonymous) checkResponsePrivacy(data, role);
+            responseEventChars.add(raw.length, metricTags(role));
             if (data?.responseStats || data?.response || data?.responseCount !== undefined || data?.joinedCount !== undefined) {
               liveData = syncLiveAfterEvent(
                 liveData,
@@ -2051,11 +2111,22 @@ export function studentFlow() {
           default:
             break;
         }
+        if (['session:status-changed', 'session:question-changed',
+          'session:attempt-changed', 'session:visibility-changed'].includes(event)) {
+          maybeSubmitCurrentAttempt();
+        }
       });
 
       socket.on('error', (err) => {
+        const kind = connectionErrorKind(err);
+        // A threshold abort cancels every VU. One notice is enough; retain the
+        // error metric and all non-cancellation failures without dumping tokens.
+        if (kind !== 'execution_canceled') {
+          console.warn(`Student WebSocket error: ${kind}`);
+        } else if (exec.scenario.iterationInTest === 0) {
+          console.warn('Student WebSockets canceled by k6 shutdown; inspect the first request failure and threshold summary.');
+        }
         wsErrors.add(1, metricTags(role));
-        console.warn(`WebSocket error for ${student.email}: ${String(err)}`);
       });
 
       socket.setTimeout(() => {
@@ -2074,7 +2145,7 @@ export function studentFlow() {
 
     sessionCompletion.add(sessionEnded || liveData?.session?.status === 'done');
     studentFlowCompleted = true;
-  });
+  }
 
   if (studentFlowCompleted) {
     studentFlowCompletions.add(1);

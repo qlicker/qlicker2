@@ -10,6 +10,7 @@ const students = new SharedArray('quiz students', () => state.students);
 const API = `${__ENV.BASE_URL || 'http://localhost:3001'}/api/v1`;
 const sessionId = state.session.id;
 const anonymous = !!state.session.anonymous;
+const external = !!state.session.external;
 const questions = state.questions || [];
 const loginSpreadSeconds = Math.max(0, Number(__ENV.STUDENT_LOGIN_SPREAD_S ?? 12));
 const answerJitterMs = Math.max(0, Number(__ENV.RESPONSE_JITTER_MS ?? 2000));
@@ -17,11 +18,14 @@ const answerJitterMs = Math.max(0, Number(__ENV.RESPONSE_JITTER_MS ?? 2000));
 if (!state.session.quiz) throw new Error('The quiz scenario requires a quiz fixture');
 
 const courseListDuration = new Trend('quiz_course_list_duration', true);
+const redeemDuration = new Trend('quiz_redeem_duration', true);
 const openDuration = new Trend('quiz_open_duration', true);
 const autosaveDuration = new Trend('quiz_autosave_duration', true);
 const submitDuration = new Trend('quiz_submit_duration', true);
 const resultsDuration = new Trend('quiz_results_duration', true);
 const courseListSuccess = new Rate('quiz_course_list_success');
+const redeemSuccess = new Rate('quiz_redeem_success');
+const gradeContractSuccess = new Rate('quiz_grade_contract_success');
 const openSuccess = new Rate('quiz_open_success');
 const autosaveSuccess = new Rate('quiz_autosave_success');
 const submitSuccess = new Rate('quiz_submit_success');
@@ -41,13 +45,15 @@ export const options = {
   },
   thresholds: {
     http_req_failed: [{ threshold: 'rate==0', abortOnFail: true }],
-    quiz_course_list_success: ['rate==1'],
+    ...(external ? { quiz_redeem_success: ['rate==1'], quiz_grade_contract_success: ['rate==1'] }
+      : { quiz_course_list_success: ['rate==1'] }),
     quiz_open_success: ['rate==1'],
     quiz_autosave_success: ['rate==1'],
     quiz_submit_success: ['rate==1'],
     quiz_results_success: ['rate==1'],
     quiz_completed_students: [`count==${students.length}`],
     quiz_saved_answers: [`count==${students.length * questions.length}`],
+    ...(external ? { quiz_redeem_duration: ['p(95)<3000'] } : {}),
     quiz_open_duration: ['p(95)<3000'],
     quiz_autosave_duration: ['p(95)<3000'],
     quiz_submit_duration: ['p(95)<3000'],
@@ -101,10 +107,24 @@ export function studentFlow() {
     return;
   }
 
-  const courseList = request('GET', `/courses/${state.course.id}/sessions`, token, undefined, 'quiz_course_sessions');
-  courseListDuration.add(courseList.timings.duration);
-  courseListSuccess.add(courseList.status === 200);
-  check(courseList, { 'course session list available': (response) => response.status === 200 });
+  if (external) {
+    const redeemed = request('POST', '/activity-codes/redeem', token, {
+      code: state.session.activityCode,
+    }, 'quiz_activity_redeem');
+    redeemDuration.add(redeemed.timings.duration);
+    const accepted = redeemed.status === 200
+      && body(redeemed).sessionId === sessionId;
+    redeemSuccess.add(accepted);
+    if (!accepted) {
+      console.error(`Quiz code redemption failed for participant ${index + 1}: ${redeemed.status}`);
+      return;
+    }
+  } else {
+    const courseList = request('GET', `/courses/${state.course.id}/sessions`, token, undefined, 'quiz_course_sessions');
+    courseListDuration.add(courseList.timings.duration);
+    courseListSuccess.add(courseList.status === 200);
+    check(courseList, { 'course session list available': (response) => response.status === 200 });
+  }
 
   const opened = request('GET', `/sessions/${sessionId}/quiz`, token, undefined, 'quiz_open');
   openDuration.add(opened.timings.duration);
@@ -171,4 +191,16 @@ export function teardown() {
   resultsSuccess.add(ok);
   check(results, { 'final quiz results match participants and privacy mode': () => ok });
   if (!ok) console.error(`Quiz results failed: status ${results.status}, rows ${rows.length}, expected ${expectedRows}`);
+  if (external) {
+    const grades = request('GET', `/sessions/${sessionId}/grades`, token, undefined, 'quiz_grades');
+    const gradeRows = body(grades).grades || [];
+    const enrolledIds = new Set(students.filter((student) => student.enrolled).map((student) => student.id));
+    const gradesMatchRoster = grades.status === 200
+      && gradeRows.length === (anonymous ? 0 : enrolledIds.size)
+      && gradeRows.every((grade) => enrolledIds.has(grade.userId));
+    const resultsMatchRoster = anonymous || rows.every((row) => row.guest === !enrolledIds.has(row.studentId));
+    const contractOk = gradesMatchRoster && resultsMatchRoster;
+    gradeContractSuccess.add(contractOk);
+    check(grades, { 'shared quiz grades only enrolled students': () => contractOk });
+  }
 }

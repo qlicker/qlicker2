@@ -23,6 +23,7 @@ import { fetchAllCourses } from '../../utils/fetchAllCourses';
 import { sortCoursesByRecentActivity } from '../../utils/courseSorting';
 import { isRequestCanceled } from '../../utils/requestCancellation';
 import SessionListCard from '../../components/common/SessionListCard';
+import JoinActivityButton from '../../components/common/JoinActivityButton';
 
 const COMPACT_CHIP_SX = {
   borderRadius: 1.4,
@@ -149,6 +150,10 @@ export default function ProfDashboard() {
 
   const handleEnroll = async () => {
     if (!enrollCode.trim()) return;
+    if (/^S-/i.test(enrollCode.trim())) {
+      setMsg({ severity: 'error', text: t('student.dashboard.activityCodeUseJoin') });
+      return;
+    }
     setEnrolling(true);
     try {
       await apiClient.post('/courses/enroll', { enrollmentCode: enrollCode.trim() });
@@ -225,6 +230,7 @@ export default function ProfDashboard() {
           <Button variant="outlined" startIcon={<SchoolIcon />} onClick={() => setEnrollOpen(true)}>
             {t('professor.dashboard.enrollInCourseAsStudent')}
           </Button>
+          <JoinActivityButton />
           {canCreateCourses ? (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
               {t('professor.dashboard.createCourse')}

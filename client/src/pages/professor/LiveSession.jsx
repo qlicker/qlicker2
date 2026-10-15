@@ -437,6 +437,7 @@ function LiveSessionContent() {
 
   // Core state
   const [liveData, setLiveData] = useState(null);
+  const [activityCode, setActivityCode] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [msg, setMsg] = useState(null);
@@ -465,6 +466,29 @@ function LiveSessionContent() {
   // --------------------------------------------------
   // Data fetching
   // --------------------------------------------------
+
+  // Sharing is instructor-only metadata. Read on entry and return to this window,
+  // independently of response deltas, join events, and live-statistics refreshes.
+  useEffect(() => {
+    let active = true;
+    let requestId = 0;
+    const refreshActivityCode = async () => {
+      const currentRequest = ++requestId;
+      try {
+        const { data } = await apiClient.get(`/sessions/${sessionId}/activity-share`);
+        if (active && currentRequest === requestId) setActivityCode(data.enabled ? data.code : null);
+      } catch {
+        if (active && currentRequest === requestId) setActivityCode(null);
+      }
+    };
+    setActivityCode(null);
+    refreshActivityCode();
+    window.addEventListener('focus', refreshActivityCode);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshActivityCode);
+    };
+  }, [sessionId]);
 
   const fetchLive = useCallback(async (syncContext = null) => {
     const startedAtMs = Date.now();
@@ -570,7 +594,7 @@ function LiveSessionContent() {
     switch (event) {
       case 'session:response-added':
         setLiveData((prev) => (
-          data?.responseStats || data?.response
+          data?.responseStats || data?.response || prev?.session?.anonymous
             ? applyLiveResponseAddedDelta(prev, data)
             : prev
               ? {
@@ -1296,6 +1320,11 @@ function LiveSessionContent() {
             <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap>
               {session.name || t('professor.liveSession.liveSessionFallback')}
             </Typography>
+            {activityCode && (
+              <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                {t('professor.sessionEditor.activityCodeLabel')}: <Box component="span" data-testid="activity-share-code" sx={{ fontWeight: 600 }}>{activityCode}</Box>
+              </Typography>
+            )}
           </Box>
 
           <Tooltip title={t('professor.liveSession.openPresentationWindow')}>
@@ -1487,6 +1516,14 @@ function LiveSessionContent() {
                 </Box>
               )}
             </Box>
+
+            {anonymousSession && currentQ && !isSlide && (
+              <Alert severity="info" role="status">
+                {responseStats
+                  ? t('professor.liveSession.anonymousStatsBatches', { count: responseStats.total || 0 })
+                  : t('professor.liveSession.anonymousStatsWaiting')}
+              </Alert>
+            )}
 
             <Divider />
 
@@ -1838,7 +1875,7 @@ function LiveSessionContent() {
                   }}>
                     {t('professor.liveSession.selectQuestionToViewResponses')}
                   </Typography>
-                ) : anonymousSession ? (
+                ) : anonymousSession && !responseStats ? (
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {t('professor.liveSession.respondedSummary', { responded: responseCount, total: joinedCount })}
                   </Typography>

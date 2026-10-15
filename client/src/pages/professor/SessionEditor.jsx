@@ -18,6 +18,7 @@ import {
   PlayArrow as LaunchIcon, Login as JoinIcon,
   RateReview as ReviewIcon,
   Download as DownloadIcon, Upload as UploadIcon,
+  InfoOutlined as InfoOutlinedIcon, Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import apiClient from '../../api/client';
 import QuestionEditor from '../../components/questions/QuestionEditor';
@@ -209,6 +210,9 @@ export default function SessionEditor() {
   // Join code settings
   const [joinCodeEnabled, setJoinCodeEnabled] = useState(false);
   const [joinCodeInterval, setJoinCodeInterval] = useState(10);
+  const [activityShare, setActivityShare] = useState({ enabled: false, expiresAt: null });
+  const [activityCode, setActivityCode] = useState('');
+  const [savingActivityShare, setSavingActivityShare] = useState(false);
 
   // Quiz extensions
   const [courseStudents, setCourseStudents] = useState([]);
@@ -282,6 +286,13 @@ export default function SessionEditor() {
       setSessionTags(normalizeTagValues(s.tags || []));
       setJoinCodeEnabled(!!s.joinCodeEnabled);
       setJoinCodeInterval(s.joinCodeInterval || 10);
+      try {
+        const { data: share } = await apiClient.get(`/sessions/${sessionId}/activity-share`);
+        setActivityShare(share);
+        setActivityCode(share.code || '');
+      } catch {
+        setActivityShare({ enabled: false, expiresAt: null });
+      }
       setExtensionDrafts((s.quizExtensions || []).map((extension) => ({
         userId: extension.userId,
         quizStart: toDateTimeLocalString(extension.quizStart),
@@ -1635,6 +1646,71 @@ export default function SessionEditor() {
             </Typography>
           )}
 
+          {course?.allowSharedActivities && <Paper variant="outlined" sx={{ p: 2, display: 'grid', gap: 1.5 }}>
+            <FormControlLabel sx={{ m: 0 }}
+              control={<Switch checked={!!activityShare.enabled}
+                disabled={savingActivityShare || (!activityShare.enabled && (practiceQuiz || session?.studentCreated || !course?.allowSharedActivities || extensionDrafts.length > 0))}
+                onChange={async (event) => {
+                  const enabled = event.target.checked;
+                  setSavingActivityShare(true);
+                  try {
+                    if (enabled) {
+                      const { data } = await apiClient.post(`/sessions/${sessionId}/activity-share`, {});
+                      setActivityCode(data.code);
+                      setActivityShare({ enabled: true, expiresAt: data.expiresAt });
+                    } else {
+                      await apiClient.delete(`/sessions/${sessionId}/activity-share`);
+                      setActivityShare({ enabled: false, expiresAt: null });
+                      setActivityCode('');
+                    }
+                    await fetchSession();
+                  } catch (error) {
+                    setMsg({ severity: 'error', text: error.response?.data?.message || t('professor.sessionEditor.activityCodeError') });
+                  } finally { setSavingActivityShare(false); }
+                }} />}
+              label={(
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Typography variant="body2">{t('professor.sessionEditor.allowActivityCodeAccess')}</Typography>
+                  <Tooltip arrow title={t('professor.sessionEditor.activityCodeHelp')}>
+                    <InfoOutlinedIcon fontSize="small" color="action" tabIndex={0}
+                      aria-label={t('professor.sessionEditor.activityCodeTitle')} />
+                  </Tooltip>
+                </Box>
+              )}
+            />
+            {activityShare.enabled && <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                {activityCode ? (
+                  <Typography variant="body2">
+                    {t('professor.sessionEditor.activityCodeLabel')}: <Box component="span" data-testid="activity-share-code" sx={{ fontWeight: 600 }}>{activityCode}</Box>
+                  </Typography>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">{t('professor.sessionEditor.activityCodeUnavailable')}</Typography>
+                )}
+                {activityCode && <Button size="small" startIcon={<CopyIcon />}
+                  onClick={() => navigator.clipboard.writeText(activityCode)}>{t('common.copy')}</Button>}
+                <Button size="small" startIcon={<RefreshIcon />} disabled={savingActivityShare || !course?.allowSharedActivities}
+                  onClick={async () => {
+                    setSavingActivityShare(true);
+                    try {
+                      const { data } = await apiClient.post(`/sessions/${sessionId}/activity-share`, { regenerate: true });
+                      setActivityCode(data.code);
+                      setActivityShare({ enabled: true, expiresAt: data.expiresAt });
+                      await fetchSession();
+                    } catch (error) {
+                      setMsg({ severity: 'error', text: error.response?.data?.message || t('professor.sessionEditor.activityCodeError') });
+                    } finally { setSavingActivityShare(false); }
+                  }}>
+                  {t('professor.sessionEditor.rotateActivityCode')}
+                </Button>
+              </Box>
+              {activityShare.expiresAt && <Typography variant="body2" color="text.secondary">
+                {t('professor.sessionEditor.activityCodeExpires', { date: new Date(activityShare.expiresAt).toLocaleString() })}
+              </Typography>}
+            </>}
+            {extensionDrafts.length > 0 && <Typography variant="body2" color="text.secondary">{t('professor.sessionEditor.removeExtensionsBeforeSharing')}</Typography>}
+          </Paper>}
+
           {/* Join code settings (for interactive sessions only) */}
           {!quiz && (
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: SETTINGS_STACK_GAP, alignItems: { sm: 'center' } }}>
@@ -1725,7 +1801,7 @@ export default function SessionEditor() {
                   label={t('professor.sessionEditor.tags', { defaultValue: 'Session tags' })}
                   placeholder={t('professor.sessionEditor.tagsPlaceholder', { defaultValue: 'Add a topic tag' })}
                   helperText={t('professor.sessionEditor.tagsHelp', {
-                    defaultValue: 'Use tags that describe the specific topic covered by this session and its questions.',
+                    defaultValue: 'Create tags in Course Settings, then select the tags that describe this session and its questions.',
                   })}
                 />
               )}
@@ -1811,9 +1887,9 @@ export default function SessionEditor() {
                   {t('professor.sessionEditor.defaultQuizWindows')}
                 </Typography>
               </Box>
-              {anonymous ? (
+              {anonymous || session?.activityEverShared ? (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {t('professor.sessionEditor.anonymousNoExtensions')}
+                  {t(session?.activityEverShared ? 'professor.sessionEditor.sharedNoExtensions' : 'professor.sessionEditor.anonymousNoExtensions')}
                 </Typography>
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>

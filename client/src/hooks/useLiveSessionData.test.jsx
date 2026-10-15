@@ -71,6 +71,19 @@ describe('shared student/presentation live state', () => {
     expect(apiClient.get).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps a closed join period closed when a delayed code-only rotation arrives', async () => {
+    const { result } = renderHook(() => useLiveSessionData({ sessionId: 's1', role: 'presentation' }));
+    await waitFor(() => expect(result.current.liveData).toEqual(initial));
+    act(() => {
+      emit('session:join-code-changed', { joinCodeEnabled: true, joinCodeActive: true, currentJoinCode: '123456' });
+      emit('session:join-code-changed', { joinCodeEnabled: true, joinCodeActive: false, currentJoinCode: '' });
+      emit('session:join-code-changed', { currentJoinCode: '654321' });
+    });
+    expect(result.current.liveData.session).toMatchObject({ joinCodeEnabled: true, joinCodeActive: false });
+    expect(result.current.liveData.currentQuestion).toEqual(initial.currentQuestion);
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  });
+
   it('does not replay a chat event when panel callbacks change', async () => {
     const onChatEvent = vi.fn();
     const { result, rerender } = renderHook((props) => useLiveSessionData({ sessionId: 's1', role: 'presentation', ...props }), { initialProps: { onChatEvent } });
@@ -83,4 +96,20 @@ describe('shared student/presentation live state', () => {
     expect(onChatEvent).toHaveBeenCalledTimes(1);
     expect(nextCallback).not.toHaveBeenCalled();
   });
+});
+
+it.each(['student', 'presentation'])('handles withheld anonymous batches for %s without scheduling HTTP refreshes', async (role) => {
+  const { result, unmount } = renderHook(() => useLiveSessionData({ sessionId: 's1', role }));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  vi.useFakeTimers();
+  try {
+    const pending = { anonymous: true, questionId: 'q1', attempt: 1, responseCount: 3 };
+    act(() => emit('session:response-added', role === 'student' ? pending : { questionId: 'q1', audience: pending }));
+    await act(async () => { vi.advanceTimersByTime(2500); });
+    expect(result.current.liveData.responseCount).toBe(3);
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  } finally {
+    unmount();
+    vi.useRealTimers();
+  }
 });

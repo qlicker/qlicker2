@@ -113,7 +113,7 @@ export default function useLiveSessionData({ sessionId, role, onChatEvent }) {
     switch (event) {
       // Students receive this only while joined and live stats are visible.
       case 'session:response-added':
-        if (data?.responseStats || data?.response) {
+        if (data?.responseStats || data?.response || (data?.anonymous && data?.responseCount !== undefined)) {
           applyUpdate((prev) => applyLiveResponseAddedDelta(prev, data));
           scheduleUiSyncMeasurement({
             emittedAtMs: syncContext?.emittedAtMs,

@@ -906,7 +906,11 @@ export default async function aiRoutes(app) {
     if (gradingLockReason) return reply.code(409).send({ error: 'Conflict', message: gradingLockReason === 'extensions'
       ? 'Grading is locked until all quiz extensions have expired or been removed'
       : 'Session must be in Ended state before grading' });
-    if (!await Grade.exists({ sessionId: session._id, courseId: course._id })) {
+    const eligibleStudents = session.activityEverShared
+      ? (course.students || [])
+      : [];
+    if (!await Grade.exists({ sessionId: session._id, courseId: course._id,
+      ...(session.activityEverShared ? { userId: { $in: eligibleStudents } } : {}) })) {
       return reply.code(409).send({ error: 'Conflict', message: 'Create grade items before grading' });
     }
     const settings = await getOrCreateSettingsDocument({ lean: true }); const policy = coursePolicy(settings, course._id);

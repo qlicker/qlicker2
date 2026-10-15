@@ -211,3 +211,25 @@ describe('applyLiveResponseAddedDelta', () => {
     expect(next.allResponses).toHaveLength(1);
   });
 });
+
+it('applies anonymous batches without collapsing identical answers or regressing on late events', () => {
+  const initial = {
+    session: { anonymous: true }, currentQuestion: { _id: 'q1' }, currentAttempt: { number: 1 },
+    responseStats: null, responseCount: 0,
+  };
+  const batch = (count) => ({
+    questionId: 'q1', attempt: 1, responseCount: count,
+    responseStats: { type: 'shortAnswer', total: count, answers: Array.from({ length: count }, () => ({ answer: 'Same answer' })) },
+  });
+  const first = applyLiveResponseAddedDelta(initial, batch(4));
+  expect(first.responseStats.answers).toHaveLength(4);
+  const fifth = applyLiveResponseAddedDelta(first, { questionId: 'q1', attempt: 1, responseCount: 5 });
+  expect(fifth.responseCount).toBe(5);
+  expect(fifth.responseStats).toEqual(first.responseStats);
+  const eighth = applyLiveResponseAddedDelta(fifth, batch(8));
+  expect(eighth.responseStats.answers).toHaveLength(8);
+  const late = applyLiveResponseAddedDelta(eighth, batch(4));
+  expect(late.responseStats).toEqual(eighth.responseStats);
+  expect(late.responseCount).toBe(8);
+  expect(applyLiveResponseAddedDelta(eighth, { ...batch(12), attempt: 2 })).toEqual(eighth);
+});

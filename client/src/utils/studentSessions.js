@@ -103,6 +103,16 @@ export function getStudentSessionAction(session, courseId, listTabIndex = 0) {
     };
   }
 
+  if (session?.status === 'visible' && !isQuiz) {
+    return {
+      clickable: true,
+      path: `/student/course/${courseId}/session/${session?._id}/live`,
+      label: 'student.course.openWaitingPage',
+      chipColor: 'default',
+      chipVariant: 'outlined',
+    };
+  }
+
   if (session?.status === 'running' && !isQuiz) {
     return {
       clickable: true,

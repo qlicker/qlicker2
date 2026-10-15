@@ -55,6 +55,7 @@ The production database (`qlickerdb`) contains the following collections:
 | `images` | `Image` | ✅ Compatible | Legacy documents (`_id`, `url`, `UID`) load without errors. `key`, `type`, `size` are optional with defaults. |
 | `settings` | `Settings` | ✅ Compatible | Schema uses both new and legacy field names with virtual getters. `strict: false` preserves extra legacy fields on save. |
 | `meteor_accounts_loginServiceConfiguration` | None | N/A | Empty in snapshot. No equivalent model needed. |
+| `activityShares`, `activityGrants` | `ActivityShare`, `ActivityGrant` | New additive collections | Session-scoped codes and signed-in grants; legacy course enrollment, session, and response documents need no migration. |
 
 ---
 
@@ -189,7 +190,7 @@ The production database (`qlickerdb`) contains the following collections:
 }
 ```
 
-`anonymous` and `participationStarted` are additive and need no migration: legacy sessions are read as non-anonymous, and existing participation arrays and responses still block an anonymity change. For anonymous sessions, `joined`, `submittedQuiz`, and `Response.studentUserId` hold per-session `anon_…` pseudonyms instead of user IDs, `joinRecords` stays empty, and no grade rows exist. See [anonymous sessions](../docs/developer/data-model.md#anonymous-sessions).
+`anonymous`, `participationStarted`, `activityAccessEnabled`, and `activityEverShared` are additive and need no migration: legacy sessions are read as non-anonymous, and existing participation arrays and responses still block an anonymity change. Named shared activities grade only enrolled students; outside participant responses do not create grade rows. For anonymous sessions, `joined`, `submittedQuiz`, and `Response.studentUserId` hold per-session `anon_…` pseudonyms instead of user IDs, `joinRecords` stays empty, and no grade rows exist. See [anonymous sessions](../docs/developer/data-model.md#anonymous-sessions).
 
 ### Questions Collection
 
@@ -403,3 +404,5 @@ cd scripts
 ### Shared question references
 
 Some sessions created through older copy/order workflows may contain duplicate question IDs or references to questions owned by a library or another session. Use the [question reference repair guide](../docs/developer/question-reference-repair.md) to diagnose all sessions by course/session name through the production Bash/Docker launcher. The interactive repair can copy unused questions or remove duplicate positions with an explicit decision to keep or recalculate grades. Existing responses cannot be split by question position or session automatically: their persisted key is `questionId`, not session plus position. The utility preserves legacy fields and string IDs, leaves response rows untouched, and preserves manual grading overrides.
+
+Course documents without `allowSharedActivities` remain in the default-off state for activity-code access; no migration is needed.

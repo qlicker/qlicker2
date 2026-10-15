@@ -1357,6 +1357,62 @@ describe('POST /api/v1/sessions/:id/start', () => {
   });
 });
 
+describe('activating the first item when an interactive session goes live', () => {
+  it.each([
+    { method: 'PATCH', type: 0, anonymous: false }, { method: 'PATCH', type: 6, anonymous: false },
+    { method: 'PATCH', type: 0, anonymous: true }, { method: 'PATCH', type: 6, anonymous: true },
+    { method: 'POST', type: 0, anonymous: false }, { method: 'POST', type: 6, anonymous: false },
+    { method: 'POST', type: 0, anonymous: true }, { method: 'POST', type: 6, anonymous: true },
+  ])('$method selects the first item (type=$type, anonymous=$anonymous) and preserves an active item', async ({ method, type, anonymous }) => {
+    const { profToken, course } = await setupCourseWithStudent();
+    const session = (await createSessionInCourse(profToken, course._id, { anonymous })).json().session;
+    const first = await createQuestionInSession(profToken, {
+      sessionId: session._id, courseId: course._id, type,
+      content: '<p>First item</p>', plainText: 'First item',
+      ...(type === 0 ? { options: [{ content: 'A', correct: true }, { content: 'B', correct: false }] } : {}),
+    });
+    const second = await createQuestionInSession(profToken, {
+      sessionId: session._id, courseId: course._id, type: 6,
+      content: '<p>Second item</p>', plainText: 'Second item',
+    });
+    const goLive = () => authenticatedRequest(app, method,
+      `/api/v1/sessions/${session._id}${method === 'POST' ? '/start' : ''}`, {
+        token: profToken, ...(method === 'PATCH' ? { payload: { status: 'running' } } : {}),
+      });
+    for (const status of ['hidden', 'visible', 'done']) {
+      await Session.updateOne({ _id: session._id }, { $set: { status, currentQuestion: '' } });
+      await Question.updateOne({ _id: first._id }, { $set: { 'sessionOptions.hidden': false } });
+      const res = await goLive();
+      expect(res.statusCode).toBe(200);
+      expect(res.json().session).toMatchObject({ status: 'running', currentQuestion: first._id });
+      expect((await Question.findById(first._id).lean()).sessionOptions.hidden).toBe(true);
+      const live = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/live`, { token: profToken });
+      expect(live.statusCode).toBe(200);
+      expect(live.json().currentQuestion._id).toBe(first._id);
+    }
+    await Session.updateOne({ _id: session._id }, { $set: { status: 'visible', currentQuestion: second._id } });
+    await Question.updateOne({ _id: second._id }, { $set: { 'sessionOptions.hidden': false } });
+    expect((await goLive()).json().session.currentQuestion).toBe(second._id);
+    expect((await Question.findById(second._id).lean()).sessionOptions.hidden).toBe(false);
+  });
+
+  it('leaves quiz status changes and empty interactive sessions unchanged', async () => {
+    const { profToken, course } = await setupCourseWithStudent();
+    for (const quiz of [false, true]) {
+      const session = (await createSessionInCourse(profToken, course._id, { quiz })).json().session;
+      if (quiz) {
+        await createQuestionInSession(profToken, { sessionId: session._id, courseId: course._id,
+          type: 6, content: '<p>Quiz slide</p>', plainText: 'Quiz slide' });
+      }
+      const res = await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${session._id}`, {
+        token: profToken, payload: { status: 'running' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().session.currentQuestion).toBeFalsy();
+    }
+  });
+});
+
 // ---------- GET /api/v1/sessions/:id/live ----------
 describe('GET /api/v1/sessions/:id/live', () => {
   it('treats slides as non-response items in live sessions', async (ctx) => {
@@ -2307,6 +2363,69 @@ describe('Student quiz routes', () => {
       sessionOptions: { points: 0 },
     });
   }
+
+  it.each(['visible', 'running'])('quiz results reveal submitted attempts, then all saved answers at Ended (%s)', async (status) => {
+    const { prof, profToken, course, student, studentToken } = await setupCourseWithStudent();
+    const other = await createTestUser({ email: 'unsubmitted-quiz@example.com' });
+    const otherToken = await getAuthToken(app, other);
+    await Course.updateOne({ _id: course._id }, { $addToSet: { students: other._id } });
+    const session = await createOpenQuiz({ profToken, courseId: course._id });
+    await Session.updateOne({ _id: session._id }, { $set: { status } });
+    const question = await addMcQuestion({ profToken, sessionId: session._id, courseId: course._id });
+    const call = (method, suffix, token, payload) => authenticatedRequest(app, method, `/api/v1/sessions/${session._id}${suffix}`, { token, payload });
+    for (const token of [studentToken, otherToken]) {
+      expect((await call('PATCH', '/quiz-response', token, { questionId: question._id, answer: '1' })).statusCode).toBe(200);
+      expect((await call('PATCH', '/quiz-response', token, { questionId: question._id, answer: '0' })).statusCode).toBe(200);
+    }
+    await Question.updateOne({ _id: question._id }, { $set: { 'sessionOptions.attemptStats': [{ number: 1, responseCount: 2 }] } });
+    const pending = await call('GET', '/results', profToken);
+    expect(pending.json().studentResults).toEqual([]);
+    expect(pending.json().questions[0].sessionOptions.attemptStats).toBeUndefined();
+    expect(pending.json().quizResultsRefreshAt).toBe(status === 'visible' ? new Date(session.quizEnd).getTime() : null);
+    expect(await Response.countDocuments({ questionId: question._id })).toBe(2);
+    const sent = vi.spyOn(app, 'wsSendToUsers');
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(200);
+    expect(sent.mock.calls.some(([ids, event, data]) => ids.includes(String(prof._id)) && event === 'session:quiz-submitted' && data.sessionId === session._id)).toBe(true);
+    const submitted = await call('GET', '/results', profToken);
+    expect(submitted.json().studentResults.map((row) => row.studentId)).toEqual([String(student._id)]);
+    expect(submitted.json().studentResults[0].questionResults[0].responses[0].answer).toBe('0');
+    expect((await call('PATCH', '', profToken, { status: 'done' })).statusCode).toBe(200);
+    const ended = await call('GET', '/results', profToken);
+    expect(ended.json().studentResults).toHaveLength(2);
+    const unsubmittedRow = ended.json().studentResults.find((row) => row.studentId === String(other._id));
+    expect(unsubmittedRow.questionResults[0].responses[0].answer).toBe('0');
+    const stored = await Session.findById(session._id).lean();
+    expect(stored.submittedQuiz).not.toContain(String(other._id));
+    const grade = await Grade.findOne({ sessionId: session._id, userId: other._id }).lean();
+    expect(grade.numAnswered).toBe(1);
+    expect(grade.marks[0].responseId).toBe(unsubmittedRow.questionResults[0].responses[0]._id);
+    expect(grade.marks[0].needsGrading).toBe(false);
+    expect(grade.value).toBe(100);
+  });
+
+  it('filters active-quiz word clouds, histograms, and AI response reads to submitted participants', async () => {
+    const { profToken, course, student } = await setupCourseWithStudent();
+    const session = await createOpenQuiz({ profToken, courseId: course._id });
+    const sa = await createQuestionInSession(profToken, { type: 2, content: 'Explain', courseId: course._id, sessionId: session._id });
+    const nu = await createQuestionInSession(profToken, { type: 4, content: 'Number', courseId: course._id, sessionId: session._id });
+    await Session.updateOne({ _id: session._id }, { $set: { submittedQuiz: [student._id] } });
+    for (const [question, answers] of [[sa, ['submittedword', 'draftword']], [nu, ['10', '90']]]) {
+      await Response.create(answers.map((answer, index) => ({ questionId: question._id, studentUserId: index ? 'unsubmitted-user' : student._id, attempt: 1, answer })));
+    }
+    const { getQuestionResponses } = await import('../../src/services/aiCourseTools.js');
+    for (const ended of [false, true]) {
+      if (ended) await Session.updateOne({ _id: session._id }, { $set: { status: 'done' } });
+      const cloud = await authenticatedRequest(app, 'POST', `/api/v1/questions/${sa._id}/word-cloud`, { token: profToken, payload: {} });
+      expect(cloud.statusCode).toBe(200);
+      expect(JSON.stringify(cloud.json())).toContain('submittedword');
+      expect(JSON.stringify(cloud.json()).includes('draftword')).toBe(ended);
+      const histogram = await authenticatedRequest(app, 'POST', `/api/v1/questions/${nu._id}/histogram`, { token: profToken, payload: {} });
+      expect(histogram.statusCode).toBe(200);
+      expect(histogram.json().histogramData.bins.reduce((sum, bin) => sum + bin.count, 0)).toBe(ended ? 2 : 1);
+      const aiResponses = await getQuestionResponses(course._id, session._id, sa._id);
+      expect(JSON.stringify(aiResponses).includes('draftword')).toBe(ended);
+    }
+  });
 
   it('non-practice quiz supports autosave + final submit and blocks re-entry after submission', async (ctx) => {
     if (mongoose.connection.readyState !== 1) ctx.skip();
@@ -3319,6 +3438,47 @@ describe('Live session websocket delta events', () => {
     expect(studentCall[2].currentJoinCode).toBeUndefined();
   });
 
+  it('a delayed code rotation cannot reopen a closed join period in connected clients', async () => {
+    const { prof, profToken, course, student } = await setupCourseWithStudent();
+    const session = (await createSessionInCourse(profToken, course._id)).json().session;
+    const call = (method, suffix, payload) => authenticatedRequest(app, method,
+      `/api/v1/sessions/${session._id}${suffix}`, { token: profToken, payload });
+    await call('POST', '/start');
+    await call('PATCH', '/join-code-settings', { joinCodeEnabled: true, joinCodeActive: true });
+    const sent = vi.spyOn(app, 'wsSendToUsers');
+    let releaseRotation;
+    let rotationWritten;
+    const written = new Promise((resolve) => { rotationWritten = resolve; });
+    const released = new Promise((resolve) => { releaseRotation = resolve; });
+    const update = Session.findOneAndUpdate.bind(Session);
+    const delayed = vi.spyOn(Session, 'findOneAndUpdate').mockImplementationOnce(async (...args) => {
+      const updated = await update(...args);
+      rotationWritten();
+      await released;
+      return updated;
+    });
+    const refreshing = call('POST', '/refresh-join-code', { force: true });
+    try {
+      await written;
+      const closed = await call('PATCH', '/join-code-settings', { joinCodeActive: false });
+      expect(closed.statusCode).toBe(200);
+      releaseRotation();
+      expect((await refreshing).statusCode).toBe(200);
+      expect((await Session.findById(session._id).lean()).joinCodeActive).toBe(false);
+      // Replay delivery order as clients do. Rotation may update a displayed code,
+      // but must never undo the instructor's subsequent close action.
+      for (const userId of [student._id, prof._id]) {
+        const events = sent.mock.calls.filter(([ids, event]) => ids.includes(String(userId)) && event === 'session:join-code-changed');
+        const state = events.reduce((current, [, , payload]) => ({ ...current, ...payload }), {});
+        expect(state.joinCodeActive).toBe(false);
+      }
+    } finally {
+      releaseRotation();
+      await refreshing;
+      delayed.mockRestore();
+    }
+  });
+
   it('returns the same join code for concurrent automatic refresh requests', async (ctx) => {
     if (mongoose.connection.readyState !== 1) ctx.skip();
     const { prof, profToken, course, student } = await setupCourseWithStudent();
@@ -3354,12 +3514,13 @@ describe('Live session websocket delta events', () => {
     expect(secondRefreshRes.json().joinCode).toBe(firstRefreshRes.json().joinCode);
 
     const joinCodeCalls = wsSendToUsersSpy.mock.calls.filter(([, event]) => event === 'session:join-code-changed');
-    expect(joinCodeCalls).toHaveLength(2);
+    expect(joinCodeCalls).toHaveLength(1);
 
     const instructorCall = joinCodeCalls.find(([userIds]) => userIds.includes(String(prof._id)));
-    const studentCall = joinCodeCalls.find(([userIds]) => userIds.includes(String(student._id)));
     expect(instructorCall[2].currentJoinCode).toBe(firstRefreshRes.json().joinCode);
-    expect(studentCall[2].currentJoinCode).toBeUndefined();
+    expect(instructorCall[2]).not.toHaveProperty('joinCodeActive');
+    expect(instructorCall[2]).not.toHaveProperty('joinCodeEnabled');
+    expect(joinCodeCalls.some(([userIds]) => userIds.includes(String(student._id)))).toBe(false);
   });
 
   it('sends response-added deltas only to joined students when live stats are visible', async (ctx) => {
@@ -6570,5 +6731,42 @@ describe('Histogram in /sessions/:id/live', () => {
     expect(liveRes.statusCode).toBe(200);
     const body = liveRes.json();
     expect(body.currentQuestion?.sessionOptions?.histogramData).toBeUndefined();
+  });
+});
+
+describe('inactive interactive participant snapshots', () => {
+  it.each([false, true])('withholds questions outside Live and preserves answers when resumed (anonymous=%s)', async (anonymous) => {
+    const { profToken, course, studentToken } = await setupCourseWithStudent();
+    const session = (await createSessionInCourse(profToken, course._id, { anonymous })).json().session;
+    const question = await createQuestionInSession(profToken, {
+      sessionId: session._id, courseId: course._id, type: 2, content: '<p>Live-only question</p>', options: [],
+    });
+    const call = (method, suffix, token, payload) => authenticatedRequest(app, method, `/api/v1/sessions/${session._id}${suffix}`, { token, payload });
+    expect((await call('POST', '/start', profToken)).statusCode).toBe(200);
+    await call('PATCH', '/question-visibility', profToken, { hidden: false, stats: true });
+    await call('POST', '/join', studentToken, {});
+    expect((await call('POST', '/respond', studentToken, { answer: 'Keep my response' })).statusCode).toBe(201);
+    for (const status of ['visible', 'hidden', 'done']) {
+      const changed = await call('PATCH', '', profToken, { status });
+      expect(changed.statusCode).toBe(200);
+      const questionRead = vi.spyOn(Question, 'findById');
+      const responseRead = vi.spyOn(Response, 'findOne');
+      const live = await call('GET', '/live', studentToken);
+      expect(live.statusCode).toBe(200);
+      expect(live.json()).toMatchObject({
+        session: { status }, isJoined: true, currentQuestion: null, studentResponse: null,
+        responseStats: null, wordCloudData: null, histogramData: null, showStats: false, showCorrect: false,
+      });
+      expect(questionRead).not.toHaveBeenCalled();
+      expect(responseRead).not.toHaveBeenCalled();
+      questionRead.mockRestore();
+      responseRead.mockRestore();
+      expect((await call('POST', '/respond', studentToken, { answer: 'Blocked' })).statusCode).toBe(400);
+      expect((await call('GET', '/live', profToken)).json().currentQuestion._id).toBe(question._id);
+      await call('PATCH', '', profToken, { status: 'running' });
+      const resumed = (await call('GET', '/live', studentToken)).json();
+      expect(resumed.currentQuestion._id).toBe(question._id);
+      expect(resumed.studentResponse.answer).toBe('Keep my response');
+    }
   });
 });

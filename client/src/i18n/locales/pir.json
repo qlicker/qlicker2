@@ -1,5 +1,12 @@
 {
   "common": {
+    "backToDashboard": "Back to yer dashboard",
+    "participantRoles": {
+      "student": "Student",
+      "guest": "Guest",
+      "instructor": "Instructor",
+      "professor": "Professor"
+    },
     "appName": "Qlicker",
     "loading": "Loadin'…",
     "cancel": "Belay That",
@@ -61,7 +68,8 @@
     "option": "Choice {{letter}}",
     "ta": "TA",
     "redirecting": "Redirectin'…",
-    "confirm": "Aye, Confirm"
+    "confirm": "Aye, Confirm",
+    "rowsPerPage": "Rows per page"
   },
   "autoSave": {
     "errorNotSaved": "Changes couldn't be stowed away. Yer last change wasn't recorded, arr.",
@@ -344,7 +352,11 @@
       "range6Hours": "6 hours aboard",
       "range24Hours": "24 hours aboard",
       "range7Days": "7 days aboard",
-      "monitorStatus": { "healthy": "Keepin' watch", "stale": "Old tidings", "unavailable": "Watch not rigged" },
+      "monitorStatus": {
+        "healthy": "Keepin' watch",
+        "stale": "Old tidings",
+        "unavailable": "Watch not rigged"
+      },
       "monitorUnavailableHelp": "Nary a system sample. Start th' system-monitor service and check its MongoDB link.",
       "monitorStaleHelp": "Th' latest sample be old. Check th' system-monitor events and container's condition.",
       "cpu": "CPU engines",
@@ -380,7 +392,11 @@
       "event": "Happenin'",
       "collector": "Lookout",
       "noMonitorEvents": "Nary a watch event in th' past 7 days.",
-      "eventLevel": { "info": "Tidings", "warning": "Look sharp", "error": "Trouble aboard" }
+      "eventLevel": {
+        "info": "Tidings",
+        "warning": "Look sharp",
+        "error": "Trouble aboard"
+      }
     },
     "settings": {
       "restrictDomain": "Restrict missive domain",
@@ -860,7 +876,11 @@
       "aiRequiresAdminAuthorization": "Needs the admiral’s authorization",
       "aiHelperHelp": "Enable an AI matey to help grade, make questions, and manage sessions and students.",
       "enrollmentCodeHelp": "This be the code crew need to enroll in the course.",
-      "anonymousSession": "Masked"
+      "anonymousSession": "Masked",
+      "allowSharedActivities": "Let mates share activities by code",
+      "allowSharedActivitiesHelp": "Lets ye share course quizzes and live voyages by code with signed-in mateys who have not joined the course. Turnin’ it off bars their access.",
+      "searchSessionsPlaceholder": "Search by voyage name",
+      "noSessionsMatchFilters": "No voyages match yer filters."
     },
     "sessionEditor": {
       "sessionSettings": "Voyage Rigging",
@@ -998,7 +1018,27 @@
       "anonymousHelp": "Captains see the replies but not who gave 'em. Crew still sign aboard an' can answer but once. Masked voyages earn no plunder an' stay out o' the plunder ledger.",
       "anonymousEnabledNote": "Replies an' musters be stowed without the crew's names. This voyage won't be scored.",
       "anonymousNoExtensions": "No one-on-one quiz extensions fer anonymous sessions.",
-      "anonymousLockedNote": "The mask can't be changed once crew have boarded or replied."
+      "anonymousLockedNote": "The mask can't be changed once crew have boarded or replied.",
+      "activityCodeTitle": "Share by activity code",
+      "activityCodeHelp": "Signed-in mateys with this code can join this activity without boarding the course. Enrolled mateys may earn marks; guest replies are tracked without marks. If replies are also anonymized, the activity can serve as a survey, with no marks for any matey.",
+      "sharedNamedGradingInfo": "Enrolled mateys may earn marks. Guests may answer, but get no marks or course gradebook entries.",
+      "sharedAnonymousSurveyInfo": "Masked sharing makes a survey: replies stay linked across riddles and nobody earns marks. Answer rows appear after four mateys answer each riddle and attempt.",
+      "activityCodeExpires": "Code expires {{date}}",
+      "activityCodeLabel": "Activity code",
+      "generateActivityCode": "Make code",
+      "rotateActivityCode": "Make new code",
+      "disableActivityCode": "Disable code",
+      "activityCodeError": "Could not change activity sharing.",
+      "removeExtensionsBeforeSharing": "Clear each matey’s extra quiz time afore ye forge an activity code.",
+      "sharedNoExtensions": "No matey gets extra quiz time once this activity has been shared by code.",
+      "courseSharingDisabled": "Enable code sharing in the course settings first, matey.",
+      "allowActivityCodeAccess": "Let mates share this voyage beyond the course",
+      "disableActivityCodeHelp": "Turnin’ sharing off makes the stowed code useless and bars outside mateys. Turnin’ it on again uses the same code. Forgin’ a new code replaces it and scuttles the old one. Enrolled mateys may still earn marks in a named voyage.",
+      "activityCodeUnavailable": "This code be hidden fer good. Forge a new one to keep it in sight.",
+      "sessionName": "Voyage name",
+      "tags": "Voyage tags",
+      "tagsPlaceholder": "Add a topic tag",
+      "tagsHelp": "Create yer tags in Course Settings, then pick the tags that describe this session and its questions."
     },
     "liveSession": {
       "currentQuestion": "Current riddle",
@@ -1092,6 +1132,8 @@
       "studentsJoined": "{{count}} crew boarded.",
       "studentsResponded": "{{responded}} o' {{total}} crew replied.",
       "respondedSummary": "{{responded}} / {{total}} replied",
+      "anonymousStatsWaiting": "To guard anonymity, stats stay hidden till at least four different crewmates answer this question on this attempt. After that, results sail in batches of at least four new crewmates.",
+      "anonymousStatsBatches": "Live results sail in groups of at least four new crewmates. Showin’ {{count}} answers.",
       "respondedSummaryAria": "{{responded}} o' {{total}} crew have replied",
       "questionControls": "Riddle Controls",
       "controlsTab": "Helm",
@@ -1125,6 +1167,10 @@
       "name": "Moniker",
       "email": "Missive",
       "grade": "Ledger",
+      "guest": "Guest",
+      "guestNoGrade": "No marks",
+      "guestResponses": "Guest replies",
+      "guestResponsesHelp": "Guest replies be tracked here fer review. Guests earn no marks.",
       "participation": "Turnout",
       "noQuestions": "This voyage has nay riddles.",
       "noResults": "Nary any crew member results available.",
@@ -1152,6 +1198,7 @@
       "needsGradingCount": "Needs reckonin' ({{count}})",
       "sessionStillRunning": "This voyage be still underway. Results will be available after th' voyage ends.",
       "liveResultsAvailableWhileRunning": "This underway interactive voyage be still underway. Results continue to amend here, but reckonin' stays locked until th' voyage ends.",
+      "quizSubmittedResultsOnly": "Only submitted quizzes be shown till this quiz ends, arrr. Once it ends, saved answers come aboard even if the student never hit submit.",
       "pageProgress": "Page {{current}}/{{total}}",
       "questionProgress": "Riddle {{current}}/{{total}}",
       "ungradedSummary": "There {{verb}} {{questions}} unreckoned {{questionWord}}, affecting {{students}} {{studentWord}} ({{marks}} {{markWord}}).",
@@ -1207,7 +1254,8 @@
       "noAnswersMatch": "No replies match yer filter.",
       "anonymousResponsesTable": "Masked replies",
       "response": "Reply",
-      "correctColumn": "Right"
+      "correctColumn": "Right",
+      "unsavedSummaryInstructionWarning": "Save or cancel yer order edits before generatin’ the summary."
     },
     "secondDesktop": {
       "joinCode": "Board Code",
@@ -1268,6 +1316,13 @@
     "dashboard": {
       "myCourses": "Me Ships",
       "enrollInCourse": "Sign aboard in Ship",
+      "joinActivity": "Join a voyage",
+      "activityCode": "Voyage code",
+      "activityCodeHelp": "Enter a voyage code starting with S- to open a quiz or live voyage without boarding its course.",
+      "activityCodeRequired": "Enter a voyage code beginning with S-.",
+      "activityCodeUseJoin": "That be a voyage code. Use Join a voyage instead.",
+      "failedJoinActivity": "Could not board the voyage.",
+      "joiningActivity": "Boarding the voyage…",
       "noCoursesYet": "Nary any ships yet",
       "enrollMessage": "Use a boarding code from yer officer to board a ship.",
       "section": "Berth: {{section}}",
@@ -1278,7 +1333,11 @@
       "enrollSuccess": "Successfully signed aboard in ship",
       "failedEnroll": "Couldn't sign aboard, arr.",
       "inactiveCourseCannotEnroll": "This ship be mothballed an' can't be boarded right now, arr.",
-      "failedLoadCourses": "Couldn't load ships, arr."
+      "failedLoadCourses": "Couldn't load ships, arr.",
+      "enterJoinCode": "Enter a code, matey",
+      "courseOrActivityCode": "Course or activity code",
+      "courseOrActivityCodeHelp": "Enter a course boarding code or an activity code from yer officer.",
+      "continueWithCode": "Sail on"
     },
     "course": {
       "lectures": "Sermons",
@@ -1299,6 +1358,7 @@
       "quizSubmitted": "Reckoning turned in",
       "upcomingQuiz": "Upcoming reckoning",
       "joinLive": "Board underway",
+      "openWaitingPage": "Open the waitin’ deck",
       "startQuiz": "Start reckoning",
       "resumeQuiz": "Resume reckoning",
       "submitQuiz": "Turn in reckoning",
@@ -1376,6 +1436,7 @@
       "correctVisible": "Right answer be in plain sight.",
       "sessionNotFound": "Voyage not found",
       "sessionEnded": "Voyage has docked.",
+      "sessionNotStarted": "This voyage has not begun yet. Wait fer yer captain.",
       "liveSessionFallback": "Underway Voyage",
       "attemptLabel": "Stab {{number}}",
       "responseSubmittedCheck": "✓ Reply turned in",
@@ -1745,6 +1806,10 @@
       "noAutoConflicts": "Nary any auto-gradeable conflicts to apply.",
       "appliedAutoPartial": "Applied automatic notches where supported. {{count}} conflict(s) require manual handling.",
       "avgParticipation": "Avg. Turnout",
+      "avgGrade": "Avg. Marks",
+      "noGradeItems": "No marks aboard",
+      "selectWithGradeItems": "Select sessions with marks aboard",
+      "notApplicable": "Not fer ye",
       "firstName": "First moniker",
       "lastName": "Last moniker",
       "all": "All",
@@ -2005,7 +2070,8 @@
     "groupMembersTitle": "{{category}} — {{group}}",
     "uncategorizedGroup": "Unclassed",
     "removeFromCourse": "Toss from ship",
-    "confirmRemove": "Confirm Toss"
+    "confirmRemove": "Confirm Toss",
+    "noStudentsMatch": "No students match yer search."
   },
   "video": {
     "title": "Video Parley",
@@ -2220,7 +2286,7 @@
           "title": "Build voyages with riddles, slides, an' visibility in mind",
           "subtitle": "Voyages be ordered learnin' voyages, not just containers.",
           "bullets": [
-            "Use th' voyage editor to set th' voyage moniker, blurb, visibility, reviewability, secret code requirement, reckoning window, extensions, an' multi-pick scorin' method.",
+            "Use th' voyage editor to set th' voyage moniker, blurb, visibility, reviewability, secret code requirement, reckoning window, extensions, an' multi-pick scorin' method. Create yer tags in Course Settings, then pick the tags that describe this session and its questions.",
             "Add new riddles, pick from th' riddle chest, load voyage JSON, or insert slides anywhere in th' sequence.",
             "Slides be content-only pages, so they're ideal fer instructions, worked examples, or parley prompts between reckoned riddles.",
             "Riddle visibility matters: keep private content private, share ship-public material intentionally, an' use Qlicker-wide visibility only when broad reuse be really desired."
@@ -2261,7 +2327,10 @@
             "Drill reckonings feel more like guided rehearsal an' be well suited fer self-study or optional reinforcement.",
             "If a voyage depends on secret codes, watches, or in plain sight statistics, confirm those rigging afore crew begin joinin'.",
             "Voyage lists keep hunt, filters, an' pagination inside Hunt voyages. While an interactive voyage be underway, openin' its card joins th' underway controls directly; underway reckoning cards still open th' editor.",
-            "Hoist Masked replies in the voyage editor fer surveys an' course feedback. Crew still sign aboard an' answer each question but once, yet ye see replies under labels like Deckhand 1 instead o' names, the live deck shows only how many boarded, an' the voyage never earns plunder nor lands in the plunder ledger. The settin' locks once anyone boards or replies, an' very small crews can still be found out by elimination. Respondent rows appear only after the voyage ends an' at least four sailors answer each question an' attempt with replies; a tellin' answer can still reveal a sailor."
+            "Replies an' musters be stowed without the crew's names. This voyage won't be scored. The mask can't be changed once crew have boarded or replied. Masked live reckonings and untied answer lists update after at least four new mateys answer the riddle and attempt. Names and answer times stay hidden. Rows tied to one matey appear only after the voyage ends and at least four mateys answer every riddle and attempt with replies. A rare reply may still reveal someone. An info banner in live Controls explains the four-crewmate minimum while stats be hidden, then shows the released answer count and batchin’ rule.",
+            "The session editor shows sharin’ controls only when the course allows activity sharin’. Use the voyage switch to open or close sharing; the live code stays in sight after a refresh and can be forged anew. First enable code sharing in course settings, matey; it starts off. Turnin’ it off scuttles old codes and outside access. Clear individual quiz extensions afore sharing; they stay gone thereafter. To invite signed-in mateys outside yer ship, make a quiz or live voyage in the course and forge an S- activity code in the editor. Copy it at once; a new code bars new use of the old one, and disabling it revokes outside entry. Turnin’ sharing back on uses the same code; only forgin’ a new one replaces it. In a named voyage, enrolled mateys may earn marks; guest replies be tracked without marks. Turn on masking fer a survey with no marks fer any matey. Choose named or masked replies before the first code use. Masked rows appear only after the voyage ends and four mateys answer each riddle and attempt. A rare answer may still reveal a matey. The rotating live boarding code still applies when enabled. Activity codes won't work while the activity be a Draft, even fer past crewmates. The same code works once the captain publishes the activity. Activity codes be S- followed by seven letters or digits. The active code also appears in the captain’s live session controls.",
+            "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
+            "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period."
           ]
         },
         {
@@ -2269,7 +2338,7 @@
           "subtitle": "Control boardin' to a live interactive voyage, then admit late crew one by one.",
           "bullets": [
             "Th' course enrollment code joins th' ship's course; th' six-digit voyage code admits enrolled crew to one live voyage. Fer attendance-controlled boardin', enable Require Secret code before crew join.",
-            "Launchin' won't open boardin' by itself. In th' live controls, enable Board Spell an' open th' presentation window to show th' current code in class. Crew open th' live voyage an' enter that code.",
+            "When an interactive session goes Live, Qlicker picks the first question or slide if none be active. The current active item stays put. A newly picked first item stays hidden till ye reveal it, just as with Launch. Launchin' won't open boardin' by itself. In th' live controls, enable Board Spell an' open th' presentation window to show th' current code in class. Crew open th' live voyage an' enter that code.",
             "Set refresh between 5 an' 120 seconds; keep th' officer's live controls open fer automatic rotation. Refresh th' code to replace it straightaway. Crew not yet aboard must use th' current code.",
             "After check-in, close Board Spell but keep Require Secret code enabled. Without that requirement, enrolled crew can board a runnin' voyage without a code.",
             "Fer late crew, open th' students panel, expand Waitin' to board, filter by name or email, an' choose Admit beside th' verified crewmate. They must be enrolled. Manual admission works while th' voyage runs even with Board Spell closed.",
@@ -2288,7 +2357,10 @@
             "Th' results tab now shows each crew member's actual voyage ledger afore turnout, an' clickin' a crew member's avatar in th' Crew tab opens th' larger dossier photo.",
             "Ledger detail dialogs now label riddle rows with both number an' type, such as Q1(MC) or Q2(SA), an' spotlight rows that still need gradin' while ignorin' adrift zero-doubloon gradin' flags.",
             "Crew get a bulletin when ye proclaim new holler, so use short, actionable remarks that tell 'em what to revisit.",
-            "If watch structures mattered durin' th' activity, compare th' recap an' gradin' data with th' ship watches so ye can spot uneven turnout patterns."
+            "If watch structures mattered durin' th' activity, compare th' recap an' gradin' data with th' ship watches so ye can spot uneven turnout patterns.",
+            "Joinin’ a course fills missin’ marks for finished activities, includin’ answers saved as a guest. Missed work earns zero with no reckonin’ needed; written answers may need reckonin’. Existing marks and feedback stay aboard. Anonymous activities stay ungraded.",
+            "The grade table averages the marks aboard the displayed sessions. Missing marks stay out; recorded zeros count. Use Select sessions with marks aboard, or pick sessions with No marks aboard by hand.",
+            "Only submitted quizzes be shown till this quiz ends, arrr. Once it ends, saved answers come aboard even if the student never hit submit."
           ],
           "success": "Professors can open th' crew member manual from th' switcher above to preview th' learner workflow afore class."
         },
@@ -2300,7 +2372,9 @@
             "Course parley has titled, tagged topics with replies an' votes. Captains can filter, sort, an' archive; learners see anonymous role flags while captains keep th' names needed to moderate.",
             "Hoist Session Chat from th' live-voyage controls. Ye may lower rich-text posts an' comments separately while quick posts tied to th' current riddle remain aboard.",
             "Use votes to spot common questions, dismiss a settled thread without sinkin' it, an' inspect th' talk after th' voyage. Unseen counters warn ye while presentin'.",
-            "Set th' ship rules first: course parley fer lasting questions an' stores, voyage parley fer immediate confusion, an' answer controls fer graded responses."
+            "Set th' ship rules first: course parley fer lasting questions an' stores, voyage parley fer immediate confusion, an' answer controls fer graded responses.",
+            "Guests who’ve boarded a shared live activity can use its enabled session chat, quick posts, comments, and votes, arrr. This grants no passage to course chat. In anonymous activities, other crew and instructors cannot see guest or student identities in chat. Keep yer identity out of message text.",
+            "Session chat puts the freshest discussion atop the deck. A new post, comment, or upvote hoists it to the top, arrr. Unread badges clear when ye open Chat."
           ],
           "note": "Who sees a name depends on their role. Read th' learner manual before openin' parley to th' whole crew."
         },
@@ -2314,7 +2388,8 @@
             "In Session Review, make an AI response summary fer one riddle with a model an' saved order. Ye can watch, halt, remake, an' view it without changin' grades.",
             "In Gradin', use th' AI Gradin' Assistant only after savin' separate grade an' learner-feedback orders. Inspect progress, report, log, points, an' feedback before revealin' results.",
             "Keep an' copy reusable gradin', feedback, an' summary orders in AI Settings.",
-            "Learner AI Chat be a separate flag. Pick student-approved models, a default, guidance, an' a smaller tool-round limit; learners see only visible or reviewable course stores an' their own grades."
+            "Learner AI Chat be a separate flag. Pick student-approved models, a default, guidance, an' a smaller tool-round limit; learners see only visible or reviewable course stores an' their own grades.",
+            "Save yer edited summary orders before generatin’. The chosen orders steer the language, focus, and format at every summary stage."
           ],
           "warning": "AI tales may be incomplete or false. Check made content, summaries, grades, feedback, dates, an' proposed deeds before trustin' them."
         },
@@ -2348,7 +2423,9 @@
             "Voyage lists keep hunt, filters, an' pagination inside a collapsible Hunt voyages area so ye can expand controls only when ye need 'em.",
             "If yer institution requires vouched fer missive or SSO, finish that setup first afore assumin' th' boarding code be wrong.",
             "Ye usually only need th' board code once per ship. After it works, th' ship stays on yer quarterdeck until ye're removed or th' ship be buried fer yer account.",
-            "Watch th' badge on yer avatar in th' app bar fer afloat bulletins, then open Bulletins from th' account menu to read or wave off 'em."
+            "Watch th' badge on yer avatar in th' app bar fer afloat bulletins, then open Bulletins from th' account menu to read or wave off 'em.",
+            "Choose Join a voyage on yer dashboard and enter an S- code to open a quiz or live voyage without boarding its course. A live voyage may also demand its rotating boarding code. If ye have not boarded the course, yer replies be tracked but ye earn no marks. Enrolled mateys may earn marks in named voyages; masked voyages have no marks. Masked live reckonings and untied answer lists update after at least four new mateys answer the riddle and attempt. Names and answer times stay hidden. Rows tied to one matey appear only after the voyage ends and at least four mateys answer every riddle and attempt with replies. A rare reply may still reveal someone. Activity codes won't work while the activity be a Draft, even fer past crewmates. The same code works once the captain publishes the activity.",
+            "Joinin’ a course fills missin’ marks for finished activities, includin’ answers saved as a guest. Missed work earns zero with no reckonin’ needed; written answers may need reckonin’. Existing marks and feedback stay aboard. Anonymous activities stay ungraded."
           ],
           "screenshot": {
             "variant": "studentCourse",
@@ -2367,7 +2444,9 @@
             "If yer officer reveals statistics fer a word cloud or histogram, th' view should amend automatically without a freshen.",
             "Fer short-answer riddles, th' shared reply list can be revealed or stowed away separately from th' word cloud, so ye may see one without th' other.",
             "Scroll o’er a numerical answer and its value stays put, matey. The input loses focus so the page can sail along. Click or tab back into the field to keep editing.",
-            "A Masked label means yer captain sees yer replies without yer name. Ye still sign aboard an' can answer each question but once, ye can review yer own replies later, an' the voyage earns no plunder."
+            "A Masked label means yer captain sees yer replies without yer name. Ye still sign aboard an' can answer each question but once, ye can review yer own replies later, an' the voyage earns no plunder.",
+            "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
+            "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period."
           ]
         },
         {
@@ -2384,9 +2463,10 @@
           "title": "Recap voyages one riddle at a time an' use holler",
           "subtitle": "Recap mode be one o' th' best study tools in th' app.",
           "bullets": [
-            "Open recappable voyages from th' ship page after yer officer ends th' activity an' turns on recap.",
+            "Open recappable voyages from th' ship page after yer officer ends th' activity an' turns on recap. Click a grade in yer Grades table to open the session review.",
             "Move one riddle at a time to compare yer answer, th' released answer, th' explanation, an' any officer holler without rushin' past details.",
-            "Watch fer holler bulletins because they tell ye when new remarks or gradin' updates be available."
+            "Watch fer holler bulletins because they tell ye when new remarks or gradin' updates be available.",
+            "Yer average marks and turnout use visible marks from ended sessions open fer review. Missing marks stay out; recorded zeros count."
           ],
           "success": "Crew often improve fastest when they read th' holler an' then immediately try a similar riddle again.",
           "screenshot": {
@@ -2417,7 +2497,9 @@
             "Yer mates appear anonymous while captains keep th' names needed to moderate. Ye may edit or sink yer own posts when th' shown controls allow it.",
             "During a live voyage, open th' Chat panel fer talk about th' current riddle. Quick posts remain when rich text be lowered; replies an' votes follow th' voyage settings.",
             "A dismissed or archived yarn may still be kept. It be hidden from yer learner review, but th' captains may keep it fer review an' moderation.",
-            "A parley message does not submit yer answer. Return to Question an' use th' response button when grades or participation be counted."
+            "A parley message does not submit yer answer. Return to Question an' use th' response button when grades or participation be counted.",
+            "Guests who’ve boarded a shared live activity can use its enabled session chat, quick posts, comments, and votes, arrr. This grants no passage to course chat. In anonymous activities, other crew and instructors cannot see guest or student identities in chat. Keep yer identity out of message text.",
+            "Session chat puts the freshest discussion atop the deck. A new post, comment, or upvote hoists it to the top, arrr. Unread badges clear when ye open Chat."
           ]
         },
         {

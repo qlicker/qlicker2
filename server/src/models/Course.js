@@ -99,6 +99,7 @@ const CourseSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     requireVerified: { type: Boolean, default: false },
     allowStudentQuestions: { type: Boolean, default: false },
+    allowSharedActivities: { type: Boolean, default: false },
     quizTimeFormat: { type: String, enum: ['inherit', '24h', '12h'], default: 'inherit' },
     courseChatEnabled: { type: Boolean, default: false },
     courseChatRetentionDays: { type: Number, default: 14, min: 1, max: 365 },

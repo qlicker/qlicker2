@@ -47,4 +47,16 @@ describe('StudentIdentity', () => {
     expect(screen.getByText('Unknown')).toBeInTheDocument();
     expect(screen.getByText('?')).toBeInTheDocument();
   });
+  it('distinguishes course membership from a guest professor account', () => {
+    const { rerender } = render(<StudentIdentity student={{ firstname: 'Ada', participantRole: 'guest', isProfessor: true }} />);
+    expect(screen.getByText('common.participantRoles.guest')).toBeInTheDocument();
+    expect(screen.getByText('common.participantRoles.professor')).toBeInTheDocument();
+    rerender(<StudentIdentity student={{ firstname: 'Ada', participantRole: 'student' }} />);
+    expect(screen.getByText('common.participantRoles.student')).toBeInTheDocument();
+    expect(screen.queryByText('common.participantRoles.guest')).not.toBeInTheDocument();
+    rerender(<StudentIdentity student={{ firstname: 'Respondent 1' }} />);
+    expect(screen.queryByText('common.participantRoles.student')).not.toBeInTheDocument();
+    expect(screen.queryByText('common.participantRoles.professor')).not.toBeInTheDocument();
+  });
+
 });

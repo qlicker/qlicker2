@@ -24,10 +24,29 @@ Session reviewable integration is in:
 - An ended quiz can still accept responses from individually authorized extension students. Its instructor status stays `done`; the student's effective status and displayed dates reflect their own access window. Publishing reviewability after extensions finish includes responses received after the initial grade seeding.
 - Active or upcoming extensions block review publication. Granting a remaining extension clears `reviewable` and hides previously published grades; restarting a session also clears reviewability. Removing/expiring extensions does not automatically publish grades.
 
+- Named activities shared by code grade current course students, including former guests. Until enrollment, guest answers are tracked without grade rows and remain read-only in review. Both enrollment by code and instructor addition by email create missing grade items for the joining student in completed, non-anonymous course activities. Expired scheduled quizzes are included, but outstanding extensions, running/future activities, practice quizzes, and student-created activities are excluded. Missed work receives automatic zeros without `needsGrading`; existing guest responses use the normal latest-attempt and scoring rules, including pending manual grading for nonblank short answers. Existing grades, overrides, feedback, and response/join/submission records are preserved. Repeated enrollment requests repair missing rows while retaining the existing 409 response for already-enrolled users. The instructor’s **Create grade items** action also supports former guests enrolled before this change. No database migration is required. Sharing does not erase enrolled-student grades. In shared named sessions, the low-response exclusion counts enrolled students only. Ordinary course-only grading keeps its existing supplemental-participant behavior.
 - Anonymous sessions (`session.anonymous`) are never graded. `recalculateSessionGrades` returns an empty summary without writing rows. Grade reads return `{ anonymous: true, grades: [] }` with `gradingLockReason: 'anonymous'`, grade edits and recalculation return `409`, and the course gradebook excludes these sessions. The review page replaces the grading panel with a read-only responses-by-question view (`AnonymousResponsesPanel`).
 - Reading session grades does not create missing rows. The instructor payload includes `gradingLockReason` (`not-ended`, `extensions`, `missing-grades`, or `null`). The grading panel offers **Create grade items**, using `POST /sessions/:id/grades/recalculate` with `missingOnly: true`, once closure permits grading.
 - Manual-grading flags are normalized on reads against current latest responses and question types, including existing production rows. An automatic zero for a nonblank, positive-point short answer remains pending; `automatic: false` records a confirmed score, including zero. No schema migration is needed. Use **Re-calculate all grades** on an already affected ended quiz to persist repaired automatic marks and totals; manual scores are preserved.
 - Blank detection includes whitespace, empty rich-text markup, and non-breaking spaces; rich-text-only and image answers count as content. AI grading uses saved response content, regardless of join/submission membership, and rechecks session readiness before saving each result.
+
+## Course averages and grade-item availability
+
+`GET /courses/:courseId/grades` reports `avgParticipation` and `avgGrade` as
+unweighted arithmetic means of existing applicable grade items per student,
+rounded to one decimal place. Zero-valued items count; synthetic missing-item
+placeholders and `notApplicable` items do not. An empty denominator returns `null`.
+Student rows use only published grades in ended, reviewable, non-anonymous sessions
+with no remaining extensions; other students' private practice sessions are excluded.
+Instructor rows use the requested/displayed sessions, including unpublished grade
+items. Selecting an empty session does not dilute averages.
+
+`grades[].hasGradeItem` distinguishes real rows from missing-item placeholders;
+`sessions[].hasGradeItems` reports availability within the caller's grade query
+(for students, their own published items only). These are derived response fields,
+not stored model fields. The picker offers graded-only selection and still permits
+explicit selection of empty sessions. Table sorting and CSV use the same server
+averages. No migration or live-response-path changes are needed.
 
 ## Latest Attempt and Legacy Data
 

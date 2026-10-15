@@ -121,6 +121,9 @@ export default function App() {
                 <Route path="/student/course/:id" element={<RequireRole role="student" allowAdmin={false}><StudentCourseDetail /></RequireRole>} />
                 <Route path="/student/course/:courseId/practice-sessions/new" element={<RequireRole role="student" allowAdmin={false}><StudentPracticeSessionEditor /></RequireRole>} />
                 <Route path="/student/course/:courseId/practice-sessions/:sessionId" element={<RequireRole role="student" allowAdmin={false}><StudentPracticeSessionEditor /></RequireRole>} />
+                <Route path="/activity/:courseId/session/:sessionId/review" element={<SessionReview />} />
+                <Route path="/activity/:courseId/session/:sessionId/live" element={<StudentLiveSession />} />
+                <Route path="/activity/:courseId/session/:sessionId/quiz" element={<StudentQuizSession />} />
                 <Route path="/student/course/:courseId/session/:sessionId/review" element={<RequireRole role="student" allowAdmin={false}><SessionReview /></RequireRole>} />
                 <Route path="/student/course/:courseId/session/:sessionId/live" element={<RequireRole role="student" allowAdmin={false}><StudentLiveSession /></RequireRole>} />
                 <Route path="/student/course/:courseId/session/:sessionId/quiz" element={<RequireRole role="student" allowAdmin={false}><StudentQuizSession /></RequireRole>} />

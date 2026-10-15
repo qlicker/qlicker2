@@ -20,6 +20,7 @@ import {
   sortStudentSessions,
 } from '../../utils/studentSessions';
 import SessionListCard from '../../components/common/SessionListCard';
+import JoinActivityButton from '../../components/common/JoinActivityButton';
 
 const INACTIVE_COURSE_ERROR_CODE = 'COURSE_INACTIVE';
 
@@ -210,9 +211,14 @@ export default function StudentDashboard() {
 
   const handleEnroll = async () => {
     if (!enrollCode.trim()) return;
+    if (/^S-/i.test(enrollCode.trim())) {
+      setMsg({ severity: 'error', text: t('student.dashboard.activityCodeUseJoin') });
+      return;
+    }
     setEnrolling(true);
     try {
-      await apiClient.post('/courses/enroll', { enrollmentCode: enrollCode.trim() });
+      const code = enrollCode.trim();
+      await apiClient.post('/courses/enroll', { enrollmentCode: code });
       setEnrollOpen(false);
       setEnrollCode('');
       await Promise.all([fetchCourses(), fetchTaCourses(), fetchLiveSessions()]);
@@ -315,9 +321,12 @@ export default function StudentDashboard() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h4">{t('student.dashboard.myCourses')}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setEnrollOpen(true)}>
-          {t('student.dashboard.enrollInCourse')}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setEnrollOpen(true)}>
+            {t('student.dashboard.enrollInCourse')}
+          </Button>
+          <JoinActivityButton />
+        </Box>
       </Box>
 
       {visibleLiveSessions.length > 0 && (

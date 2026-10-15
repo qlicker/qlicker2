@@ -44,6 +44,11 @@ const SessionSchema = new mongoose.Schema(
     anonymous: { type: Boolean, default: false },
     // Monotonic guard: participation claims this before writing identity-shaped data.
     participationStarted: { type: Boolean, default: false },
+    // Sharing history permanently disables individual extensions; current course
+    // enrollment determines grading eligibility for identified activities.
+    activityEverShared: { type: Boolean, default: false },
+    // Fast path for ordinary sessions: only shared sessions resolve outside recipients.
+    activityAccessEnabled: { type: Boolean, default: false },
     date: { type: Date },
     quizStart: { type: Date },
     quizEnd: { type: Date },

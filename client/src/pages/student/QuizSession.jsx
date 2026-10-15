@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -38,6 +38,8 @@ import {
   renderKatexInElement,
 } from '../../components/questions/richTextUtils';
 import { formatToleranceValue } from '../../utils/numericalFormatting';
+import { useAuth } from '../../contexts/AuthContext';
+import { getDashboardPath } from '../../utils/dashboard';
 
 const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -173,6 +175,9 @@ function RichContent({ html, fallback, allowVideoEmbeds = false }) {
 export default function QuizSession() {
   const { courseId, sessionId } = useParams();
   const navigate = useNavigate();
+  const isOutsideActivity = useLocation().pathname.startsWith('/activity/');
+  const { user } = useAuth();
+  const dashboardPath = getDashboardPath(user);
   const { t, i18n } = useTranslation();
 
   const [loading, setLoading] = useState(true);
@@ -192,10 +197,10 @@ export default function QuizSession() {
   const autosaveTimersRef = useRef(new Map());
   const latestQuestionsRef = useRef([]);
   const courseQuizTabLink = useMemo(() => (
-    session?.studentCreated
+    isOutsideActivity ? dashboardPath : session?.studentCreated
       ? `/student/course/${courseId}?tab=2`
       : `/student/course/${courseId}?tab=1`
-  ), [courseId, session?.studentCreated]);
+  ), [courseId, dashboardPath, isOutsideActivity, session?.studentCreated]);
 
   const hydrateFromPayload = useCallback((payload) => {
     const nextSession = payload?.session || null;
@@ -524,7 +529,7 @@ export default function QuizSession() {
     return (
       <Box sx={{ p: 3, maxWidth: 760, mx: 'auto' }}>
         <Alert severity="error" sx={{ mb: 2 }}>{error || t('student.quiz.quizNotFound')}</Alert>
-        <BackLinkButton variant="outlined" label={t('student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
+        <BackLinkButton variant="outlined" label={t(isOutsideActivity ? 'common.backToDashboard' : 'student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
       </Box>
     );
   }
@@ -535,7 +540,7 @@ export default function QuizSession() {
         <Alert severity="info" sx={{ mb: 2 }}>
           {t('student.quiz.quizClosed')}
         </Alert>
-        <BackLinkButton variant="outlined" label={t('student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
+        <BackLinkButton variant="outlined" label={t(isOutsideActivity ? 'common.backToDashboard' : 'student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
       </Box>
     );
   }
@@ -546,7 +551,7 @@ export default function QuizSession() {
         <Alert severity="success" sx={{ mb: 2 }}>
           {t('student.quiz.alreadySubmitted')}
         </Alert>
-        <BackLinkButton variant="outlined" label={t('student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
+        <BackLinkButton variant="outlined" label={t(isOutsideActivity ? 'common.backToDashboard' : 'student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
       </Box>
     );
   }
@@ -554,7 +559,7 @@ export default function QuizSession() {
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2.5 }, maxWidth: 860, mx: 'auto' }}>
       <Box sx={{ mb: 1.25 }}>
-        <BackLinkButton variant="outlined" label={t('student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
+        <BackLinkButton variant="outlined" label={t(isOutsideActivity ? 'common.backToDashboard' : 'student.quiz.backToCourse')} onClick={() => navigate(courseQuizTabLink)} />
       </Box>
 
       <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>

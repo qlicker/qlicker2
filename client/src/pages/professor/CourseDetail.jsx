@@ -518,6 +518,7 @@ export default function CourseDetail() {
       const summaryMap = {};
       (gradeSummaryRes.data?.sessions || []).forEach((sessionSummary) => {
         summaryMap[sessionSummary._id] = {
+          hasGradeItems: sessionSummary.hasGradeItems,
           studentsNeedingGrading: Number(sessionSummary.studentsNeedingGrading) || 0,
           marksNeedingGrading: Number(sessionSummary.marksNeedingGrading) || 0,
         };
@@ -1096,6 +1097,17 @@ export default function CourseDetail() {
     markSettingAutoSaveInProgress();
     try {
       await apiClient.patch(`/courses/${id}`, { allowStudentQuestions: !course.allowStudentQuestions });
+      fetchCourse();
+      setSettingsAutoSaveStatus('success');
+    } catch (err) {
+      markSettingAutoSaveError(err, t('professor.course.failedUpdateSetting'));
+    }
+  };
+
+  const handleToggleAllowSharedActivities = async () => {
+    markSettingAutoSaveInProgress();
+    try {
+      await apiClient.patch(`/courses/${id}`, { allowSharedActivities: !course.allowSharedActivities });
       fetchCourse();
       setSettingsAutoSaveStatus('success');
     } catch (err) {
@@ -2397,6 +2409,17 @@ export default function CourseDetail() {
                   {t('professor.course.allowStudentQuestions')}
                 </Typography>
                 <Tooltip title={t('professor.course.allowStudentQuestionsHelp')}>
+                  <InfoOutlinedIcon fontSize="small" color="action" />
+                </Tooltip>
+              </Box>
+            )}
+          />
+          <FormControlLabel
+            control={<Switch checked={!!course.allowSharedActivities} onChange={handleToggleAllowSharedActivities} />}
+            label={(
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Typography variant="body2">{t('professor.course.allowSharedActivities')}</Typography>
+                <Tooltip title={t('professor.course.allowSharedActivitiesHelp')}>
                   <InfoOutlinedIcon fontSize="small" color="action" />
                 </Tooltip>
               </Box>

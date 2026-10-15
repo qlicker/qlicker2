@@ -6,7 +6,7 @@
  *   • 1 admin user
  *   • 1 professor user
  *   • N student users  (default 500)
- *   • 1 course with all students enrolled and the professor as instructor
+ *   • 1 course with enrolled students and a configurable share of outside participants
  *   • 1 session with 5 questions (MC, MS, TF, SA, NU)
  *
  * Usage:
@@ -148,6 +148,7 @@ const courseSchema = new mongoose.Schema(
     owner: String,
     instructors: [String],
     students: [String],
+    allowSharedActivities: { type: Boolean, default: false },
     enrollmentCode: String,
     sessions: [String],
     inactive: { type: Boolean, default: false },
@@ -168,6 +169,8 @@ const sessionSchema = new mongoose.Schema(
     practiceQuiz: { type: Boolean, default: false },
     anonymous: { type: Boolean, default: false },
     participationStarted: { type: Boolean, default: false },
+    activityEverShared: { type: Boolean, default: false },
+    activityAccessEnabled: { type: Boolean, default: false },
     quizStart: Date,
     quizEnd: Date,
     reviewable: { type: Boolean, default: false },
@@ -313,13 +316,22 @@ async function main() {
   const numStudents = studentsIdx !== -1 ? parseInt(args[studentsIdx + 1], 10) : 500;
   const scenarioIdx = args.indexOf('--scenario');
   const scenario = scenarioIdx !== -1 ? args[scenarioIdx + 1] : 'live-named';
-  if (!['live-named', 'live-anonymous', 'quiz-named', 'quiz-anonymous'].includes(scenario)) {
-    console.error('--scenario must be live-named, live-anonymous, quiz-named, or quiz-anonymous');
+  if (!['live-named', 'live-anonymous', 'quiz-named', 'quiz-anonymous',
+    'live-external-named', 'live-external-anonymous', 'quiz-external-named', 'quiz-external-anonymous'].includes(scenario)) {
+    console.error('--scenario must name an ordinary or external live/quiz named/anonymous workload');
     process.exit(1);
   }
   if (Number.isNaN(numStudents) || numStudents < 1) {
     console.error('--students must be a positive integer');
     process.exit(1);
+  }
+
+  const enrolledIndex = args.indexOf('--enrolled-percent');
+  const defaultPercent = scenario.includes('-external-') ? (scenario.endsWith('-anonymous') ? 0 : 50) : 100;
+  const enrolledPercent = enrolledIndex < 0 ? defaultPercent : Number(args[enrolledIndex + 1]);
+  if (!Number.isInteger(enrolledPercent) || enrolledPercent < 0 || enrolledPercent > 100
+    || (!scenario.includes('-external-') && enrolledPercent !== 100)) {
+    throw new Error('--enrolled-percent must be 0–100 (100 for ordinary sessions)');
   }
 
   const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/qlicker';
@@ -336,7 +348,7 @@ async function main() {
   }
 
   console.log(`Seeding ${numStudents} students + professor + admin …`);
-  const state = await seed(numStudents, scenario);
+  const state = await seed(numStudents, scenario, enrolledPercent);
 
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
   console.log(`State written to ${STATE_PATH}`);
@@ -349,11 +361,12 @@ async function main() {
 const LOAD_TEST_TAG = '__loadtest__';
 const PASSWORD = 'LoadTest1!';
 
-async function seed(numStudents, scenario) {
+async function seed(numStudents, scenario, enrolledPercent) {
   // Clean any previous run first
   await cleanup();
 
   const passwordHash = await hashPassword(PASSWORD);
+  const external = scenario.includes('-external-');
 
   // --- Admin ---
   const admin = await User.create({
@@ -396,6 +409,9 @@ async function seed(numStudents, scenario) {
   const studentIds = studentDocs.map((s) => s._id);
 
   // --- Course ---
+  const anonymous = scenario.endsWith('-anonymous');
+  const enrolledStudentIds = studentIds.slice(0, Math.round(numStudents * enrolledPercent / 100));
+  const enrolledStudentIdSet = new Set(enrolledStudentIds);
   const enrollmentCode = crypto.randomBytes(4).toString('hex').toUpperCase();
   const course = await Course.create({
     name: `Load Test Course (${numStudents} students)`,
@@ -405,7 +421,8 @@ async function seed(numStudents, scenario) {
     semester: 'Load Test',
     owner: professor._id,
     instructors: [professor._id],
-    students: studentIds,
+    students: enrolledStudentIds,
+    allowSharedActivities: external,
     enrollmentCode,
     tags: [{
       value: LOAD_TEST_TAG,
@@ -446,7 +463,6 @@ async function seed(numStudents, scenario) {
 
   // --- Session ---
   const isQuiz = scenario.startsWith('quiz-');
-  const anonymous = scenario.endsWith('-anonymous');
   const session = await Session.create({
     name: `Load Test Session (${scenario})`,
     description: `${LOAD_TEST_TAG} generated fixture`,
@@ -455,6 +471,8 @@ async function seed(numStudents, scenario) {
     status: isQuiz ? 'visible' : 'hidden',
     quiz: isQuiz,
     anonymous,
+    activityEverShared: external,
+    activityAccessEnabled: external,
     ...(isQuiz ? {
       quizStart: new Date(Date.now() - 60_000),
       quizEnd: new Date(Date.now() + 60 * 60_000),
@@ -475,10 +493,26 @@ async function seed(numStudents, scenario) {
     { $set: { sessionId: session._id } },
   );
 
+  // Seed the same hashed code shape as the API. The plaintext lives only in
+  // the ignored state file for k6; cleanup removes both sharing collections.
+  let activityCode = '';
+  if (external) {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    activityCode = `S-${[...crypto.randomBytes(7)].map((byte) => alphabet[byte & 31]).join('')}`;
+    await mongoose.connection.db.collection('activityShares').insertOne({
+      _id: meteorId(), sessionId: session._id,
+      codeHash: crypto.createHash('sha256').update(activityCode).digest('hex'),
+      enabled: true, accessEpoch: 0,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      createdAt: new Date(), updatedAt: new Date(),
+    });
+  }
+
   // Build student credentials list for the k6 scenario
   const students = studentDocs.map((s, i) => ({
     email: `loadtest-student${i + 1}@example.com`,
     id: s._id,
+    enrolled: enrolledStudentIdSet.has(s._id),
   }));
 
   return {
@@ -487,7 +521,7 @@ async function seed(numStudents, scenario) {
     professor: { email: 'loadtest-prof@example.com', id: professor._id },
     students,
     course: { id: course._id, enrollmentCode },
-    session: { id: session._id, scenario, anonymous, quiz: isQuiz },
+    session: { id: session._id, scenario, anonymous, quiz: isQuiz, external, activityCode, enrolledPercent },
     questions: questionIds.map((id, i) => ({
       id,
       type: QUESTIONS[i].type,
@@ -525,6 +559,12 @@ async function cleanup() {
   ).lean();
   const questionIds = loadTestQuestions.map((question) => question._id);
 
+  const db = mongoose.connection.db;
+  if (db && sessionIds.length > 0) {
+    await db.collection('activityShares').deleteMany({ sessionId: { $in: sessionIds } });
+    await db.collection('activityGrants').deleteMany({ sessionId: { $in: sessionIds } });
+  }
+
   // Remove users with loadtest emails
   await User.deleteMany({ 'emails.address': /^loadtest-/ });
   // Remove courses tagged as load test
@@ -540,7 +580,6 @@ async function cleanup() {
   });
 
   // Clean responses from load test students
-  const db = mongoose.connection.db;
   if (db) {
     if (questionIds.length > 0 || userIds.length > 0) {
       await db.collection('responses').deleteMany({

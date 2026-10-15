@@ -1,9 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import SessionReview from './SessionReview';
 import apiClient from '../../api/client';
 import i18n from '../../i18n';
+
+const authState = vi.hoisted(() => ({ user: { profile: { roles: ['student'] } } }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => authState }));
 
 vi.mock('../../api/client', () => ({
   default: {
@@ -15,6 +18,7 @@ vi.mock('../../api/client', () => ({
 describe('Student SessionReview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.user.profile.roles = ['student'];
     i18n.changeLanguage('en');
 
     apiClient.get.mockImplementation(async (url) => {
@@ -148,4 +152,20 @@ describe('Student SessionReview', () => {
 
     expect(await screen.findByText(/your instructor cannot see which responses are yours/i)).toBeInTheDocument();
   });
+  it.each([['student', '/student'], ['professor', '/prof']])('returns an activity participant to the %s dashboard', async (role, destination) => {
+    authState.user.profile.roles = [role];
+    render(
+      <MemoryRouter initialEntries={['/activity/course-1/session/session-1/review']}>
+        <Routes>
+          <Route path="/activity/:courseId/session/:sessionId/review" element={<SessionReview />} />
+          <Route path={destination} element={<div>Participant dashboard</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const back = await screen.findByRole('button', { name: 'Back to dashboard' });
+    expect(screen.queryByRole('button', { name: 'Back to Course' })).not.toBeInTheDocument();
+    fireEvent.click(back);
+    expect(await screen.findByText('Participant dashboard')).toBeInTheDocument();
+  });
+
 });

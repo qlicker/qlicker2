@@ -38,11 +38,31 @@ The dashboard lists your courses and highlights activities that are live now. Us
 ### Enroll in a course
 
 1. Get the current enrollment code from the instructor.
-2. Enter it exactly in the enrollment field on your dashboard.
+2. Select **Enroll in Course** on your dashboard and enter the enrollment code.
 3. Submit the code.
 4. Open the new course card and confirm the course name, number, section, and semester.
 
+On enrollment, Qlicker creates missing grades for completed course activities: zeros for missed work and grades based on any responses you previously submitted as a guest. Written answers may still need instructor grading. Anonymous activities remain ungraded.
+
 You normally enroll only once. The course stays on the dashboard until the instructor/admin removes you or the course is no longer available to your account.
+
+### Open an activity without joining its course
+
+1. Sign in and select **Join activity** on the dashboard.
+2. Enter the activity code beginning with `S-`, then select **Join activity**. The activity opens directly; your account is not enrolled in its course.
+3. Take the quiz or join the interactive session as usual. **Back to dashboard** returns you to your home page. A live activity may also ask for its separate rotating six-digit join code.
+
+Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity.
+
+An activity code opens only its own quiz or live session. It can be used by multiple people, but your account can submit a quiz only once and answer each live question/attempt only once. If the activity code expires after you have used it, you can still enter it again while your access remains enabled. The instructor can disable sharing, which immediately removes outside access. If sharing is enabled again with the same code, enter that code again to regain access. Outside participants cannot use that course's roster, gradebook, or chat. After joining a live activity, they can use its enabled session chat.
+
+In a named code-accessible activity, enrolled students can receive grades, while participants who are outside the course have their responses tracked without receiving grades. Anonymous activities have no grades for anyone. Anonymous responses are correlated across questions under one respondent label, but the instructor sees the answer rows only after the activity ends and at least four people have answered every question and attempt with responses. A distinctive answer may still reveal who wrote it.
+
+Anonymous live statistics and shared answer lists update in groups of at least four new respondents per question and attempt. These live answers have no respondent labels linking them across questions. Linked respondent rows are available to the instructor only after the activity ends and the four-person minimum is met for every question and attempt with responses.
+
+When an instructor changes a live session to **Upcoming**, you see a waiting screen until it returns to **Live**. **Draft** sends enrolled students back to the course page and guests back to their dashboard. Saved answers are preserved.
+
+For an **Upcoming** interactive session, enrolled students can select **Open waiting page**; guests can enter its **S- activity code** through **Join activity**. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes **Live**, participants wait for a question or enter the join code once the instructor opens the join period. Redeeming an activity code still locks the anonymity setting.
 
 ### If enrollment fails
 
@@ -192,7 +212,7 @@ Not every detail is always released. The instructor controls reviewability and g
 
 ## 7. Read grades and feedback
 
-The **Grades** tab shows only your own results and only sessions the instructor has made visible/reviewable under the current rules.
+The **Grades** tab shows only your own results from ended, reviewable sessions. Average grade and participation are the arithmetic means of your visible grade items in those sessions. Missing or unpublished grade items are excluded; recorded zeros, including missed work, count. When no applicable grade items exist, no average is shown.
 
 - Objective items may be graded automatically.
 - Short answers usually remain incomplete until an instructor assigns points.
@@ -200,7 +220,7 @@ The **Grades** tab shows only your own results and only sessions the instructor 
 - A session can disappear if the instructor turns reviewability off while correcting results.
 - Participation and score are different measures; a submitted answer can receive participation credit but zero correctness points.
 
-Open the corresponding review page to understand a grade. If you believe something is wrong, identify the course, session, question number/type, attempt, and what you expected; do not send passwords or access tokens.
+Click a grade in the **Grades** table to open the review of that ended, reviewable session. If you believe something is wrong, identify the course, session, question number/type, attempt, and what you expected; do not send passwords or access tokens.
 
 See [Grading guide](grading.md) for the shared rules.
 
@@ -281,6 +301,10 @@ Your identity is hidden from other students, but instructors/TAs can identify au
 ### Session chat
 
 When enabled, the **Chat** panel appears beside **Question** during a live activity. A badge shows unseen chat activity while you are answering.
+
+Session chat shows the most recently active discussion first. A new post, comment, or upvote moves the discussion to the top. Unread badges clear when you open Chat. Dismissed discussions remain below active ones for instructors.
+
+Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.
 
 ![Student Session Chat with quick clarification options, comments, and votes](../assets/manuals/student-session-chat.png)
 

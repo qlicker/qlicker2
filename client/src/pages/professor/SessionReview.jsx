@@ -17,6 +17,7 @@ import {
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import apiClient from '../../api/client';
+import { LiveSessionWebSocketProvider, useLiveSessionWebSocket } from '../../contexts/LiveSessionWebSocketContext';
 import {
   QUESTION_TYPES,
   TYPE_COLORS,
@@ -381,7 +382,7 @@ function getStudentQuestionPoints(gradesByStudentId = {}, studentId, questionId,
   return null;
 }
 
-function formatAnswerText(question, answer) {
+function formatAnswerText(question, answer, t) {
   let answerText = answer ?? '';
   const normType = normalizeQuestionType(question);
 
@@ -392,7 +393,15 @@ function formatAnswerText(question, answer) {
     answerText = collectAnswerEntries(answerText)
       .map((entry) => {
         const idx = resolveOptionIndex(entry, question.options);
-        return idx >= 0 ? OPTION_LETTERS[idx] : entry;
+        if (idx < 0) return entry;
+        if (normType === QUESTION_TYPES.TRUE_FALSE) {
+          const option = question.options[idx];
+          const label = normalizeComparableText(option?.plainText || option?.content || option?.answer);
+          return label === 'true' || label === 'false'
+            ? t(`questions.editor.${label}`)
+            : label || t(idx === 0 ? 'questions.editor.true' : 'questions.editor.false');
+        }
+        return OPTION_LETTERS[idx];
       })
       .join(', ');
   } else if (answerText && typeof answerText === 'object') {
@@ -408,6 +417,7 @@ function formatAnswerText(question, answer) {
 
 export function buildSessionResultsCsv({
   anonymous = false,
+  ungraded = false,
   csvQuestionAttempts,
   gradesByStudentId,
   sessionName,
@@ -434,7 +444,7 @@ export function buildSessionResultsCsv({
       t('professor.sessionReview.csvLastName'),
       t('professor.sessionReview.csvFirstName'),
       t('professor.sessionReview.csvEmail'),
-      t('professor.sessionReview.grade'),
+      ...(!ungraded ? [t('professor.sessionReview.grade')] : []),
       t('professor.sessionReview.inSession'),
       t('professor.sessionReview.csvParticipation'),
       t('professor.sessionReview.percentCorrect'),
@@ -470,7 +480,7 @@ export function buildSessionResultsCsv({
         escapeCsvCell(student.lastname),
         escapeCsvCell(student.firstname),
         escapeCsvCell(student.email),
-        escapeCsvCell(formatPercent(gradeValue)),
+        ...(!ungraded ? [escapeCsvCell(student.guest ? t('professor.sessionReview.guestNoGrade') : formatPercent(gradeValue))] : []),
         escapeCsvCell(student.inSession ? t('common.yes') : t('common.no')),
         escapeCsvCell(formatParticipation(student.participation)),
         escapeCsvCell(formatPercent(visibleStudent?.percentCorrectValue)),
@@ -503,7 +513,7 @@ export function buildSessionResultsCsv({
           return;
         }
 
-        const answerText = formatAnswerText(question, attemptResponse?.answer);
+        const answerText = formatAnswerText(question, attemptResponse?.answer, t);
         const points = getStudentQuestionPoints(
           gradesByStudentId,
           student.studentId,
@@ -642,6 +652,55 @@ function DistributionBars({
 // Main component
 // ---------------------------------------------------------------------------
 
+// Refresh quiz results on submission/status events, never on each autosave.
+// Coalesce a submission burst and serialize requests to avoid stale snapshots.
+function QuizReviewUpdates({ onRefresh, refreshAt }) {
+  const { subscribe, registerRefreshHandler } = useLiveSessionWebSocket();
+  useEffect(() => {
+    let timer = null;
+    let inFlight = false;
+    let pending = false;
+    let fullRefresh = false;
+    let stopped = false;
+    const schedule = (full = false) => {
+      if (stopped) return;
+      pending = true;
+      fullRefresh ||= full;
+      // Keep a busy submission stream below the results endpoint’s 30/min limit.
+      if (timer === null && !inFlight) timer = window.setTimeout(run, 2500);
+    };
+    const run = async () => {
+      timer = null;
+      pending = false;
+      inFlight = true;
+      const resultsOnly = !fullRefresh;
+      fullRefresh = false;
+      try {
+        await onRefresh({ resultsOnly });
+      } finally {
+        inFlight = false;
+        if (pending) schedule();
+      }
+    };
+    const unsubscribe = subscribe(({ event }) => {
+      if (event === 'session:quiz-submitted') schedule();
+      if (event === 'session:status-changed' || event === 'session:metadata-changed') schedule(true);
+    });
+    const unregister = registerRefreshHandler(() => schedule(true));
+    const deadlineTimer = Number.isFinite(refreshAt)
+      ? window.setTimeout(() => schedule(true), Math.min(2147483647, Math.max(1000, refreshAt - Date.now() + 100)))
+      : null;
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      window.clearTimeout(deadlineTimer);
+      unsubscribe();
+      unregister();
+    };
+  }, [onRefresh, refreshAt, subscribe, registerRefreshHandler]);
+  return null;
+}
+
 export default function SessionReview() {
   const { courseId, sessionId } = useParams();
   const navigate = useNavigate();
@@ -655,6 +714,7 @@ export default function SessionReview() {
   const [questions, setQuestions] = useState([]);
   const [rawStudentResults, setStudentResults] = useState([]);
   const [anonymousSummary, setAnonymousSummary] = useState(null);
+  const [quizResultsRefreshAt, setQuizResultsRefreshAt] = useState(null);
   const [chatPosts, setChatPosts] = useState([]);
   const [tab, setTab] = useState(0);
   const [togglingReviewable, setTogglingReviewable] = useState(false);
@@ -674,7 +734,8 @@ export default function SessionReview() {
   const [summaryQuestion, setSummaryQuestion] = useState(null);
   const [summaryInstructions, setSummaryInstructions] = useState([]);
   const [summaryInstructionId, setSummaryInstructionId] = useState('basic-summary');
-  const [summaryInstruction, setSummaryInstruction] = useState('Summarize the student responses to identify up to five themes in the student responses. Give a few example quoted responses for the students for each theme.');
+  const [summaryInstructionEditing, setSummaryInstructionEditing] = useState(false);
+  const summaryInstruction = summaryInstructions.find((entry) => entry._id === summaryInstructionId)?.content || '';
   const [summaryModel, setSummaryModel] = useState('');
   const [summaryError, setSummaryError] = useState('');
   const [summaryView, setSummaryView] = useState(null);
@@ -692,6 +753,7 @@ export default function SessionReview() {
   editSessionParams.set('returnTo', 'review');
   const editSessionPath = `/prof/course/${courseId}/session/${sessionId}?${editSessionParams.toString()}`;
   const anonymousSession = !!session?.anonymous;
+  const ungradedSession = anonymousSession;
   // Anonymous results arrive without identities; give each respondent a
   // generic, stable label so the table, CSV, and charts stay readable.
   const studentResults = useMemo(() => (anonymousSession
@@ -703,18 +765,29 @@ export default function SessionReview() {
 
   // ---- Data fetching ----
 
-  const fetchResults = useCallback(async () => {
+  const fetchResults = useCallback(async ({ resultsOnly = false } = {}) => {
     try {
       const [{ data }, courseResponse] = await Promise.all([
         apiClient.get(`/sessions/${sessionId}/results`),
-        apiClient.get(`/courses/${courseId}`).catch(() => ({ data: null })),
+        resultsOnly ? Promise.resolve(null) : apiClient.get(`/courses/${courseId}`).catch(() => ({ data: null })),
       ]);
       setSession(data.session);
-      setCourse(courseResponse?.data?.course || courseResponse?.data || null);
-      setQuestions(data.questions || []);
+      if (!resultsOnly) {
+        setCourse(courseResponse?.data?.course || courseResponse?.data || null);
+        setQuestions(data.questions || []);
+      }
       setStudentResults(data.studentResults || []);
       setAnonymousSummary(data.anonymousSummary || null);
+      setQuizResultsRefreshAt(data.quizResultsRefreshAt ?? null);
       setChatPosts(data.chatPosts || []);
+      if (data.session?.quiz) {
+        setWordCloudByRow({});
+        setHistogramByRow({});
+      }
+      if (resultsOnly) {
+        setError(null);
+        return;
+      }
 
       if (data.session?.anonymous) {
         // Anonymous sessions never have grades.
@@ -813,8 +886,8 @@ export default function SessionReview() {
         const instructions = data.instructions || [];
         const basicSummary = instructions.find((entry) => entry._id === 'basic-summary');
         setSummaryInstructions(instructions);
-        setSummaryInstructionId(basicSummary?._id || '');
-        setSummaryInstruction(basicSummary?.content || '');
+        setSummaryInstructionId((current) => instructions.some((entry) => entry._id === current)
+          ? current : basicSummary?._id || '');
       })
       .catch((err) => {
         if (active) setSummaryError(err.response?.data?.message || t('grades.aiGrading.failedLoad'));
@@ -834,11 +907,11 @@ export default function SessionReview() {
     if (summaryInstructionId === instruction._id) {
       const basicSummary = summaryInstructions.find((entry) => entry._id === 'basic-summary');
       setSummaryInstructionId(basicSummary?._id || '');
-      setSummaryInstruction(basicSummary?.content || '');
     }
   };
 
   const startSummary = async () => {
+    if (summaryInstructionEditing || !summaryInstruction.trim()) return;
     setSummaryError('');
     try {
       const { data } = await apiClient.post(`/ai/courses/${courseId}/sessions/${sessionId}/questions/${summaryQuestion._id}/ai-summary`, {
@@ -918,10 +991,13 @@ export default function SessionReview() {
   const selectedGroupCat = groupCategories[selectedCatIdx] || null;
   const selectedGroupObj = selectedGroupCat ? (selectedGroupCat.groups || [])[selectedGroupIdx] : null;
   const groupFilteredStudentResults = useMemo(() => {
-    if (!selectedGroupObj) return studentResults;
+    const gradeableResults = session?.activityEverShared
+      ? studentResults.filter((student) => !student.guest)
+      : studentResults;
+    if (!selectedGroupObj) return gradeableResults;
     const memberSet = new Set(selectedGroupObj.members || []);
-    return studentResults.filter((s) => memberSet.has(s.studentId));
-  }, [studentResults, selectedGroupObj]);
+    return gradeableResults.filter((s) => memberSet.has(s.studentId));
+  }, [studentResults, selectedGroupObj, session?.activityEverShared]);
 
   const handleUngradedSummaryChange = useCallback((summary) => {
     if (!summary || typeof summary !== 'object') return;
@@ -1121,7 +1197,7 @@ export default function SessionReview() {
     questions.forEach((question) => {
       const qr = questionResultsById.get(String(question._id));
       const latestResponse = getLatestResponse(qr?.responses || []);
-      const responseDisplay = latestResponse ? (formatAnswerText(question, latestResponse?.answer) || '—') : '—';
+      const responseDisplay = latestResponse ? (formatAnswerText(question, latestResponse?.answer, t) || '—') : '—';
       const responsePoints = latestResponse
         ? getStudentQuestionPoints(gradesByStudentId, student.studentId, question._id, latestResponse)
         : null;
@@ -1252,6 +1328,7 @@ export default function SessionReview() {
   const handleExportCsv = useCallback(() => {
     const csvExport = buildSessionResultsCsv({
       anonymous: anonymousSession,
+      ungraded: ungradedSession,
       csvQuestionAttempts,
       gradesByStudentId,
       sessionName: session?.name,
@@ -1262,7 +1339,7 @@ export default function SessionReview() {
     if (!csvExport) return;
 
     downloadCsv(csvExport.filename, csvExport.csvContent);
-  }, [anonymousSession, csvQuestionAttempts, gradesByStudentId, sortedStudentsTabRows, studentResults, session?.name, t]);
+  }, [anonymousSession, ungradedSession, csvQuestionAttempts, gradesByStudentId, sortedStudentsTabRows, studentResults, session?.name, t]);
 
   // ---- Render: loading ----
 
@@ -1406,6 +1483,8 @@ export default function SessionReview() {
         <Alert severity="info" icon={<VisibilityOffIcon fontSize="inherit" />} sx={{ mb: 2 }}>
           {t('professor.sessionReview.anonymousSessionNotice')}
         </Alert>
+      ) : session?.activityEverShared ? (
+        <Alert severity="info" sx={{ mb: 2 }}>{t('professor.sessionEditor.sharedNamedGradingInfo')}</Alert>
       ) : null}
       {anonymousSession && anonymousSummary?.responsesWithheld ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -1417,6 +1496,16 @@ export default function SessionReview() {
       {reviewableWarning ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {reviewableWarning}
+        </Alert>
+      ) : null}
+      {session?.quiz && !session?.practiceQuiz && !anonymousSession ? (
+        <LiveSessionWebSocketProvider sessionId={sessionId}>
+          <QuizReviewUpdates onRefresh={fetchResults} refreshAt={quizResultsRefreshAt} />
+        </LiveSessionWebSocketProvider>
+      ) : null}
+      {session?.quiz && !session?.practiceQuiz && session?.status !== 'done' ? (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t('professor.sessionReview.quizSubmittedResultsOnly')}
         </Alert>
       ) : null}
       {liveInteractiveSession ? (
@@ -1448,7 +1537,7 @@ export default function SessionReview() {
         tabs={[
           { value: 0, label: t('professor.sessionReview.results') },
           { value: 1, label: t('professor.sessionReview.responseData') },
-          anonymousSession ? {
+          ungradedSession ? {
             value: 2,
             label: t('professor.sessionReview.responsesByQuestion'),
           } : {
@@ -1776,7 +1865,7 @@ export default function SessionReview() {
                       </TableCell>
                       {!anonymousSession && (
                         <>
-                          <TableCell component="th" scope="col" align="center" sx={{ fontWeight: 700 }}>
+                          {!ungradedSession && <TableCell component="th" scope="col" align="center" sx={{ fontWeight: 700 }}>
                             <TableSortLabel
                               active={studentSort.field === 'grade'}
                               direction={studentSort.field === 'grade' ? studentSort.direction : 'desc'}
@@ -1784,7 +1873,7 @@ export default function SessionReview() {
                             >
                               {t('professor.sessionReview.grade')}
                             </TableSortLabel>
-                          </TableCell>
+                          </TableCell>}
                           <TableCell component="th" scope="col" align="center" sx={{ fontWeight: 700 }}>
                             <TableSortLabel
                               active={studentSort.field === 'inSession'}
@@ -1845,20 +1934,22 @@ export default function SessionReview() {
                           {anonymousSession ? (
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{student.displayName}</Typography>
                           ) : (
-                            <StudentIdentity
-                              student={student}
-                              showEmail
-                              avatarSize={30}
-                              nameVariant="body2"
-                              nameWeight={600}
-                            />
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                              <StudentIdentity
+                                student={student}
+                                showEmail
+                                avatarSize={30}
+                                nameVariant="body2"
+                                nameWeight={600}
+                              />
+                            </Box>
                           )}
                         </TableCell>
                         {!anonymousSession && (
                           <>
-                            <TableCell align="center">
-                              {formatPercent(student.gradeValue)}
-                            </TableCell>
+                            {!ungradedSession && <TableCell align="center">
+                              {student.guest ? t('professor.sessionReview.guestNoGrade') : formatPercent(student.gradeValue)}
+                            </TableCell>}
                             <TableCell align="center">
                               <Chip
                                 label={student.inSession ? t('common.yes') : t('common.no')}
@@ -1897,62 +1988,78 @@ export default function SessionReview() {
 
       {/* Grading tab (read-only responses by question for anonymous sessions) */}
       <TabPanel value={tab} index={2}>
-        {anonymousSession ? (
+        {ungradedSession ? (
           <AnonymousResponsesPanel
             questions={questions.filter((question) => !isSlideType(normalizeQuestionType(question)))}
             studentResults={studentResults}
+            anonymous={anonymousSession}
             getResponseCorrectness={isLatestResponseCorrect}
           />
         ) : (
-          <SessionQuestionGradingPanel
-            sessionId={sessionId}
-            courseId={courseId}
-            session={session}
-            questions={questions.filter((question) => !isSlideType(normalizeQuestionType(question)))}
-            studentResults={groupFilteredStudentResults}
-            onSessionDataRefresh={fetchResults}
-            onUngradedSummaryChange={handleUngradedSummaryChange}
-            filterSlot={groupCategories.length > 0 ? (
-              <>
-                <TextField
-                  select
-                  size="small"
-                  label={t('professor.sessionReview.selectCategoryFilter')}
-                  value={selectedCatIdx >= 0 ? String(selectedCatIdx) : ''}
-                  onChange={(e) => {
-                    const idx = e.target.value === '' ? -1 : Number(e.target.value);
-                    setSelectedCatIdx(idx);
-                    const cat = idx >= 0 ? groupCategories[idx] : null;
-                    setSelectedGroupIdx(cat && cat.groups && cat.groups.length > 0 ? 0 : -1);
-                  }}
-                  slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-                  sx={{ minWidth: 180 }}
-                >
-                  <option value="">{t('professor.sessionReview.allStudentsFilter')}</option>
-                  {groupCategories.map((cat, idx) => (
-                    <option key={cat.categoryNumber} value={String(idx)}>{cat.categoryName}</option>
-                  ))}
-                </TextField>
-                {selectedGroupCat && (
+          <>
+            <SessionQuestionGradingPanel
+              sessionId={sessionId}
+              courseId={courseId}
+              session={session}
+              questions={questions.filter((question) => !isSlideType(normalizeQuestionType(question)))}
+              studentResults={groupFilteredStudentResults}
+              onSessionDataRefresh={fetchResults}
+              onUngradedSummaryChange={handleUngradedSummaryChange}
+              filterSlot={groupCategories.length > 0 ? (
+                <>
                   <TextField
                     select
                     size="small"
-                    label={t('professor.sessionReview.selectGroupFilter')}
-                    value={selectedGroupIdx >= 0 ? String(selectedGroupIdx) : ''}
-                    onChange={(e) => setSelectedGroupIdx(Number(e.target.value))}
+                    label={t('professor.sessionReview.selectCategoryFilter')}
+                    value={selectedCatIdx >= 0 ? String(selectedCatIdx) : ''}
+                    onChange={(e) => {
+                      const idx = e.target.value === '' ? -1 : Number(e.target.value);
+                      setSelectedCatIdx(idx);
+                      const cat = idx >= 0 ? groupCategories[idx] : null;
+                      setSelectedGroupIdx(cat && cat.groups && cat.groups.length > 0 ? 0 : -1);
+                    }}
                     slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
                     sx={{ minWidth: 180 }}
                   >
-                    {(selectedGroupCat.groups || []).map((g, idx) => (
-                      <option key={idx} value={String(idx)}>
-                        {g.name} ({(g.members || []).length})
-                      </option>
+                    <option value="">{t('professor.sessionReview.allStudentsFilter')}</option>
+                    {groupCategories.map((cat, idx) => (
+                      <option key={cat.categoryNumber} value={String(idx)}>{cat.categoryName}</option>
                     ))}
                   </TextField>
-                )}
-              </>
-            ) : null}
-          />
+                  {selectedGroupCat && (
+                    <TextField
+                      select
+                      size="small"
+                      label={t('professor.sessionReview.selectGroupFilter')}
+                      value={selectedGroupIdx >= 0 ? String(selectedGroupIdx) : ''}
+                      onChange={(e) => setSelectedGroupIdx(Number(e.target.value))}
+                      slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+                      sx={{ minWidth: 180 }}
+                    >
+                      {(selectedGroupCat.groups || []).map((g, idx) => (
+                        <option key={idx} value={String(idx)}>
+                          {g.name} ({(g.members || []).length})
+                        </option>
+                      ))}
+                    </TextField>
+                  )}
+                </>
+              ) : null}
+            />
+            {session?.activityEverShared && studentResults.some((student) => student.guest) && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" component="h3" sx={{ mb: 1 }}>
+                  {t('professor.sessionReview.guestResponses')}
+                </Typography>
+                <AnonymousResponsesPanel
+                  questions={questions.filter((question) => !isSlideType(normalizeQuestionType(question)))}
+                  studentResults={studentResults.filter((student) => student.guest)}
+                  anonymous={false}
+                  getResponseCorrectness={isLatestResponseCorrect}
+                />
+              </Box>
+            )}
+          </>
         )}
       </TabPanel>
 
@@ -1985,15 +2092,13 @@ export default function SessionReview() {
             instructionId={summaryInstructionId}
             instruction={summaryInstruction}
             instructions={summaryInstructions}
-            onChange={({ instructionId, instruction }) => {
-              setSummaryInstructionId(instructionId);
-              setSummaryInstruction(instruction);
-            }}
+            onChange={({ instructionId }) => setSummaryInstructionId(instructionId)}
+            onEditingChange={setSummaryInstructionEditing}
             onSaveInstruction={saveSummaryInstruction}
             onDeleteInstruction={deleteSummaryInstruction}
           />
         </DialogContent>
-        <DialogActions><Button onClick={() => setSummaryQuestion(null)}>{t('common.cancel')}</Button><Button variant="contained" disabled={!summaryModel || !summaryInstructionId || !summaryInstruction.trim()} onClick={startSummary}>{t('professor.sessionReview.generateAiResponseSummary')}</Button></DialogActions>
+        <DialogActions><Button onClick={() => setSummaryQuestion(null)}>{t('common.cancel')}</Button><Button variant="contained" disabled={summaryInstructionEditing || !summaryModel || !summaryInstructionId || !summaryInstruction.trim()} onClick={startSummary}>{t('professor.sessionReview.generateAiResponseSummary')}</Button></DialogActions>
       </Dialog>
       <Dialog open={!!summaryView} onClose={() => setSummaryView(null)} fullWidth maxWidth="md"><DialogTitle>{t('professor.sessionReview.viewAiResponseSummary')}</DialogTitle><DialogContent dividers><AiMarkdownContent content={summaryView?.summary} /></DialogContent><DialogActions><Button onClick={() => setSummaryView(null)}>{t('common.close')}</Button></DialogActions></Dialog>
     </Box>

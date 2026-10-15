@@ -42,4 +42,4 @@ Not every change needs every suite during iteration, but the final validation sh
 
 See [Repairing shared question references](question-reference-repair.md) for the production Bash/Docker diagnostic, independent question copies, and interactive grading decisions for answered quizzes.
 
-The proposed [session access by activity code](external-session-access-plan.md) design covers outside-course quiz and interactive participation; it is not implemented yet.
+The [session access by activity code](external-session-access-plan.md) plan covers outside-course quiz and interactive participation. The follow-up PR implements code redemption, session-scoped quiz/live delivery, and mixed grading for named activities (enrolled students graded, guests ungraded); use its acceptance matrix for final staging tests.

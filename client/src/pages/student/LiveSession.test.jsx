@@ -14,6 +14,9 @@ const liveSessionMocks = vi.hoisted(() => ({
   scheduleUiSyncMeasurement: vi.fn(),
 }));
 
+const authState = vi.hoisted(() => ({ user: { profile: { roles: ['student'] } } }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => authState }));
+
 vi.mock('../../api/client', () => ({
   default: {
     get: vi.fn(),
@@ -45,6 +48,7 @@ vi.mock('../../hooks/useLiveSessionTelemetry', () => ({
 describe('Student LiveSession', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.user.profile.roles = ['student'];
     websocketState.lastEvent = null;
     i18n.changeLanguage('en');
 
@@ -173,7 +177,7 @@ describe('Student LiveSession', () => {
     expect(await screen.findByText(/Answers will be scored based on a tolerance of \+\/- 1\.2345E4\./i)).toBeInTheDocument();
   });
 
-  it('shows a newly visible quick post as unread in red and clears it as soon as chat is opened', async () => {
+  it.each(['post-created', 'comment-added', 'quick-post-toggled'])('shows %s as unread in red and clears it as soon as chat is opened', async (changeType) => {
     const buildView = () => (
       <MemoryRouter initialEntries={['/student/course/course-1/live/session-1']}>
         <Routes>
@@ -187,7 +191,7 @@ describe('Student LiveSession', () => {
     websocketState.lastEvent = {
       event: 'session:chat-updated',
       data: {
-        changeType: 'quick-post-toggled',
+        changeType,
         becameVisible: true,
         postId: 'quick-post-new',
       },
@@ -431,4 +435,70 @@ describe('Student LiveSession', () => {
     expect(await screen.findByText('The first option is correct.')).toBeInTheDocument();
     expect(apiClient.get).toHaveBeenCalledTimes(1);
   });
+  it.each([['student', '/student'], ['professor', '/prof']])('returns an activity participant to the %s dashboard', async (role, destination) => {
+    authState.user.profile.roles = [role];
+    render(
+      <MemoryRouter initialEntries={['/activity/course-1/session/session-1/live']}>
+        <Routes>
+          <Route path="/activity/:courseId/session/:sessionId/live" element={<LiveSession />} />
+          <Route path={destination} element={<div>Participant dashboard</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const back = await screen.findByRole('button', { name: 'Back to dashboard' });
+    expect(screen.queryByRole('button', { name: 'Back to Course' })).not.toBeInTheDocument();
+    fireEvent.click(back);
+    expect(await screen.findByText('Participant dashboard')).toBeInTheDocument();
+  });
+  it.each([
+    ['course', '/student/course/course-1/live/session-1', '/student/course/course-1', 'student'],
+    ['guest', '/activity/course-1/session/session-1/live', '/student', 'student'],
+    ['professor guest', '/activity/course-1/session/session-1/live', '/prof', 'professor'],
+  ])('leaves Draft and waits through Upcoming for a %s participant', async (_kind, path, destination, role) => {
+    authState.user.profile.roles = [role];
+    let status = 'running';
+    const originalGet = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (...args) => {
+      const response = await originalGet(...args);
+      return { data: { ...response.data, session: { ...response.data.session, status } } };
+    });
+    const view = () => (
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/student/course/:courseId/live/:sessionId" element={<LiveSession />} />
+          <Route path="/activity/:courseId/session/:sessionId/live" element={<LiveSession />} />
+          <Route path={destination} element={<div>Returned to destination</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const { rerender } = render(view());
+    expect(await screen.findByText('Select all matching options')).toBeInTheDocument();
+    status = 'visible';
+    websocketState.lastEvent = { event: 'session:metadata-changed', data: { sessionId: 'session-1' } };
+    rerender(view());
+    expect(await screen.findByText('This session has not started yet. Please wait for your instructor.')).toBeInTheDocument();
+    expect(screen.queryByText('Select all matching options')).not.toBeInTheDocument();
+    status = 'running';
+    websocketState.lastEvent = { event: 'session:status-changed', data: { sessionId: 'session-1', status } };
+    rerender(view());
+    expect(await screen.findByText('Select all matching options')).toBeInTheDocument();
+    status = 'hidden';
+    websocketState.lastEvent = { event: 'session:metadata-changed', data: { sessionId: 'session-1' } };
+    rerender(view());
+    expect(await screen.findByText('Returned to destination')).toBeInTheDocument();
+    expect(screen.queryByText('Select all matching options')).not.toBeInTheDocument();
+  });
+
+  it.each(['visible', 'done'])('does not auto-join an inactive %s session opened directly', async (status) => {
+    apiClient.get.mockResolvedValue({ data: { session: { _id: 'session-1', status }, isJoined: false, currentQuestion: null } });
+    render(
+      <MemoryRouter initialEntries={['/student/course/course-1/live/session-1']}>
+        <Routes><Route path="/student/course/:courseId/live/:sessionId" element={<LiveSession />} /></Routes>
+      </MemoryRouter>
+    );
+    expect(await screen.findByText(status === 'visible'
+      ? 'This session has not started yet. Please wait for your instructor.' : 'Session has ended.')).toBeInTheDocument();
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
 });

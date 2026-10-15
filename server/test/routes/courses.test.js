@@ -56,6 +56,7 @@ describe('POST /api/v1/courses', () => {
     expect(body.course.deptCode).toBe('CS');
     expect(body.course.owner).toBe(prof._id.toString());
     expect(body.course.instructors).toContain(prof._id.toString());
+    expect(body.course.allowSharedActivities).toBe(false);
   });
 
   it('pure admin can create a course without being added as an instructor', async (ctx) => {

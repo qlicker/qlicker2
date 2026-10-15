@@ -9,6 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import ParticipantRoleBadges from './ParticipantRoleBadges';
 
 function normalizeValue(value) {
   if (value === null || value === undefined) return '';
@@ -113,6 +114,7 @@ export default function StudentIdentity({
           <Typography variant={nameVariant} sx={{ fontWeight: nameWeight }} noWrap>
             {displayName}
           </Typography>
+          <ParticipantRoleBadges participant={student} />
           {showEmail && email ? (
             <Typography
               variant={emailVariant}

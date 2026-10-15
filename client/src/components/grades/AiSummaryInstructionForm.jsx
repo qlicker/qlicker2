@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 
 const BASIC_SUMMARY_ID = 'basic-summary';
 
-export default function AiSummaryInstructionForm({ instructionId, instruction, instructions, onChange, onSaveInstruction, onDeleteInstruction }) {
+export default function AiSummaryInstructionForm({ instructionId, instruction, instructions, onChange, onSaveInstruction, onDeleteInstruction, onEditingChange }) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  useEffect(() => { onEditingChange?.(editing); }, [editing, onEditingChange]);
+
   const selectedInstruction = instructions.find((entry) => entry._id === instructionId);
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function AiSummaryInstructionForm({ instructionId, instruction, i
     try {
       const savedInstruction = await onSaveInstruction({ ...draft, kind: 'summary' });
       choose(savedInstruction);
+      setEditing(false);
       setMessage(t('grades.aiGrading.instructionSaved'));
     } finally {
       setSaving(false);
@@ -65,7 +68,7 @@ export default function AiSummaryInstructionForm({ instructionId, instruction, i
       {instructionId ? <Button size="small" onClick={begin}>{t('common.edit')}</Button> : null}
       <Button size="small" onClick={() => { setDraft({ _id: '', name: '', content: '' }); setEditing(true); setMessage(''); }}>{t('grades.aiGrading.createInstruction')}</Button>
     </Box> : <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Alert severity="info">{t('grades.aiGrading.unsavedInstructionWarning')}</Alert>
+      <Alert severity="info">{t('professor.sessionReview.unsavedSummaryInstructionWarning')}</Alert>
       <TextField size="small" label={t('common.name')} value={draft?.name || ''} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} />
       <TextField multiline minRows={4} label={t('professor.sessionReview.summaryInstructions')} value={draft?.content || ''} onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))} />
       <Box>

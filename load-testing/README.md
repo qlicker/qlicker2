@@ -1,6 +1,6 @@
 # Qlicker Load Testing Suite
 
-Automated load testing for named and anonymous interactive sessions and quizzes.
+Automated load testing for named and anonymous interactive sessions and quizzes, including activities opened by code by people outside the course.
 The suite seeds dedicated users, a course, questions, and one session per run.
 The original named interactive scenario follows the real classroom flow:
 
@@ -27,6 +27,20 @@ and responses from the configured database. `--clean` removes those fixtures
 after the run.
 
 ## Quick Start
+
+For the ordinary-session regression check on an already configured `prod` / `docker`
+stack (staging or production), use one command:
+
+```bash
+./load-testing/run.sh --regression --students 500
+```
+
+Run it from the repository root, or use `./run.sh --regression --students 500`
+from this directory. Preparation, rate-limit restoration, and cleanup are automatic.
+See [the classroom regression check](#classroom-regression-check) for coverage and
+results. No separate machine, image rebuild, or `.env` edits are required.
+
+The initial setup and manual commands remain available:
 
 ```bash
 cd load-testing
@@ -89,8 +103,13 @@ an external domain.
 |---------|-------------|
 | `./run.sh` | Seed + run the load test |
 | `./run.sh --students N` | Override the configured student count |
-| `./run.sh --scenario NAME` | Choose `live-named` (default), `live-anonymous`, `quiz-named`, or `quiz-anonymous` |
-| `./run.sh --session-chat on|off` | Run `live-named` with chat enabled or disabled |
+| `./run.sh --regression` | Prepare, run the original classroom workflow once, restore, and clean automatically |
+| `./run.sh --ordinary` | Prepare, run two ordinary interactive comparisons, restore, and clean automatically |
+| `./run.sh --matrix` | Prepare, run all 12 interactive comparisons, restore, and clean automatically |
+| `./run.sh --live-stats on\|off` | Override statistics during answers without editing `.env` |
+| `./run.sh --scenario NAME` | Choose `live-named` (default), `live-anonymous`, `quiz-named`, `quiz-anonymous`, `live-external-named`, `live-external-anonymous`, `quiz-external-named`, or `quiz-external-anonymous` |
+| `./run.sh --session-chat on\|off` | Run `live-named` with chat enabled or disabled; shared and anonymous comparisons require chat off |
+| `./run.sh --enrolled-percent N` | Set the enrolled proportion (0–100) for external fixtures; ordinary fixtures require 100 |
 | `./run.sh --seed-only` | Seed without running k6 |
 | `./run.sh --test-only` | Run k6 with the existing `state/state.json` for the selected scenario |
 | `./run.sh --clean` | Delete load-test fixtures and `state/state.json` |
@@ -121,11 +140,15 @@ Otherwise, run `./setup.sh` and choose `prod` plus `docker` on either host.
    JOIN_GRACE_S=30 ./run.sh --scenario live-anonymous --students 100
    ./run.sh --scenario quiz-named --students 100
    ./run.sh --scenario quiz-anonymous --students 100
+   JOIN_GRACE_S=30 ./run.sh --scenario live-external-named --students 100
+   JOIN_GRACE_S=30 ./run.sh --scenario live-external-anonymous --students 100
+   ./run.sh --scenario quiz-external-named --students 100
+   ./run.sh --scenario quiz-external-anonymous --students 100
    ```
 
    Choose `JOIN_GRACE_S` long enough for the student login wave to complete;
    keep it identical across comparison runs. Each command reseeds its own
-   fixture. Run `./run.sh --test-only --scenario NAME` only if the current
+   fixture. External variants accept `--enrolled-percent` (default 50 for identified activities and 0 for anonymous activities). The seed rounds the enrolled count to the nearest whole participant. Only eligible enrolled participants receive grade rows; guests redeem the code without enrolling. Anonymous variants remain ungraded for everyone. All external variants check code redemption, response tracking, and live delivery. Run `./run.sh --test-only --scenario NAME` only if the current
    fixture was seeded for that name and has not been consumed by a previous
    run. Quiz submissions and live session endings make a completed fixture
    unsuitable for another full pass.
@@ -157,22 +180,222 @@ delivery, answer submission, quiz autosave, and final results duration. Run
 `quiz-anonymous` and `live-anonymous` once with three students to confirm that
 result rows remain withheld below four respondents, then with at least four
 students to verify correlated rows appear. A threshold failure or a missing
-summary is a failed run; investigate it before comparing latency. The
-anonymous live workload intentionally refreshes `/live` on relevant WebSocket
-events and is a stress test; the named live workload remains the browser-like
-delta baseline.
+summary is a failed run; investigate it before comparing latency. All four live variants use the same browser-like delta workload in
+`scenarios/live-session.js`; anonymous variants check identity-free statistics in groups of at least four new respondents and exercise live word clouds/histograms when at least four participants respond. `anonymous_batch_stats_success` requires a released cache with fewer than four unreleased answers at the end of each question (or no cache below four participants).
 
 Test on the lower-stakes host first, then use the same commands on production.
 `load-testing/.env`, state, and results contain test credentials and remain
 local to each host. Confirm each host's configuration points at its intended
 stack before seeding.
 
+## Classroom regression check
+
+The recommended check for whether anonymous/shared activity support changed the
+existing classroom experience is:
+
+```bash
+./load-testing/run.sh --regression --students 500
+```
+
+It follows the pre-anonymous-PR classroom sequence (from commit `4719d42`):
+
+- One instructor, an instructor observer, and 500 enrolled students; no guests,
+  sharing, or anonymous responses.
+- Five questions, with the original answer windows and pauses (about five minutes
+  total with default timing settings).
+- Students answer with statistics hidden. The instructor receives response updates
+  throughout. Once answering closes, students see statistics, word clouds/histograms
+  where applicable, and correct answers.
+- The original chat workload is enabled: quick posts, discussion posts, votes, and
+  professor replies from the existing participant fractions.
+- All 2,500 answers and all student completions must be recorded; current checks
+  also verify per-question instructor coverage, final response rows, and grades.
+
+This reuses the maintained scenario and its scheduling fixes; it restores the
+original **workflow**, not a frozen copy of the old runner. Existing error,
+completion, and latency thresholds remain enforced. A failed login threshold is
+still reported as a failure, even if answering and results checks pass. Inspect
+those separately when diagnosing a run.
+
+The profile explicitly selects `live-named`, 100% enrolled, chat on, and statistics
+hidden during answering, overriding prior matrix settings in `.env`. Only
+`--students` can override the profile. Timing settings retain their configured
+values and are logged; use the same values for comparisons. It runs on the same
+host, Docker stack, and public proxy path as before. Resource sampling remains a
+diagnostic aid, and does not require a second machine.
+
+Outputs have a `results/regression-TIMESTAMP` prefix, alongside the per-scenario
+k6 log and JSON summary. Automatic restoration and cleanup run after failures too.
+Compare with the same command/runner against baseline and feature application images
+if you need a before/after latency measurement; historical results from a different
+runner are contextual evidence, not an exact comparison.
+
+The statistics-during-answering workload was added in `973090c`. With 500 students,
+it can deliver each student's response update to hundreds of other students and
+creates a substantially heavier generator workload. It is an optional stress case,
+not part of this original-flow regression check. Shared/anonymous functionality
+has separate integration tests and load scenarios; this profile specifically checks
+that ordinary sessions still work. Passing it does not clear the unresolved
+statistics-visible stress-test failure.
+
+## Focused ordinary-session performance check
+
+For an optional comparison of statistics hidden/visible during answering, use the
+deployed production-equivalent Docker stack and run from the repository root:
+
+```bash
+./load-testing/run.sh --ordinary --students 500
+```
+
+This runs **two** five-question sessions: all participants enrolled, responses
+identified, sharing off, chat off, first with statistics hidden during answering,
+then visible. Instructor updates and showing results after answering are exercised
+in both modes. Allow approximately **11 minutes plus preparation/cleanup** with
+the default timings. It does not reduce class size, retry failed requests, or
+relax any correctness, latency, or load-generator health threshold.
+
+Preparation, resource monitoring, restoration of rate limits, and fixture cleanup
+are automatic, including after a failure or Ctrl+C. No `.env` edits or application
+image rebuilds are needed for this runner update. It uses the same deployed images,
+replica count, public HTTPS address, and front proxy as the full matrix. Do not run
+manual seed/test commands concurrently.
+
+To investigate just the previously failing statistics-visible case (about five
+minutes plus preparation/cleanup):
+
+```bash
+./load-testing/run.sh --ordinary --students 500 --live-stats on
+```
+
+Without `--live-stats`, both modes always run, regardless of `.env`. Outputs use
+`load-testing/results/ordinary-TIMESTAMP` for the log, TSV, resource samples, and
+resource-error log. Keep those together with the newly produced per-scenario k6
+logs and JSON summaries. The console log records container image tags **and image
+IDs**, restart counts, OOM state, and start/finish times before and after each
+workload. It never dumps container environment variables. Diagnostic collection
+failures are reported without concealing the workload's exit status.
+
+Failed answer submissions log status, transport error category/code, timing phases,
+HTTP protocol, question type/attempt, and elapsed time since that student's previous
+answer, without credentials or answer bodies. That gap is not necessarily an idle
+connection interval: other requests may have occurred between answers. Cancellation
+of all WebSockets during a k6 abort produces at most one representative notice; other
+WebSocket errors are still reported and the error counter remains in place. Metrics
+from canceled VUs may be incomplete, so an aborted run is never a pass.
+
+If the statistics-visible run still fails, inspect the first transport error,
+container snapshots, resource samples, and observer-loop lag before scheduling more
+comparisons. A broken pipe does not establish whether the application, proxy, or
+client closed the connection. A failed observer-loop threshold means latency cannot
+be attributed solely to the application.
+
+For a before/after comparison, retain this same load-testing checkout and deploy
+baseline application images using the usual deployment workflow, then run the same
+command against each application version. Match the host, replica count, k6 image,
+student count, and timing settings; the recorded application image IDs distinguish
+the runs. Compare completed answers/results/grades and errors first, then p95/p99
+answer and event latency. A passing feature run alone is not evidence of unchanged
+latency. These two cases do not cover chat, quizzes, or anonymous/shared access;
+the full matrix and those separate workloads remain available when needed.
+
+## Compare shared interactive latency
+
+Use the existing `prod` + `docker` configuration, `production_setup` images,
+public `BASE_URL`, replica count, and timing settings. From `load-testing/`, run:
+
+```bash
+./run.sh --matrix
+```
+
+The matrix uses the configured student count (normally 500); override it with
+`./run.sh --matrix --students 500`. It automatically:
+
+1. Restores an interrupted previous preparation, then prepares the configured stack.
+2. Runs ordinary, shared (100% / 50% / 0% enrolled), shared anonymous (all guests),
+   and course anonymous interactive scenarios, with chat off.
+3. Repeats all six with statistics during answers off, then on. Command-line
+   settings override `.env`; no editing of `.env` is required.
+4. Continues through k6 threshold failures, but stops on preparation, ingress,
+   or other execution failures. Privacy and performance thresholds stay strict.
+5. Restores rate limits and removes test fixtures on completion, failure, or
+   Ctrl+C. A restoration failure is reported and its recovery record retained.
+
+The command returns nonzero if any scenario or cleanup step fails. An exclusive
+lock prevents concurrent matrices from overwriting each other's fixtures; do not
+run separate manual seed/test commands while a matrix is active. The driver uses
+Bash, Docker, and `flock` (normally included with Linux `util-linux`). It does not
+feed commands through stdin, so Docker Compose cannot consume the remaining script.
+
+Outputs under `results/` share a `matrix-TIMESTAMP` prefix:
+
+- `.log`: complete console output, including preparation and restoration failures,
+  checkout revision, host logical CPU count, and cached k6 image ID. A missing
+  image ID means Docker had not pulled the configured image when the matrix began.
+- `.tsv`: scenario, enrollment percentage, statistics setting, and exit status.
+- `-resources.jsonl`: UTC sample headers with host load and Docker container
+  CPU, memory, network I/O and process counts, sampled approximately every seven
+  seconds. All running containers are included so front-proxy and other host
+  workloads can be distinguished. k6 containers have `qlicker-load-…` names.
+- `-resources-errors.log`: resource sampling errors, if any.
+
+Keep these together with the per-scenario k6 logs and JSON summaries. Resource
+samples contain container names/utilization, not environment variables or user
+payloads. Do not commit generated results.
+
+Check the observer loop-lag thresholds before interpreting latency failures.
+If these fail, the run is still a failed acceptance test, but its latency cannot
+be attributed solely to Qlicker. No automatic retry, smaller class, longer answer
+window, or relaxed performance limit is used to turn a failed run into a pass.
+
+For one prepared scenario, `--live-stats on|off` overrides the setting without
+editing configuration:
+
+```bash
+./run.sh --scenario live-external-anonymous --enrolled-percent 0 --students 500 --session-chat off --live-stats on
+```
+
+Use matching ordinary comparisons on baseline and PR images for the primary
+latency regression check; repeat a borderline result before claiming unchanged latency. Retain the ordinary chat-enabled workload as a separate
+regression. The matrix does not include quizzes or the below-four-respondent
+privacy case; those remain separate scenarios.
+
+All participants in a shared run redeem the code once, including enrolled
+students. `activity_redeem_duration` reports that initial step separately from
+ongoing participation. The run log records participant counts and settings;
+external result filenames include `enrolled-N`, and answer-burst runs include
+`live-stats`. `--test-only` rejects a fixture with a different enrollment mix.
+Reseed after updating the seed image or consuming a fixture.
+
+Compare p95 and p99 for `respond_duration`, `join_duration`,
+`live_refresh_duration`, `event_sync_duration`, and
+`response_delivery_to_professor_duration`, together with error and completion
+counts. Student metrics include separate `participant:enrolled` and
+`participant:guest` summaries so one group cannot conceal the other's delay.
+`event_sync_duration{role:student}` includes processing question/visibility
+updates from their server emission through applying the local snapshot. It
+measures the simulated client, not React rendering in a browser. Identified
+runs also report `response_to_professor_duration` and
+`response_server_processing_duration`. Anonymous events deliberately omit the
+per-response timestamp, so those two measurements are unavailable; HTTP answer
+time and count-event delivery remain measured. Do not expose identities or
+response timestamps just to obtain an anonymous latency metric.
+
+Every run checks answer counts, completed participants, instructor response
+event counts, correlated result rows, and enrolled-only grades. Anonymous runs
+also check that live events and final results do not expose identities and
+that rows remain withheld below four respondents. Anonymous payloads and
+available result features intentionally differ, so compare them against the
+ordinary anonymous run as well as the identified runs.
+
+When finished, run `./run.sh --restore` and `./run.sh --clean` separately,
+including after a failed workload. Keep summaries for the staging comparison.
+
 ## Workloads
 
 | Scenario | Student journey | Instructor and privacy checks |
 | --- | --- | --- |
 | `live-named` | Join, hold WebSocket, answer five questions, and exercise chat and live deltas | Professor drives visibility, attempts, aggregates, chat, and response delivery |
-| `live-anonymous` | Join, hold WebSocket, and answer five questions | Instructor receives response counts only; final results show one correlated row per respondent after the four-person minimum |
+| `live-anonymous` | Join, hold WebSocket, and answer five questions | Counts update immediately; anonymous statistics update in groups of at least four; final results show correlated respondent rows after the session ends and the four-person minimum is met |
 | `quiz-named` | Load course sessions, open the quiz, autosave five answers, and submit | Final results preserve one row and five answers per student |
 | `quiz-anonymous` | Same quiz journey | Final results show one correlated row per respondent after the four-person minimum, without identities |
 
@@ -189,7 +412,7 @@ email login is normally blocked for non-admin accounts.
 
 ## Scenario Coverage
 
-The `live-named` scenario tracks the real live-session update path used by the browser:
+All live scenarios track the same live-session update path used by the browser. The ordinary `live-named` defaults remain unchanged:
 
 1. Professor logs in, explicitly selects and hides the first question, and
    starts the session. Every later transition also hides the previous question
@@ -220,8 +443,10 @@ command line.
 
 Timing and sync variables:
 
+- `LIVE_STATS_DURING_ANSWERS`: default `false`. Set `true` to keep statistics enabled while answers arrive and exercise per-answer delivery to participants. Anonymous answer content is delivered only in batches of at least four new respondents. Compare both stats-on and stats-off runs; the ordinary workload and production rate-limit configuration are unchanged.
+
 - `SESSION_CHAT_ENABLED`: set to `true`/`false` (or use
-  `./run.sh --session-chat on|off`) to run the interactive session with session
+  `./run.sh --session-chat on\|off`) to run the interactive session with session
   chat enabled or disabled.
 - `ANSWER_WINDOW_S`: how long each question stays open for answers. Keep this
   comfortably above `RESPONSE_JITTER_MS` so the scenario is testing a normal
@@ -294,6 +519,7 @@ The scenario tracks and thresholds these key signals:
 - `respond_attempts`
 - `respond_successful_submissions`
 - `professor_response_events`
+- `professor_response_coverage_success`
 - `professor_driver_completions`
 - `professor_viewer_completions`
 - `student_flow_completions`
@@ -320,6 +546,8 @@ The scenario tracks and thresholds these key signals:
 - `response_server_processing_duration`
 - `response_delivery_to_professor_duration`
 - `professor_observer_loop_lag`
+- `student_observer_loop_lag` (tagged by participant type)
+- `respond_timer_lag` (actual timer delay beyond the requested answer jitter)
 - `live_refresh_duration{role:student}`
 - `live_refresh_duration{role:professor}`
 - `event_sync_duration{role:student}`
@@ -342,11 +570,61 @@ aggregate-statistics work performed before the websocket event is emitted.
 This split shows whether a slow professor update came from response/statistics
 processing or from transport/observer backlog.
 
-`professor_observer_loop_lag` samples a 250 ms timer in the professor k6 VU.
-High loop lag alongside high delivery latency means the shared load generator
-is struggling to schedule the observer and may overstate browser latency. Low
-loop lag with high delivery latency points instead to Redis/WebSocket/network
-fan-out in the deployed path.
+`anonymous_privacy_failures{reason:…}` separates identity/timestamp exposure,
+small batches, publication gaps, and published totals larger than their accompanying
+response counts. Every reason must stay at zero. Bounded warnings show only role,
+question position, attempt and numeric counts—never answers, user IDs or raw payloads.
+The original `anonymous_privacy_success` check remains in force. Final batch-size
+checks alone cannot establish that intermediate publications were safe.
+
+The k6 response-list simulator maintains already-sorted histories incrementally
+for individual response events. It preserves the same ordering, deduplication,
+and updates as the browser. The protocol simulator owns its lists and updates
+them in place; it does not need immutable snapshot histories for React rendering.
+An ID index avoids scanning the list for new responses, and binary insertion
+preserves timestamp/ID ordering. This removes per-answer list copies and sorts
+across hundreds of simulated clients. HTTP snapshots and entries without IDs
+retain the canonical merge path. Regression tests compare every intermediate
+list with the original implementation, including reordered and repeated answers.
+Requests, recipients and events are unchanged. Browser rendering performance
+still requires browser telemetry.
+
+Student sockets use the [k6 global-event-loop WebSocket API](https://grafana.com/docs/k6/latest/javascript-api/k6-websockets/),
+with [asynchronous answer requests](https://grafana.com/docs/k6/latest/javascript-api/k6-http/asyncrequest/).
+They continue consuming updates while their own answer HTTP request is pending,
+as a browser does. The former blocking HTTP call inside `k6/ws` artificially
+queued incoming events behind the answer request. One in-flight request is allowed
+per attempt; its completion cannot overwrite newer question/stats state. Socket
+closure cancels timers and waits for pending callbacks before counting completion.
+The answer count, jitter, HTTP failure and HTTP latency requirements are unchanged.
+Keep the standard k6 image current if using a custom image predating `k6/websockets`.
+Initial setup and infrequent fallback/chat calls remain synchronous in the runner;
+use the loop-lag gates to spot contamination from those paths.
+
+`response_event_chars` reports response-event JSON string lengths (characters,
+not encoded network bytes), tagged by role. Combine it with `ws_msgs_received`,
+network traffic, resource samples and observer lag to distinguish larger payloads,
+higher fan-out volume and load-generator contention. No per-event console logging
+or unbounded raw k6 sample export is enabled.
+
+`professor_observer_loop_lag` samples a 250 ms timer in the professor k6 VU;
+`student_observer_loop_lag` samples a one-second timer in every student VU.
+Both must have p99 below 250 ms. These are test-client health gates, separate
+from the existing three-second application latency limits. A failed health gate
+means the run cannot establish browser latency reliably, even if all answers
+were saved. Local scheduling delays can come from generator CPU contention or
+synchronous HTTP calls within a VU; compare them with container CPU and HTTP
+timings before attributing the delay to the server. Low timer lag alone does
+not rule out an incoming WebSocket queue backlog.
+
+`respond_timer_lag` measures how late each answer timer fired beyond its requested
+jitter. The runner rechecks the current question, attempt, session status, join,
+visibility and answer gates after every relevant session event, and again before
+submitting. An attempt event after a visibility event cannot leave a stale
+separate window flag blocking submission. A timer belonging to another attempt
+is skipped, never submitted against the new question. `respond_stale_timer_skips`
+still must be zero for this controlled workload; its `reason` tag distinguishes
+an attempt change from a closed answer window. Missing answers remain failures.
 
 The event metrics use the same split: `event_delivery_duration` measures server
 emit to WebSocket receipt and `event_apply_duration` measures receipt to a
@@ -370,8 +648,12 @@ Additional counters include:
 - `response_added_refreshes`
 - `respond_attempts`: every `/respond` request issued by the scenario
 - `respond_successful_submissions`: every accepted response
-- `professor_response_events`: accepted responses observed by the professor
-  WebSocket client
+- `professor_response_events`: raw response notifications observed by the professor
+  WebSocket client. Anonymous snapshot repair can send an extra aggregate
+  notification without inserting an answer; this is not a count of database rows.
+- `professor_response_coverage_success`: every question's latest observed attempt
+  reaches exactly the seeded participant count. Repeated/out-of-order counts
+  cannot inflate this check; excess counts also fail.
 - `professor_driver_completions`, `professor_viewer_completions`, and
   `student_flow_completions`: exact counts of scenario flows that reached their
   normal end; unlike a success rate, these expose callbacks aborted by a runner
@@ -431,10 +713,17 @@ The current acceptance bar is intentionally strict for classroom use:
 
 - `http_req_failed` must stay at `0%`
 - `ws_errors` must stay at `0`
-- `respond_attempts`, `respond_successful_submissions`, and
-  `professor_response_events` must each equal the seeded student count times
-  the number of response-capable questions. This prevents a clean percentage
-  from hiding missing, duplicate, or unobserved responses.
+- `respond_attempts` and `respond_successful_submissions` must each equal the
+  seeded student count times the number of response-capable questions.
+- `professor_response_events` must equal that count for non-anonymous sessions.
+  For anonymous sessions it must be at least that count: instructor `/live`
+  snapshot repair can legitimately publish another anonymous aggregate event.
+  All sessions must pass `professor_response_coverage_success` for every question,
+  the authoritative final question count, and final results with exactly one
+  answer per participant per question. Extra notifications cannot substitute
+  for missing or duplicate saved responses.
+- Professor and student observer loop-lag p99 must be below 250 ms. Keep these
+  health gates separate from application latency when interpreting a failure.
 - `professor_driver_completions` and `professor_viewer_completions` must each
   equal `1`, and `student_flow_completions` must equal the seeded student count.
   A JavaScript exception or early return therefore cannot disappear from a
@@ -496,6 +785,7 @@ For live-session correctness, the most important lines are:
 - `respond_attempts`
 - `respond_successful_submissions`
 - `professor_response_events`
+- `professor_response_coverage_success`
 - `student_flow_completions`
 - `ws_connect_success{role:student}`
 - `ws_connect_success{role:professor}`
