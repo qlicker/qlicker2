@@ -302,6 +302,8 @@ Your identity is hidden from other students, but instructors/TAs can identify au
 
 When enabled, the **Chat** panel appears beside **Question** during a live activity. A badge shows unseen chat activity while you are answering.
 
+Session chat shows the most recently active discussion first. A new post, comment, or upvote moves the discussion to the top. Unread badges clear when you open Chat. Dismissed discussions remain below active ones for instructors.
+
 Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.
 
 ![Student Session Chat with quick clarification options, comments, and votes](../assets/manuals/student-session-chat.png)

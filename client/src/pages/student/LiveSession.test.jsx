@@ -177,7 +177,7 @@ describe('Student LiveSession', () => {
     expect(await screen.findByText(/Answers will be scored based on a tolerance of \+\/- 1\.2345E4\./i)).toBeInTheDocument();
   });
 
-  it('shows a newly visible quick post as unread in red and clears it as soon as chat is opened', async () => {
+  it.each(['post-created', 'comment-added', 'quick-post-toggled'])('shows %s as unread in red and clears it as soon as chat is opened', async (changeType) => {
     const buildView = () => (
       <MemoryRouter initialEntries={['/student/course/course-1/live/session-1']}>
         <Routes>
@@ -191,7 +191,7 @@ describe('Student LiveSession', () => {
     websocketState.lastEvent = {
       event: 'session:chat-updated',
       data: {
-        changeType: 'quick-post-toggled',
+        changeType,
         becameVisible: true,
         postId: 'quick-post-new',
       },

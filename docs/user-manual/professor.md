@@ -403,6 +403,8 @@ The retention setting automatically archives older topics. Choose a period long 
 
 Session chat supports normal posts, comments, and votes when rich text is enabled. Students can also use quick posts associated with the current or an earlier question. Quick posts remain available when rich text is disabled, giving you a lower-distraction clarification channel.
 
+Session chat shows the most recently active discussion first. A new post, comment, or upvote moves the discussion to the top. Unread badges clear when you open Chat. Dismissed discussions remain below active ones for instructors.
+
 Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.
 
 Use **Dismiss** when a question has been resolved but should remain in the record. Delete only when content truly needs removal. The instructor review page retains the conversation, including dismissed items, after the session ends.

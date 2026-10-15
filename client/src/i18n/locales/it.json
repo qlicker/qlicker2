@@ -2373,7 +2373,8 @@
             "Abilita la Chat della sessione dai controlli della sessione dal vivo. Puoi disattivare separatamente post formattati e commenti mantenendo disponibili i messaggi rapidi legati alla domanda corrente.",
             "Usa i voti per individuare le domande comuni, contrassegna come gestita una discussione risolta e rivedi la conversazione dopo la sessione. I contatori dei messaggi non letti aiutano durante la presentazione.",
             "Definisci le aspettative: chat del corso per domande e risorse durature, chat della sessione per dubbi immediati e controlli di risposta per le risposte valutate.",
-            "Gli ospiti che hanno aderito a un’attività dal vivo condivisa possono usare la chat di sessione abilitata, inclusi messaggi rapidi, commenti e voti. Questo non dà accesso alla chat del corso. Nelle attività anonime, gli altri partecipanti e i docenti non possono vedere l’identità di ospiti o studenti nella chat. Evita di identificarti nel testo dei messaggi."
+            "Gli ospiti che hanno aderito a un’attività dal vivo condivisa possono usare la chat di sessione abilitata, inclusi messaggi rapidi, commenti e voti. Questo non dà accesso alla chat del corso. Nelle attività anonime, gli altri partecipanti e i docenti non possono vedere l’identità di ospiti o studenti nella chat. Evita di identificarti nel testo dei messaggi.",
+            "La chat di sessione mostra prima la discussione con l’attività più recente. Un nuovo post, commento o voto positivo la porta in cima. Gli indicatori dei messaggi non letti si azzerano quando apri la chat."
           ],
           "note": "Visibilità e identità dell'autore cambiano in base al ruolo. Consulta il manuale dello studente prima di introdurre la chat alla classe."
         },
@@ -2497,7 +2498,8 @@
             "Durante un'attività dal vivo apri il pannello Chat. I messaggi rapidi restano disponibili se i post formattati sono disattivati; commenti e voti dipendono dalle impostazioni correnti.",
             "Una discussione gestita o archiviata non è necessariamente eliminata. In seguito non appare nella revisione dello studente, ma il team docente può conservarla per revisione e moderazione.",
             "Un messaggio in chat non invia una risposta. Torna al pannello Domanda e usa il pulsante di risposta quando vengono registrati voto o partecipazione.",
-            "Gli ospiti che hanno aderito a un’attività dal vivo condivisa possono usare la chat di sessione abilitata, inclusi messaggi rapidi, commenti e voti. Questo non dà accesso alla chat del corso. Nelle attività anonime, gli altri partecipanti e i docenti non possono vedere l’identità di ospiti o studenti nella chat. Evita di identificarti nel testo dei messaggi."
+            "Gli ospiti che hanno aderito a un’attività dal vivo condivisa possono usare la chat di sessione abilitata, inclusi messaggi rapidi, commenti e voti. Questo non dà accesso alla chat del corso. Nelle attività anonime, gli altri partecipanti e i docenti non possono vedere l’identità di ospiti o studenti nella chat. Evita di identificarti nel testo dei messaggi.",
+            "La chat di sessione mostra prima la discussione con l’attività più recente. Un nuovo post, commento o voto positivo la porta in cima. Gli indicatori dei messaggi non letti si azzerano quando apri la chat."
           ]
         },
         {

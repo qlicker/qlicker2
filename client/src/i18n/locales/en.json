@@ -2420,7 +2420,8 @@
             "Enable Session Chat from the live-session controls. You can separately disable rich-text posts and comments while keeping quick posts tied to the current question available.",
             "Use session-chat upvotes to find common questions, dismiss a resolved thread without deleting it, and review the conversation after the session. Unseen-count badges help you notice activity while presenting.",
             "Set expectations before class: use course chat for durable questions and resources, session chat for immediate confusion, and the answer controls for graded responses.",
-            "Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text."
+            "Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.",
+            "Session chat shows the most recently active discussion first. A new post, comment, or upvote moves the discussion to the top. Unread badges clear when you open Chat."
           ],
           "note": "Chat visibility and author identity differ by role. Preview the student manual before introducing chat to the class."
         },
@@ -2544,7 +2545,8 @@
             "During a live activity, open the Chat panel for question-specific discussion. Quick posts remain available when the instructor disables rich-text posts; comments and upvotes depend on the current session settings.",
             "A dismissed or archived discussion is not necessarily deleted. It is hidden from your student review afterward, but the teaching team can retain it for review and moderation.",
             "Chat messages do not submit an answer. Return to the Question panel and use the response button whenever the activity is graded or participation is tracked.",
-            "Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text."
+            "Guests who have joined a shared live activity can use its enabled session chat, including quick posts, comments, and votes. This does not grant access to course chat. In anonymous activities, other participants and instructors cannot see guest or student identities in chat. Avoid identifying yourself in message text.",
+            "Session chat shows the most recently active discussion first. A new post, comment, or upvote moves the discussion to the top. Unread badges clear when you open Chat."
           ]
         },
         {

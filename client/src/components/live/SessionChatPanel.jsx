@@ -61,9 +61,11 @@ function compareChatPosts(a, b) {
   const bDismissed = !!(b?.dismissed || b?.dismissedAt);
   if (aDismissed !== bDismissed) return aDismissed ? 1 : -1;
 
-  const voteDiff = (Number(b?.upvoteCount) || 0) - (Number(a?.upvoteCount) || 0);
-  if (voteDiff !== 0) return voteDiff;
-  const createdDiff = getTimestampMs(a?.createdAt) - getTimestampMs(b?.createdAt);
+  // Posts, comments, and votes already update updatedAt. Reuse it so both
+  // initial snapshots and live deltas keep the latest discussion first.
+  const activityDiff = getTimestampMs(b?.updatedAt || b?.createdAt) - getTimestampMs(a?.updatedAt || a?.createdAt);
+  if (activityDiff !== 0) return activityDiff;
+  const createdDiff = getTimestampMs(b?.createdAt) - getTimestampMs(a?.createdAt);
   if (createdDiff !== 0) return createdDiff;
   return String(a?._id || '').localeCompare(String(b?._id || ''));
 }

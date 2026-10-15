@@ -807,6 +807,28 @@ describe('SessionChatPanel', () => {
     expect(screen.getAllByRole('button', { name: 'Dismiss' })).toHaveLength(2);
   });
 
+  it.each(['student', 'professor'])('moves a discussion to the top on comment/upvote deltas for %s without refetching', (role) => {
+    vi.useFakeTimers();
+    const older = { _id: 'older', body: 'Older popular post', createdAt: '2020-01-01', updatedAt: '2020-01-01', upvoteCount: 20, comments: [] };
+    const newer = { _id: 'newer', body: 'Recent post', createdAt: '2020-01-02', updatedAt: '2020-01-02', upvoteCount: 0, comments: [] };
+    const initialData = { posts: [newer, older], quickPosts: [], canPost: false, canComment: false, canVote: false };
+    const { rerender, unmount } = render(<SessionChatPanel sessionId="session-1" enabled role={role} initialData={initialData} />);
+    const expectFirst = (first, second) => expect(screen.getByText(first).compareDocumentPosition(screen.getByText(second)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    try {
+      expectFirst('Recent post', 'Older popular post');
+      rerender(<SessionChatPanel sessionId="session-1" enabled role={role} initialData={initialData}
+        chatEvent={{ changeType: 'comment-added', postId: older._id, post: { ...older, updatedAt: '2020-01-03', comments: [{ _id: 'comment-1', body: 'New comment' }] } }} />);
+      expectFirst('Older popular post', 'Recent post');
+      rerender(<SessionChatPanel sessionId="session-1" enabled role={role} initialData={initialData}
+        chatEvent={{ changeType: 'post-voted', postId: newer._id, post: { ...newer, updatedAt: '2020-01-04', upvoteCount: 1 } }} />);
+      expectFirst('Recent post', 'Older popular post');
+      expect(apiClient.get).not.toHaveBeenCalled();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
   it('keeps dismissed posts last in professor live chat updates', async () => {
     vi.useFakeTimers();
     apiClient.get.mockResolvedValue({

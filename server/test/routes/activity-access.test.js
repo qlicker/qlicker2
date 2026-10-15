@@ -5,6 +5,7 @@ import ActivityGrant from '../../src/models/ActivityGrant.js';
 import ActivityShare from '../../src/models/ActivityShare.js';
 import Course from '../../src/models/Course.js';
 import Grade from '../../src/models/Grade.js';
+import Post from '../../src/models/Post.js';
 import Question from '../../src/models/Question.js';
 import Response from '../../src/models/Response.js';
 import { getSessionParticipantId } from '../../src/utils/anonymousSession.js';
@@ -885,6 +886,27 @@ describe('shared interactive session chat', () => {
     expect((await call('DELETE', `/chat/posts/${postId}`)).statusCode).toBe(200);
     expect((await Course.findById(course._id).lean()).students).not.toContain(outsider._id);
     expect(await Grade.countDocuments({ sessionId: session._id })).toBe(0);
+  });
+
+  it.each([false, true])('orders discussion by latest post, comment, or vote for every viewer (anonymous=%s)', async (anonymous) => {
+    const { call, professorToken } = await chatFixture(anonymous);
+    await call('POST', '/join', { joinCode: '123456' });
+    const firstId = (await call('POST', '/chat/posts', { body: 'Older popular post' }, professorToken)).json().postId;
+    const secondId = (await call('POST', '/chat/posts', { body: 'Recent post' }, professorToken)).json().postId;
+    await Post.updateOne({ _id: firstId }, { $set: { createdAt: new Date('2020-01-01'), updatedAt: new Date('2020-01-01'), upvoteCount: 20 } });
+    await Post.updateOne({ _id: secondId }, { $set: { createdAt: new Date('2020-01-02'), updatedAt: new Date('2020-01-02') } });
+    const expectOrder = async (ids) => {
+      for (const [view, token] of [['', undefined], ['', professorToken], ['?view=presentation', professorToken], ['?view=review', professorToken]]) {
+        const response = await call('GET', `/chat${view}`, undefined, token);
+        expect(response.statusCode).toBe(200);
+        expect(response.json().posts.filter((post) => !post.isQuickPost).map((post) => post._id)).toEqual(ids);
+      }
+    };
+    await expectOrder([secondId, firstId]);
+    expect((await call('POST', `/chat/posts/${firstId}/comments`, { body: 'New discussion on older post' })).statusCode).toBe(200);
+    await expectOrder([firstId, secondId]);
+    expect((await call('PATCH', `/chat/posts/${secondId}/vote`, { upvoted: true })).statusCode).toBe(200);
+    await expectOrder([secondId, firstId]);
   });
 
   it('keeps ordinary enrolled chat off the activity-grant lookup path', async () => {

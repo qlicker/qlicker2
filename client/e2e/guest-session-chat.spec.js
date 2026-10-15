@@ -38,17 +38,24 @@ for (const anonymous of [false, true]) {
       await page.getByLabel('Enable session chat').click();
       await expect(page.getByLabel('Enable session chat')).toBeChecked();
       await guestPage.getByRole('tab', { name: /^Chat/ }).click();
-      await page.getByRole('tab', { name: /^Chat/ }).click();
       const guestEditor = guestPage.getByRole('textbox', { name: 'Session chat post editor' });
       const writePost = guestPage.getByRole('button', { name: 'Write a post' });
       await expect(guestEditor.or(writePost)).toBeVisible();
       if (!(await guestEditor.isVisible())) await writePost.click();
       await guestEditor.fill('A question from a guest');
       await guestPage.getByRole('button', { name: 'Post', exact: true }).click();
+      await expect(guestEditor).toBeHidden();
       await expect(guestPage.getByText('A question from a guest', { exact: true })).toBeVisible();
+      await expect(page.getByRole('tab', { name: /^Chat\s*1$/ })).toBeVisible();
+      await page.getByRole('tab', { name: /^Chat/ }).click();
+      await expect(page.getByRole('tab', { name: 'Chat', exact: true })).toBeVisible();
       await expect(page.getByText('A question from a guest', { exact: true })).toBeVisible();
       // Instructor messages arrive through the existing delta stream without a reload.
+      await guestPage.getByRole('tab', { name: 'Current question', exact: true }).click();
       await call('POST', '/chat/posts', { body: 'A reply from the instructor' });
+      await expect(guestPage.getByRole('tab', { name: /^Chat\s*1$/ })).toBeVisible();
+      await guestPage.getByRole('tab', { name: /^Chat/ }).click();
+      await expect(guestPage.getByRole('tab', { name: 'Chat', exact: true })).toBeVisible();
       await expect(guestPage.getByText('A reply from the instructor', { exact: true })).toBeVisible();
       // A fresh page must retain access as well as receiving live settings updates.
       await guestPage.reload();
