@@ -34,9 +34,9 @@ The web app also provides a localized, role-aware manual under the account menu.
 - [Load testing](../load-testing/README.md)
 - [Local SAML test environment](../ssoserver/README.md)
 - [Legacy database reference](../meteorjs_migration/LEGACY_DB.md)
-- [Migration status](../meteorjs_migration/MIGRATION.md)
+- [Migrating an existing Meteor installation](../meteorjs_migration/MIGRATION.md)
 
-Files under `meteorjs_migration/` that are explicitly marked historical describe the old migration project; they are not the current setup guide.
+The migration guide covers backups, restore, authentication, storage cutover, validation, and rollback. The legacy database reference records the compatibility contract.
 
 ## Maintaining these docs
 

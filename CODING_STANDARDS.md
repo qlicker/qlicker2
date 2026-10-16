@@ -58,7 +58,7 @@ Dependencies and exact versions are authoritative in `client/package.json`, `ser
 - Include enough state in events for clients to patch locally; retain a safe refresh fallback for old or incomplete events.
 - Avoid full session refetches on every response or chat event.
 - Do not add unbounded arrays, queries, or broadcasts to a path used by hundreds of connected students.
-- Use the k6 suite when a change could affect classroom-scale concurrency.
+- Use the k6 suite when a change could affect classroom-scale concurrency. Start with `run.sh --regression`; add shared/anonymous scenarios for those paths. Treat the statistics-visible matrix as a separate stress workload. Record application image versions and compare the same runner, timings, replica count, and host resources; a passing feature run alone does not establish unchanged latency.
 
 ## 5. Frontend standards
 
@@ -93,6 +93,9 @@ Dependencies and exact versions are authoritative in `client/package.json`, `ser
 - Keep DOM sanitization and Content Security Policy constraints in mind when rendering HTML.
 - Never return storage credentials, password hashes, refresh tokens, SAML private keys, or AI API tokens to clients.
 - Production private-network AI access must remain allowlisted by exact trusted host.
+- Session-scoped guest access must not imply course access. Preserve the separation between enrolled-student grades and ungraded guest/anonymous responses.
+- Anonymous results must preserve stable pseudonyms, participation locks, release thresholds, and identity filtering in every output channel. Do not introduce identity/answer timing correlation through incremental updates.
+- Show a zero mark only when an explicit mark is zero. Missing grade items and missing question marks are not incorrect answers.
 - Prefer disabling user accounts to deleting historical academic records unless deletion is explicitly required.
 
 ## 9. Testing standards
@@ -132,7 +135,7 @@ Use deterministic fixtures. Do not make tests depend on production services, wal
 - Update `docs/developer/` for architecture, model, grading, or maintenance changes.
 - Update route schemas and `docs/api-reference.md` for API changes.
 - Update `production_setup/README.md` and `.env.example` together for deployment settings.
-- Keep historical migration documents historical; label obsolete instructions instead of presenting them as the current development path.
+- Remove superseded plans once their useful details are incorporated into current guides. Keep the legacy schema contract and operator migration/rollback instructions; Git history retains the implementation history.
 
 Browser screenshots must come from the repeatable Playwright capture documented in `AGENTS.md`. Check that they contain no real personal data or credentials.
 

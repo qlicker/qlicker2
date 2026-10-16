@@ -1,394 +1,125 @@
-# Qlicker Load Testing Suite
+# Qlicker load testing
 
-Automated load testing for named and anonymous interactive sessions and quizzes, including activities opened by code by people outside the course.
-The suite seeds dedicated users, a course, questions, and one session per run.
-The original named interactive scenario follows the real classroom flow:
+The k6 suite checks interactive sessions, quizzes, shared activities, and anonymous response privacy. It seeds dedicated accounts and a course, drives the deployed application over HTTP/WebSockets, and checks saved answers, instructor delivery, result rows, and grades.
 
-- one professor launches and drives the session
-- hundreds of students authenticate, join, keep WebSockets open, refresh live
-  state from websocket deltas when possible, and submit responses
-- a professor observer window and a slice of student chat viewers keep the chat
-  panel in sync from websocket chat deltas, falling back to `/chat` refreshes
-  only when the payload is insufficient
-- quick-post requests, student discussion posts, upvotes, and professor replies
-  are exercised during the session
-- question changes, attempt changes, stats visibility, answer reveals, and
-  short-answer / numerical stat refreshes are all exercised
+## Setup
 
-The seed and k6 runners run as Docker images. The target Qlicker stack can be:
-
-- `prod` + `docker` on either a staging or production host, using
-  `production_setup/docker-compose.yml` and its deployed application images
-- `dev` + `docker`
-- `dev` + `native`
-
-Each new seed removes the previous load-test users, course, questions, session,
-and responses from the configured database. `--clean` removes those fixtures
-after the run.
-
-## Quick Start
-
-For the ordinary-session regression check on an already configured `prod` / `docker`
-stack (staging or production), use one command:
-
-```bash
-./load-testing/run.sh --regression --students 500
-```
-
-Run it from the repository root, or use `./run.sh --regression --students 500`
-from this directory. Preparation, rate-limit restoration, and cleanup are automatic.
-See [the classroom regression check](#classroom-regression-check) for coverage and
-results. No separate machine, image rebuild, or `.env` edits are required.
-
-The initial setup and manual commands remain available:
+From the repository root:
 
 ```bash
 cd load-testing
-
-# 1. One-time interactive setup
 ./setup.sh
-
-# 2. Disable rate limits on the running stack
-./run.sh --prepare
-
-# 3. Run the load test
-./run.sh
-
-# 4. Restore rate limits when finished
-./run.sh --restore
-
-# 5. Remove load-test fixtures
-./run.sh --clean
 ```
 
-If the target stack is running natively, `--prepare` and `--restore` update the
-target `.env` and tell you to restart the server so the change takes effect.
+Use **prod + docker** for either a staging or production installation deployed from `production_setup/`. Both use the same images, Compose topology, and public proxy path; staging is a lower-stakes copy, not a different runtime mode. The wizard asks for the target `.env`, student count, and runtime, derives `BASE_URL`/MongoDB/network settings, and builds the seed image. Dev Docker and native targets are also supported for individual runs; the load generators themselves require Docker.
 
-## What `setup.sh` Does
+The seed image is separate from the application images. `run.sh` automatically rebuilds a missing or stale seed image after a checkout update. Deploy application changes through the normal image/update workflow before measuring them. Keep `.env`, credentials, seed state, and generated results out of Git.
 
-`./setup.sh` asks for:
+## Quick start
 
-- target environment: `dev` or `prod`
-- runtime: `docker` or `native`
-- path to the `.env` file for the stack that is currently running
-- number of students to simulate
-
-It then:
-
-- derives the MongoDB connection string used by the seed/cleanup runner
-- derives the target base URL used by k6
-- detects the Docker network when the stack is containerized
-- writes `load-testing/.env`
-- builds the local seed image (`qlicker-load-testing-seed:local` by default)
-
-`production_setup/update.sh` updates the application images. The load-test
-seed image is built separately. The load runner fingerprints the seed Dockerfile, package files, and
-`seed.mjs`; `--seed-only`, a full run, and `--clean` rebuild a missing or stale
-seed image automatically after a checkout update. On a Docker target,
-`--prepare` checks and rebuilds it before disabling rate limits. `--test-only`
-requires a fixture made for the selected scenario and does not rebuild or
-reseed it.
-
-### URL Resolution
-
-- `prod`: prefers `ROOT_URL`, then falls back to `https://$DOMAIN`
-- `dev`: prefers `VITE_API_URL`, then `API_PORT`, then `PORT`
-
-For dev, the base URL normally points at the API/WebSocket server origin, not
-an external domain.
-
-## Run Modes
-
-| Command | Description |
-|---------|-------------|
-| `./run.sh` | Seed + run the load test |
-| `./run.sh --students N` | Override the configured student count |
-| `./run.sh --regression` | Prepare, run the original classroom workflow once, restore, and clean automatically |
-| `./run.sh --ordinary` | Prepare, run two ordinary interactive comparisons, restore, and clean automatically |
-| `./run.sh --matrix` | Prepare, run all 12 interactive comparisons, restore, and clean automatically |
-| `./run.sh --live-stats on\|off` | Override statistics during answers without editing `.env` |
-| `./run.sh --scenario NAME` | Choose `live-named` (default), `live-anonymous`, `quiz-named`, `quiz-anonymous`, `live-external-named`, `live-external-anonymous`, `quiz-external-named`, or `quiz-external-anonymous` |
-| `./run.sh --session-chat on\|off` | Run `live-named` with chat enabled or disabled; shared and anonymous comparisons require chat off |
-| `./run.sh --enrolled-percent N` | Set the enrolled proportion (0–100) for external fixtures; ordinary fixtures require 100 |
-| `./run.sh --seed-only` | Seed without running k6 |
-| `./run.sh --test-only` | Run k6 with the existing `state/state.json` for the selected scenario |
-| `./run.sh --clean` | Delete load-test fixtures and `state/state.json` |
-| `./run.sh --prepare` | Disable rate limits on the running stack |
-| `./run.sh --restore` | Restore the stack’s original rate-limit setting |
-
-## Identical staging and production runs
-
-Both servers use the same `prod` + `docker` load-test configuration and
-`production_setup/docker-compose.yml`. Their `production_setup/.env` files set
-the host-specific image tags, MongoDB connection, and `ROOT_URL`. If
-`load-testing/.env` is already configured with `TARGET_ENV=prod` and
-`TARGET_RUNTIME=docker`, a checkout update does not require rerunning setup.
-Otherwise, run `./setup.sh` and choose `prod` plus `docker` on either host.
-
-1. If a prior test stopped after `--prepare`, run `./run.sh --restore` and
-   `./run.sh --clean` before starting another test. Run these as separate
-   commands; a failed command in an `&&` chain skips the later commands.
-2. Run `./run.sh --prepare`. This checks or rebuilds the load-test seed image
-   before disabling API and Nginx rate limits and recreating the server service.
-   The runner verifies that the active Nginx configuration has no `limit_req`
-   directives. The original API setting is saved in
-   `state/rate-limit-restore.env`.
-3. Run each scenario at the same student count and with the same timing knobs:
-
-   ```bash
-   JOIN_GRACE_S=30 ./run.sh --scenario live-named --students 100
-   JOIN_GRACE_S=30 ./run.sh --scenario live-anonymous --students 100
-   ./run.sh --scenario quiz-named --students 100
-   ./run.sh --scenario quiz-anonymous --students 100
-   JOIN_GRACE_S=30 ./run.sh --scenario live-external-named --students 100
-   JOIN_GRACE_S=30 ./run.sh --scenario live-external-anonymous --students 100
-   ./run.sh --scenario quiz-external-named --students 100
-   ./run.sh --scenario quiz-external-anonymous --students 100
-   ```
-
-   Choose `JOIN_GRACE_S` long enough for the student login wave to complete;
-   keep it identical across comparison runs. Each command reseeds its own
-   fixture. External variants accept `--enrolled-percent` (default 50 for identified activities and 0 for anonymous activities). The seed rounds the enrolled count to the nearest whole participant. Only eligible enrolled participants receive grade rows; guests redeem the code without enrolling. Anonymous variants remain ungraded for everyone. All external variants check code redemption, response tracking, and live delivery. Run `./run.sh --test-only --scenario NAME` only if the current
-   fixture was seeded for that name and has not been consumed by a previous
-   run. Quiz submissions and live session endings make a completed fixture
-   unsuitable for another full pass.
-4. Run `./run.sh --restore` and `./run.sh --clean` as separate commands when
-   testing ends, including after a failed run. Keep result logs and summaries
-   before cleanup. The prod/docker runner refuses a full or test-only run if
-   `--prepare` has not left a restore record and `DISABLE_RATE_LIMITS=true`.
-   `--clean` removes fixtures but keeps the restore record.
-
-If `--restore` reports that its record is missing, it cannot know the previous
-API setting. Check `DISABLE_RATE_LIMITS` in `production_setup/.env` and inspect
-the active Nginx `limit_req` directives before another run. If the API setting
-is still `true`, restore the intended value and recreate the server service;
-restart Nginx if its active rate-limit directives were disabled. Do not run
-`--prepare` again until that state is understood.
-
-Before each main workload, the runner sends twelve empty login requests
-through the configured public `BASE_URL`. They should all reach API validation
-and return 400. A 503 or any other response stops the run before student VUs
-start; the diagnostic is saved in `results/preflight-NAME-TIMESTAMP.log`.
-Check Nginx and any proxy in front of it if the preflight fails. The probe
-uses no account credentials and does not change the application database.
-
-`results/k6-NAME-TIMESTAMP.log` contains the complete k6 output and
-`results/summary-NAME-TIMESTAMP.json` contains machine-readable metrics. Match
-student count, timing knobs, and image versions for baseline and PR runs.
-Compare error rate, p95/p99 HTTP duration, login and join, WebSocket event
-delivery, answer submission, quiz autosave, and final results duration. Run
-`quiz-anonymous` and `live-anonymous` once with three students to confirm that
-result rows remain withheld below four respondents, then with at least four
-students to verify correlated rows appear. A threshold failure or a missing
-summary is a failed run; investigate it before comparing latency. All four live variants use the same browser-like delta workload in
-`scenarios/live-session.js`; anonymous variants check identity-free statistics in groups of at least four new respondents and exercise live word clouds/histograms when at least four participants respond. `anonymous_batch_stats_success` requires a released cache with fewer than four unreleased answers at the end of each question (or no cache below four participants).
-
-Test on the lower-stakes host first, then use the same commands on production.
-`load-testing/.env`, state, and results contain test credentials and remain
-local to each host. Confirm each host's configuration points at its intended
-stack before seeding.
-
-## Classroom regression check
-
-The recommended check for whether anonymous/shared activity support changed the
-existing classroom experience is:
+On a configured production-equivalent Docker stack:
 
 ```bash
 ./load-testing/run.sh --regression --students 500
 ```
 
-It follows the pre-anonymous-PR classroom sequence (from commit `4719d42`):
+Run from the repository root, or use `./run.sh` from this directory. The command prepares the stack, runs one classroom session, restores the original rate-limit settings, and removes fixtures. No manual `.env` edits or separate cleanup commands are needed on normal completion, threshold failure, or Ctrl+C.
 
-- One instructor, an instructor observer, and 500 enrolled students; no guests,
-  sharing, or anonymous responses.
-- Five questions, with the original answer windows and pauses (about five minutes
-  total with default timing settings).
-- Students answer with statistics hidden. The instructor receives response updates
-  throughout. Once answering closes, students see statistics, word clouds/histograms
-  where applicable, and correct answers.
-- The original chat workload is enabled: quick posts, discussion posts, votes, and
-  professor replies from the existing participant fractions.
-- All 2,500 answers and all student completions must be recorded; current checks
-  also verify per-question instructor coverage, final response rows, and grades.
+Preparation temporarily disables API/Nginx rate limits and recreates the API services. Run during an agreed test window, on staging first. The test measures application capacity with those limits disabled, not public rate-limit behavior. Each seed replaces prior load-test fixtures; do not run workloads concurrently against the same database.
 
-This reuses the maintained scenario and its scheduling fixes; it restores the
-original **workflow**, not a frozen copy of the old runner. Existing error,
-completion, and latency thresholds remain enforced. A failed login threshold is
-still reported as a failure, even if answering and results checks pass. Inspect
-those separately when diagnosing a run.
+## Choose a workload
 
-The profile explicitly selects `live-named`, 100% enrolled, chat on, and statistics
-hidden during answering, overriding prior matrix settings in `.env`. Only
-`--students` can override the profile. Timing settings retain their configured
-values and are logged; use the same values for comparisons. It runs on the same
-host, Docker stack, and public proxy path as before. Resource sampling remains a
-diagnostic aid, and does not require a second machine.
+| Goal | Command | Approximate workload |
+| --- | --- | --- |
+| Ordinary classroom regression | `./run.sh --regression --students 500` | One session, about five minutes plus setup/cleanup |
+| Statistics hidden/visible comparison | `./run.sh --ordinary --students 500` | Two sessions, about eleven minutes plus setup/cleanup |
+| Statistics-visible stress case only | `./run.sh --ordinary --students 500 --live-stats on` | One session |
+| Full shared/anonymous comparison | `./run.sh --matrix --students 500` | Twelve sessions; allow about an hour plus setup/cleanup |
+| A quiz or a specific participant mix | Individual scenario commands below | One seeded activity per run |
 
-Outputs have a `results/regression-TIMESTAMP` prefix, alongside the per-scenario
-k6 log and JSON summary. Automatic restoration and cleanup run after failures too.
-Compare with the same command/runner against baseline and feature application images
-if you need a before/after latency measurement; historical results from a different
-runner are contextual evidence, not an exact comparison.
+The automatic profiles use Bash, Docker, Linux host resource sampling, and `flock`. They record application image tags/IDs, host resources, runner revision, timing configuration, and scenario results. A missing/failed diagnostic is reported; it does not convert a failed workload to a pass.
 
-The statistics-during-answering workload was added in `973090c`. With 500 students,
-it can deliver each student's response update to hundreds of other students and
-creates a substantially heavier generator workload. It is an optional stress case,
-not part of this original-flow regression check. Shared/anonymous functionality
-has separate integration tests and load scenarios; this profile specifically checks
-that ordinary sessions still work. Passing it does not clear the unresolved
-statistics-visible stress-test failure.
+## Classroom regression check
 
-## Focused ordinary-session performance check
+`--regression` checks the normal teaching sequence: one instructor and observer, enrolled students, five question types, chat, and WebSockets. Sharing and anonymity are off. Statistics stay hidden while students answer; the instructor still receives updates. After responses close, statistics and answers are revealed before the next question.
 
-For an optional comparison of statistics hidden/visible during answering, use the
-deployed production-equivalent Docker stack and run from the repository root:
+It requires all answers and student completions, per-question instructor coverage, final result rows, and grades. With 500 students and five questions that means 2,500 answers. The profile fixes chat on, 100% enrolled, and statistics hidden during answering, regardless of older matrix settings in `.env`. Only `--students` overrides the profile; configured timings still apply.
 
-```bash
-./load-testing/run.sh --ordinary --students 500
-```
-
-This runs **two** five-question sessions: all participants enrolled, responses
-identified, sharing off, chat off, first with statistics hidden during answering,
-then visible. Instructor updates and showing results after answering are exercised
-in both modes. Allow approximately **11 minutes plus preparation/cleanup** with
-the default timings. It does not reduce class size, retry failed requests, or
-relax any correctness, latency, or load-generator health threshold.
-
-Preparation, resource monitoring, restoration of rate limits, and fixture cleanup
-are automatic, including after a failure or Ctrl+C. No `.env` edits or application
-image rebuilds are needed for this runner update. It uses the same deployed images,
-replica count, public HTTPS address, and front proxy as the full matrix. Do not run
-manual seed/test commands concurrently.
-
-To investigate just the previously failing statistics-visible case (about five
-minutes plus preparation/cleanup):
-
-```bash
-./load-testing/run.sh --ordinary --students 500 --live-stats on
-```
-
-Without `--live-stats`, both modes always run, regardless of `.env`. Outputs use
-`load-testing/results/ordinary-TIMESTAMP` for the log, TSV, resource samples, and
-resource-error log. Keep those together with the newly produced per-scenario k6
-logs and JSON summaries. The console log records container image tags **and image
-IDs**, restart counts, OOM state, and start/finish times before and after each
-workload. It never dumps container environment variables. Diagnostic collection
-failures are reported without concealing the workload's exit status.
-
-Failed answer submissions log status, transport error category/code, timing phases,
-HTTP protocol, question type/attempt, and elapsed time since that student's previous
-answer, without credentials or answer bodies. That gap is not necessarily an idle
-connection interval: other requests may have occurred between answers. Cancellation
-of all WebSockets during a k6 abort produces at most one representative notice; other
-WebSocket errors are still reported and the error counter remains in place. Metrics
-from canceled VUs may be incomplete, so an aborted run is never a pass.
-
-If the statistics-visible run still fails, inspect the first transport error,
-container snapshots, resource samples, and observer-loop lag before scheduling more
-comparisons. A broken pipe does not establish whether the application, proxy, or
-client closed the connection. A failed observer-loop threshold means latency cannot
-be attributed solely to the application.
-
-For a before/after comparison, retain this same load-testing checkout and deploy
-baseline application images using the usual deployment workflow, then run the same
-command against each application version. Match the host, replica count, k6 image,
-student count, and timing settings; the recorded application image IDs distinguish
-the runs. Compare completed answers/results/grades and errors first, then p95/p99
-answer and event latency. A passing feature run alone is not evidence of unchanged
-latency. These two cases do not cover chat, quizzes, or anonymous/shared access;
-the full matrix and those separate workloads remain available when needed.
+This is the recommended starting point for ordinary-session regressions. It does not cover guest access, anonymity, quizzes, or broadcasting statistics during answer bursts. Use those scenarios when the changed code affects those paths.
 
 ## Compare shared interactive latency
 
-Use the existing `prod` + `docker` configuration, `production_setup` images,
-public `BASE_URL`, replica count, and timing settings. From `load-testing/`, run:
+`--matrix` runs each of these with statistics during answering **off**, then **on**:
+
+1. Course-only, identified, all enrolled.
+2. Shared, identified, 100% enrolled.
+3. Shared, identified, 50% enrolled / 50% guests.
+4. Shared, identified, all guests.
+5. Shared, anonymous, all guests.
+6. Course-only, anonymous, all enrolled.
+
+Chat is off in the matrix. All participants in shared runs redeem an activity code, including enrolled students. Initial code redemption has its own latency metric; ongoing participation is measured separately. Identified shared activities grade eligible enrolled students only. Anonymous activities never create grades.
+
+The matrix continues after k6 threshold failures to collect comparisons, but stops on infrastructure/interruption failures. Any failed scenario or failed cleanup produces a nonzero exit. The statistics-visible half is a heavier fan-out workload than the classroom regression; inspect generator loop lag before attributing its latency to the application.
+
+## Individual scenarios and quizzes
+
+Individual `./run.sh` invocations seed and test but require manual preparation/restoration. Use these when a full matrix is unnecessary or to cover quizzes, which are not in the automatic matrix:
 
 ```bash
-./run.sh --matrix
+cd load-testing
+./run.sh --prepare
+./run.sh --scenario live-external-named --students 500 --enrolled-percent 50 --session-chat off --live-stats off
+./run.sh --scenario live-external-anonymous --students 500 --enrolled-percent 0 --session-chat off --live-stats off
+./run.sh --scenario live-anonymous --students 500 --session-chat off --live-stats off
+./run.sh --scenario quiz-named --students 500
+./run.sh --scenario quiz-anonymous --students 500
+./run.sh --scenario quiz-external-named --students 500 --enrolled-percent 50
+./run.sh --scenario quiz-external-anonymous --students 500 --enrolled-percent 0
+./run.sh --restore
+./run.sh --clean
 ```
 
-The matrix uses the configured student count (normally 500); override it with
-`./run.sh --matrix --students 500`. It automatically:
+Choose the scenarios you need. Run restoration and cleanup even after a failed workload; do not join them to the test with `&&`, which would skip cleanup on failure. For native targets, preparation/restoration updates the target environment and instructs you to restart the server manually.
 
-1. Restores an interrupted previous preparation, then prepares the configured stack.
-2. Runs ordinary, shared (100% / 50% / 0% enrolled), shared anonymous (all guests),
-   and course anonymous interactive scenarios, with chat off.
-3. Repeats all six with statistics during answers off, then on. Command-line
-   settings override `.env`; no editing of `.env` is required.
-4. Continues through k6 threshold failures, but stops on preparation, ingress,
-   or other execution failures. Privacy and performance thresholds stay strict.
-5. Restores rate limits and removes test fixtures on completion, failure, or
-   Ctrl+C. A restoration failure is reported and its recovery record retained.
+For the privacy boundary, run an anonymous scenario with three participants (rows withheld), then at least four (linked rows released after the activity ends). Live anonymous aggregates update in groups of at least four new respondents; an individual count change without a statistics change is expected. Keep anonymous payloads free of identities and precise per-response timestamps.
 
-The command returns nonzero if any scenario or cleanup step fails. An exclusive
-lock prevents concurrent matrices from overwriting each other's fixtures; do not
-run separate manual seed/test commands while a matrix is active. The driver uses
-Bash, Docker, and `flock` (normally included with Linux `util-linux`). It does not
-feed commands through stdin, so Docker Compose cannot consume the remaining script.
+### Additional commands
 
-Outputs under `results/` share a `matrix-TIMESTAMP` prefix:
+| Command | Purpose |
+| --- | --- |
+| `./run.sh --seed-only --scenario NAME` | Create fixtures only |
+| `./run.sh --test-only --scenario NAME` | Use an unconsumed matching fixture |
+| `./run.sh --clean` | Remove load fixtures; retain restoration record |
+| `./run.sh --restore` | Restore the saved original rate-limit configuration |
+| `./run.sh --session-chat on\|off` | Chat workload; shared/anonymous live comparisons require off |
+| `./run.sh --live-stats on\|off` | Statistics during answering for individual/ordinary runs |
+| `./run.sh --enrolled-percent N` | External participant mix, 0–100; ordinary scenarios require 100 |
 
-- `.log`: complete console output, including preparation and restoration failures,
-  checkout revision, host logical CPU count, and cached k6 image ID. A missing
-  image ID means Docker had not pulled the configured image when the matrix began.
-- `.tsv`: scenario, enrollment percentage, statistics setting, and exit status.
-- `-resources.jsonl`: UTC sample headers with host load and Docker container
-  CPU, memory, network I/O and process counts, sampled approximately every seven
-  seconds. All running containers are included so front-proxy and other host
-  workloads can be distinguished. k6 containers have `qlicker-load-…` names.
-- `-resources-errors.log`: resource sampling errors, if any.
+A completed quiz/session fixture must be reseeded before another full pass. `--test-only` validates scenario and enrollment mix. API load-test fixtures have local login enabled so institution-wide SSO-only policy does not prevent their authentication.
 
-Keep these together with the per-scenario k6 logs and JSON summaries. Resource
-samples contain container names/utilization, not environment variables or user
-payloads. Do not commit generated results.
+## Results and comparison
 
-Check the observer loop-lag thresholds before interpreting latency failures.
-If these fail, the run is still a failed acceptance test, but its latency cannot
-be attributed solely to Qlicker. No automatic retry, smaller class, longer answer
-window, or relaxed performance limit is used to turn a failed run into a pass.
+Automatic profiles write `results/regression-TIMESTAMP`, `ordinary-TIMESTAMP`, or `matrix-TIMESTAMP` artifacts:
 
-For one prepared scenario, `--live-stats on|off` overrides the setting without
-editing configuration:
+- `.log`: complete preparation, workload, and restoration output;
+- `.tsv`: scenario, enrolled percentage, statistics mode, exit code;
+- `-resources.jsonl`: host/container utilization samples;
+- `-resources-errors.log`: diagnostic collection failures, if any.
 
-```bash
-./run.sh --scenario live-external-anonymous --enrolled-percent 0 --students 500 --session-chat off --live-stats on
-```
+Every workload also writes `k6-NAME-TIMESTAMP.log` and `summary-NAME-TIMESTAMP.json`. Keep these with the profile files; the TSV alone does not explain a failed WebSocket, login, or timing threshold.
 
-Use matching ordinary comparisons on baseline and PR images for the primary
-latency regression check; repeat a borderline result before claiming unchanged latency. Retain the ordinary chat-enabled workload as a separate
-regression. The matrix does not include quizzes or the below-four-respondent
-privacy case; those remain separate scenarios.
+Check correctness/completion and errors first, then p95/p99 response, control, and event latency. Check professor/student observer loop lag and host CPU before attributing slow delivery to the server. k6 and the app compete for resources when running on the same host. That topology can still provide a comparison if both versions use identical conditions; it is not a measurement of isolated server capacity. Browser rendering latency is measured separately by [browser telemetry](#browser-telemetry).
 
-All participants in a shared run redeem the code once, including enrolled
-students. `activity_redeem_duration` reports that initial step separately from
-ongoing participation. The run log records participant counts and settings;
-external result filenames include `enrolled-N`, and answer-burst runs include
-`live-stats`. `--test-only` rejects a fixture with a different enrollment mix.
-Reseed after updating the seed image or consuming a fixture.
+For before/after measurements, use the same load-testing checkout and k6 image against both application versions. Match class size, timings, replica count, host resources, statistics visibility, chat, and proxy route. A passing candidate run alone does not establish unchanged latency. Do not reduce class size, retry away failures, or relax thresholds to label a failed run a pass.
 
-Compare p95 and p99 for `respond_duration`, `join_duration`,
-`live_refresh_duration`, `event_sync_duration`, and
-`response_delivery_to_professor_duration`, together with error and completion
-counts. Student metrics include separate `participant:enrolled` and
-`participant:guest` summaries so one group cannot conceal the other's delay.
-`event_sync_duration{role:student}` includes processing question/visibility
-updates from their server emission through applying the local snapshot. It
-measures the simulated client, not React rendering in a browser. Identified
-runs also report `response_to_professor_duration` and
-`response_server_processing_duration`. Anonymous events deliberately omit the
-per-response timestamp, so those two measurements are unavailable; HTTP answer
-time and count-event delivery remain measured. Do not expose identities or
-response timestamps just to obtain an anonymous latency metric.
+## Recovery and ingress checks
 
-Every run checks answer counts, completed participants, instructor response
-event counts, correlated result rows, and enrolled-only grades. Anonymous runs
-also check that live events and final results do not expose identities and
-that rows remain withheld below four respondents. Anonymous payloads and
-available result features intentionally differ, so compare them against the
-ordinary anonymous run as well as the identified runs.
+Automatic profiles restore an interrupted preparation when its record is present. If a machine/container was killed before cleanup, run `./run.sh --restore` and `./run.sh --clean` separately before the next test. Keep `state/rate-limit-restore.env` until restoration succeeds. If it is missing, the runner cannot reconstruct the previous API setting: inspect the target `DISABLE_RATE_LIMITS` and active Nginx limits before preparing again.
 
-When finished, run `./run.sh --restore` and `./run.sh --clean` separately,
-including after a failed workload. Keep summaries for the staging comparison.
+Before starting VUs, twelve empty login requests go through the public `BASE_URL`; all must return validation status 400. A TLS error, 503, or other response stops the run and saves a `preflight-NAME-TIMESTAMP.log`. Verify the public health route and front proxy before investigating application latency. An SSL wrong-version/record-too-long error can indicate HTTP on a TLS port or a mismatched PROXY-protocol listener; it is not evidence of a slow application.
+
+The prod/docker runner requires a successful preparation record and disabled rate limits. The automatic profiles handle this themselves. A failed threshold, abort, missing summary, or cleanup failure is not a successful acceptance run.
 
 ## Workloads
 
@@ -399,14 +130,13 @@ including after a failed workload. Keep summaries for the staging comparison.
 | `quiz-named` | Load course sessions, open the quiz, autosave five answers, and submit | Final results preserve one row and five answers per student |
 | `quiz-anonymous` | Same quiz journey | Final results show one correlated row per respondent after the four-person minimum, without identities |
 
-The new quiz and anonymous live workloads record success rates, response times,
+The quiz and anonymous live workloads record success rates, response times,
 answer counts, and final result checks. The original named live workload retains
 its detailed WebSocket and chat metrics.
 
 ## Why the Seed Data Matters
 
-The seed script now matches the current auth/session schema more closely than
-before. In particular, load-test users are created with `allowEmailLogin=true`,
+Load-test users are created with `allowEmailLogin=true`,
 so they can authenticate even when institution-wide SSO is enabled and local
 email login is normally blocked for non-admin accounts.
 

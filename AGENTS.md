@@ -15,9 +15,9 @@ Qlicker is a classroom response system. The active application is a React single
 | Documentation | `docs/` | User manuals, developer guides, API overview |
 | Load tests | `load-testing/` | k6 classroom and chat scenarios |
 | SSO test environment | `ssoserver/` | Local SimpleSAMLphp integration environment |
-| Migration archive | `meteorjs_migration/` | Legacy schema and completed migration context |
+| Migration archive | `meteorjs_migration/` | Legacy schema and operator migration guide |
 
-Start with `README.md`, `CODING_STANDARDS.md`, and `docs/developer/README.md`. Read `meteorjs_migration/LEGACY_DB.md` before changing persisted data shapes.
+Start with `README.md`, `CODING_STANDARDS.md`, and `docs/developer/README.md`. Read `meteorjs_migration/LEGACY_DB.md` before changing persisted data shapes. Keep completed plans out of the active documentation; record current behavior in the user/API/developer guides.
 
 ## Working rules
 
@@ -41,7 +41,7 @@ The supported runtime is Node.js 22.13 or newer. Each JavaScript workspace has i
 
 # Guided Docker development setup
 ./scripts/setup-docker.sh
-docker compose up -d
+docker compose up -d --build
 
 # Install directly when setup has already been completed
 npm ci --prefix server
@@ -56,6 +56,7 @@ npm test --prefix client
 npm run build --prefix client
 ./scripts/qlicker.sh e2e
 node scripts/check-doc-links.mjs
+node --test load-testing/test/*.test.mjs
 ```
 
 For a focused Vitest file, pass the path after the workspace command. For example:
@@ -74,6 +75,13 @@ npm test --prefix client -- src/pages/student/CourseDetail.test.jsx
 - Use lean queries, projections, batching, and targeted WebSocket deltas on frequent live-session paths.
 - Keep rate limits, CSRF checks, upload validation, HTML sanitization, and SSRF protections intact.
 - When a schema change is unavoidable, document compatibility and provide an idempotent migration or repair path.
+
+### Shared and anonymous activity invariants
+
+- A session grant admits a signed-in account only to that activity; it never grants course enrollment, rosters, course chat, AI tools, or question-library access.
+- Anonymous sessions have no grade items. Named guests have tracked responses but no grades until they enroll. Missing marks are absent, not zero.
+- Preserve anonymity locks after participation, the four-respondent release rules, and instructor payload filtering across HTTP, WebSockets, AI, and exports.
+- Keep ordinary course-member access on its existing fast path. Performance changes need comparable workload/image evidence, not just passing unit tests.
 
 ## Frontend conventions
 
@@ -122,6 +130,8 @@ REDIS_URL= QCLICKER_CAPTURE_MANUALS=1 npx playwright test e2e/manual-screenshots
 ```
 
 The capture writes matching files to `docs/assets/manuals/` and `client/public/manuals/`. Inspect the images before committing them. Do not hand-edit one copy independently.
+
+The landing-page and anonymous-review illustrations are captured by `client/e2e/public-overview.spec.js` with the same `QCLICKER_CAPTURE_MANUALS=1` opt-in. `QCLICKER_MANUAL_IMAGES` selects filenames in the main manual capture. Screenshots must use isolated fixtures, never production data.
 
 ## Before handoff
 

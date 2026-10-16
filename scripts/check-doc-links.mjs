@@ -40,7 +40,6 @@ const markdownFiles = [
   'README.md',
   'CODING_STANDARDS.md',
   'AGENTS.md',
-  'speedimprovements.md',
 ].map((relativePath) => path.join(repoRoot, relativePath)).filter(fs.existsSync).concat(
   walk(path.join(repoRoot, 'docs')),
   walk(path.join(repoRoot, 'load-testing')),

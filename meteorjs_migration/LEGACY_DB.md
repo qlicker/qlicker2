@@ -18,27 +18,15 @@
 
 ## Database Overview
 
-### Legacy Dump Snapshot (Observed 2026-03-02)
+### Application collections
 
-The production database (`qlickerdb`) contains the following collections:
-
-| Collection | Document Count | Notes |
-|-----------|---------------|-------|
-| `users` | 20,901 | Meteor-style user documents |
-| `courses` | 472 | Course records |
-| `sessions` | 5,766 | Interactive sessions and quizzes |
-| `questions` | 63,257 | Questions linked to sessions/courses |
-| `responses` | 1,700,441 | Student responses |
-| `grades` | 510,617 | Calculated grades |
-| `images` | 6,803 | Uploaded image metadata |
-| `settings` | 1 | App-wide configuration |
-| `meteor_accounts_loginServiceConfiguration` | 0 | Empty; no equivalent model needed |
+Legacy installations use `users`, `courses`, `sessions`, `questions`, `responses`, `grades`, `images`, and `settings`. Database names and collection sizes vary by deployment. The schemas below describe field shapes, not a particular institution's data.
 
 ### Key Conventions
 
 - **Collection IDs:** All use Meteor-style string `_id` fields (17-char random strings), **not** MongoDB ObjectIds. The new app preserves this via `generateMeteorId()`.
 - **Dates:** Stored as JavaScript Date objects.
-- **Namespaces:** Local dump includes `qlickerdb` (application data) and `admin` (Mongo system collections — `system.users`, `system.version`).
+- **Namespaces:** Dumps may include the application database and MongoDB system databases such as `admin`. Confirm the restore mapping before importing system collections.
 
 ---
 
@@ -54,7 +42,7 @@ The production database (`qlickerdb`) contains the following collections:
 | `grades` | `Grade` | ✅ Compatible | Legacy marks and aggregate grade fields align. Newer fields (`feedback`, `feedbackUpdatedAt`, `feedbackSeenAt`) are additive with null defaults. |
 | `images` | `Image` | ✅ Compatible | Legacy documents (`_id`, `url`, `UID`) load without errors. `key`, `type`, `size` are optional with defaults. |
 | `settings` | `Settings` | ✅ Compatible | Schema uses both new and legacy field names with virtual getters. `strict: false` preserves extra legacy fields on save. |
-| `meteor_accounts_loginServiceConfiguration` | None | N/A | Empty in snapshot. No equivalent model needed. |
+| `meteor_accounts_loginServiceConfiguration` | None | N/A | Not used by current authentication; review SSO settings separately. |
 | `activityShares`, `activityGrants` | `ActivityShare`, `ActivityGrant` | New additive collections | Session-scoped codes and signed-in grants; legacy course enrollment, session, and response documents need no migration. |
 
 ---
@@ -67,16 +55,17 @@ The production database (`qlickerdb`) contains the following collections:
 {
   _id: String,                    // 17-char Meteor random ID
   emails: [{
-    address: String,              // May be mixed-case in legacy data (8,081 affected users)
+    address: String,              // May be mixed-case in legacy data
     verified: Boolean
   }],
   services: {
     password: {
-      bcrypt: String,             // Legacy: $2a$/$2b$ prefix (1,725 users)
-      hash: String                // New: argon2id hash
+      bcrypt: String,             // Legacy: $2a$/$2b$ prefix
+      hash: String,               // New: argon2id hash
+      reset: { token: String, when: Date } // Legacy reset path; not migrated
     },
     sso: {
-      id: String,                 // SSO identifier (19,887 users)
+      id: String,                 // SSO identifier
       nameID: String,
       nameIDFormat: String,
       email: String,
@@ -92,12 +81,6 @@ The production database (`qlickerdb`) contains the following collections:
       email: String,
       when: Date,
       reason: String
-    },
-    password: {
-      reset: {                    // Legacy path (different from new)
-        token: String,
-        when: Date
-      }
     },
     resume: {
       loginTokens: [{ hashedToken: String, token: String, when: Date }],
@@ -118,12 +101,6 @@ The production database (`qlickerdb`) contains the following collections:
   createdAt: Date
 }
 ```
-
-**Key legacy user stats:**
-- Total users with password hashes (`services.password.bcrypt`): 1,725
-- Users with SSO identities (`services.sso.id`): 19,887
-- Users with mixed-case stored emails: 8,081
-- Users with password hashes + mixed-case emails: 188 (51 password-only without SSO fallback)
 
 ### Courses Collection
 
@@ -319,7 +296,7 @@ All code accessing legacy data must use these patterns:
 | Pattern | Reason | Example |
 |---------|--------|---------|
 | `|| []` array fallback | Legacy `.lean()` docs may lack array fields | `(session.joined \|\| [])` |
-| `emailRegex()` lookup | 8,081 users have mixed-case emails | `User.findOne({ 'emails.address': emailRegex(email) })` |
+| `emailRegex()` lookup | Legacy emails may have mixed case | `User.findOne({ 'emails.address': emailRegex(email) })` |
 | `normalizeGroupCategories()` | Legacy groups use `groupNumber/groupName/students` | Groups API normalizes on read |
 | `ensureSessionMsScoringMethod()` | Legacy sessions lack `msScoringMethod` | Auto-backfills default on access |
 | `isLegacyBcryptHash()` | Detect `$2a$/$2b$` hashes | Login triggers `PASSWORD_RESET_REQUIRED` |
@@ -358,21 +335,19 @@ node scripts/migrate-question-types.js          # Dry-run (report only)
 node scripts/migrate-question-types.js --apply   # Write updates
 ```
 
-**Verification:**
+**Verification** (adjust the URI for your development database):
 ```bash
-mongosh "mongodb://localhost:27071/qlicker" --quiet --eval \
+mongosh "mongodb://localhost:27017/qlicker" --quiet --eval \
 'db.questions.aggregate([{ $group:{ _id:"$type", count:{ $sum:1 } } }, { $sort:{ _id:1 } }]).forEach(printjson)'
 ```
 
-After applying in all environments, remove temporary client normalization fallbacks in `client/src/components/questions/constants.js`.
+Keep runtime normalization for legacy restores and imports; running the migration once does not guarantee that every future imported record uses the current format.
 
 ### Password Change Utility
 
 ```bash
 cd scripts
-node changeuserpwd.js <email> <new-password>
-# or
-./changeuserpwd.sh <email> <new-password>
+./changeuserpwd.sh --email user@example.com
 ```
 
 ### Database Seed/Reset
@@ -391,8 +366,8 @@ cd scripts
 
 | Issue | Impact | Resolution |
 |-------|--------|------------|
-| Mixed-case emails (8,081 users) | Login failures with exact-match lookup | `emailRegex()` case-insensitive lookup |
-| Legacy bcrypt hashes (1,725 users) | Cannot verify with argon2id | `PASSWORD_RESET_REQUIRED` flow |
+| Mixed-case emails | Login failures with exact-match lookup | `emailRegex()` case-insensitive lookup |
+| Legacy bcrypt hashes | Cannot verify with argon2id | `PASSWORD_RESET_REQUIRED` flow |
 | SSO-only users without passwords | No local auth | `PASSWORD_RESET_REQUIRED` with reason `no_local_password` |
 | Group shape mismatch | `groupNumber/groupName/students` vs `name/members` | `normalizeGroupCategories()` on read; persisted in new shape on write |
 | Missing `msScoringMethod` | Grading uses wrong defaults | `ensureSessionMsScoringMethod()` auto-backfills |

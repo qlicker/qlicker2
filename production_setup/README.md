@@ -76,30 +76,23 @@ Only ports **80** and **443** are exposed to the host.
 
 ## Quick Start
 
+Run these commands on the deployment host. Building from source avoids depending on a public image registry; use your own registry if builds happen on a separate machine.
+
 ```bash
-# 1. Copy the production_setup directory to your server
-scp -r production_setup/ user@server:/opt/qlicker/
-
-# 2. SSH into the server
-ssh user@server
-cd /opt/qlicker
-
-# 3. Run the interactive setup
-chmod +x *.sh
+git clone https://github.com/ryanmartinneutrino/qlicker2.git
+cd qlicker2
+./scripts/build-images.sh --tag local
+cd production_setup
 ./setup.sh
-
-# 4. (Optional) Obtain Let's Encrypt certificate
-./setup.sh --init-certs
-
-# 5. Start the application
+# Choose the local server/client image tags; configure domain and TLS.
+# If certificates were deferred during setup:
+# ./setup.sh --init-certs
 docker compose up -d
-
-# 6. Check status
 docker compose ps
-
-# 7. View logs
-docker compose logs -f
+docker compose logs -f server client nginx
 ```
+
+The image names built above are `qlicker/qlicker-server:local` and `qlicker/qlicker-client:local`. Set those tags during setup. For a registry deployment, see [Building Docker Images](#building-docker-images); copy `production_setup/` onto the host and set `SERVER_IMAGE` and `CLIENT_IMAGE` to your published images. The root Compose file is for local development, not this deployment.
 
 The first user to create an account via the web UI is automatically promoted to **admin**.
 
@@ -276,7 +269,7 @@ docker compose up -d --scale server=4
 
 ## Initializing from Legacy Database
 
-Use this flow when you are preparing the Fastify deployment to take over an existing Meteor-backed database.
+Use this flow when you are preparing the Fastify deployment to take over an existing Meteor-backed database. First read the [migration and rollback guide](../meteorjs_migration/MIGRATION.md). Work from a verified backup: the initializer replaces data and its automatic backup attempt does not stop a restore on backup failure.
 
 Important operational rule: once you rewrite legacy image URLs to `/uploads/<key>`, that database copy is considered cut over to Fastify. The old Meteor app should no longer be treated as the active reader for that database because it does not serve the Fastify `/uploads/...` path.
 
@@ -1038,8 +1031,8 @@ A staging copy and the production server use this same Compose file and Docker
 image workflow. Configure `load-testing/setup.sh` with `prod` and `docker` on
 each host. The runner exercises named and anonymous quiz/live scenarios with
 the host's own `production_setup/.env`, then restores the original rate-limit
-setting. See [the load-testing guide](../load-testing/README.md#identical-staging-and-production-runs)
-for the prepare, run, restore, and cleanup sequence.
+setting. See [the load-testing guide](../load-testing/README.md#setup)
+for automatic profiles and the individual prepare, run, restore, and cleanup sequence.
 
 ## Original classroom regression check
 
@@ -1060,7 +1053,7 @@ ordinary sessions with statistics hidden/visible during answering, using the dep
 images and public proxy path, and automatically prepares, restores rate limits, and
 cleans up. It takes roughly 11 minutes plus setup/cleanup with default timings.
 Use `--live-stats on` to investigate only the statistics-visible case. No manual
-`.env` edits are required. See the [focused comparison guide](../load-testing/README.md#focused-ordinary-session-performance-check)
+`.env` edits are required. See the [focused comparison guide](../load-testing/README.md#choose-a-workload)
 for artifacts, diagnostics, and baseline-versus-feature comparisons.
 
 ## Production-equivalent load-test matrix

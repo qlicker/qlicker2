@@ -370,16 +370,12 @@ function buildGradesByStudentId(grades = []) {
   );
 }
 
-function getStudentQuestionPoints(gradesByStudentId = {}, studentId, questionId, response = null) {
+function getStudentQuestionPoints(gradesByStudentId = {}, studentId, questionId) {
   const grade = gradesByStudentId[String(studentId)];
   const mark = (grade?.marks || []).find((entry) => String(entry?.questionId) === String(questionId));
-  const markPoints = Number(mark?.points);
-  if (Number.isFinite(markPoints)) return markPoints;
-
-  const responsePoints = Number(response?.points ?? response?.mark);
-  if (Number.isFinite(responsePoints)) return responsePoints;
-
-  return null;
+  if (mark?.points === undefined || mark.points === null || mark.points === '') return null;
+  const points = Number(mark.points);
+  return Number.isFinite(points) ? points : null;
 }
 
 function formatAnswerText(question, answer, t) {
@@ -517,8 +513,7 @@ export function buildSessionResultsCsv({
         const points = getStudentQuestionPoints(
           gradesByStudentId,
           student.studentId,
-          question._id,
-          attemptResponse
+          question._id
         );
 
         row.push(escapeCsvCell(answerText));
@@ -1198,13 +1193,11 @@ export default function SessionReview() {
       const qr = questionResultsById.get(String(question._id));
       const latestResponse = getLatestResponse(qr?.responses || []);
       const responseDisplay = latestResponse ? (formatAnswerText(question, latestResponse?.answer, t) || '—') : '—';
-      const responsePoints = latestResponse
-        ? getStudentQuestionPoints(gradesByStudentId, student.studentId, question._id, latestResponse)
-        : null;
+      const responsePoints = getStudentQuestionPoints(gradesByStudentId, student.studentId, question._id);
       questionCells[String(question._id)] = {
         display: responseDisplay,
         sortDisplay: normalizeComparableText(responseDisplay),
-        pointsValue: Number.isFinite(Number(responsePoints)) ? Number(responsePoints) : null,
+        pointsValue: responsePoints,
         hasResponse: !!latestResponse,
       };
       if (!latestResponse) return;
@@ -1971,7 +1964,7 @@ export default function SessionReview() {
                             <TableCell key={qi} align="center">
                               <Typography variant="body2">
                                 {questionCell?.display || '—'}
-                                {` (${questionCell?.pointsValue ?? '—'})`}
+                                {questionCell?.pointsValue != null ? ` (${questionCell.pointsValue})` : ''}
                               </Typography>
                             </TableCell>
                           );

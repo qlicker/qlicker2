@@ -70,3 +70,12 @@ load-testing/state/
 load-testing/results/
 load-testing/node_modules/
 load-testing/.env
+
+# Operator backup archives and copied load-test reports at the repository root
+/qlicker_backup_*.tar.gz
+/matrix-*.tsv
+/matrix-*-resources*.jsonl
+/ordinary-*.tsv
+/ordinary-*-resources*.jsonl
+/regression-*.tsv
+/regression-*-resources*.jsonl

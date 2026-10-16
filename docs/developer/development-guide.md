@@ -39,6 +39,19 @@ npm run dev --prefix client
 
 Run those manual commands in separate terminals. The root development Compose file is not the production deployment; use `production_setup/` for production.
 
+### Default local addresses
+
+Setup can change these ports; use the generated `.env` when checking a particular installation.
+
+| Service | Default address |
+| --- | --- |
+| Web app | `http://localhost:3000` |
+| API | `http://localhost:3001/api/v1` |
+| API health | `http://localhost:3001/api/v1/health` |
+| Admin-protected API docs | `http://localhost:3001/docs` with `ENABLE_API_DOCS=true` |
+
+For Docker development, use `./scripts/setup-docker.sh` followed by `docker compose up -d --build` from the root. See the [README](../../README.md#try-it-with-docker) for host requirements and the first-run account workflow.
+
 ## Testing and verification
 
 Verified commands for the current repository:
@@ -129,7 +142,14 @@ cd client
 REDIS_URL= QCLICKER_CAPTURE_MANUALS=1 npx playwright test e2e/manual-screenshots.spec.js e2e/admin-system-monitoring.spec.js --project=chromium
 ```
 
-The test is skipped without the opt-in variable and writes identical images to the Markdown and in-app asset directories.
+The capture is skipped without the opt-in variable and writes identical images to the Markdown and in-app asset directories. The landing-page and anonymous-review illustrations have a separate focused command:
+
+```bash
+cd client
+REDIS_URL= QCLICKER_CAPTURE_MANUALS=1 npx playwright test e2e/public-overview.spec.js --project=chromium
+```
+
+The anonymous review test also runs as a normal browser regression without the capture variable; only screenshot writing and the landing-page capture require opt-in.
 
 ## Security and operational expectations
 
