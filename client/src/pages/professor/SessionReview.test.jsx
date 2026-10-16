@@ -470,10 +470,42 @@ describe('SessionReview', () => {
     });
 
     renderSessionReview();
-    expect(await screen.findByText(/Respondent rows are hidden until at least 4 people/)).toBeInTheDocument();
+    expect(await screen.findByText(/Answers are shown separately for each question and attempt with at least 4 respondents/)).toBeInTheDocument();
     expect(screen.getByText('Respondents')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /response data/i }));
     expect(screen.queryByRole('table', { name: /student results/i })).not.toBeInTheDocument();
+  });
+
+  it('shows true counts and per-attempt withheld markers alongside released anonymous answers', async () => {
+    const payload = buildResultsPayload({ anonymous: true });
+    payload.questions[0].anonymousResponseAttempts = [
+      { attempt: 1, respondentCount: 4, responsesWithheld: false, minimumRespondents: 4 },
+      { attempt: 2, respondentCount: 3, responsesWithheld: true, minimumRespondents: 4 },
+    ];
+    payload.studentResults = Array.from({ length: 4 }, (_, index) => ({
+      studentId: `respondent-${index + 1}`, anonymousIndex: index + 1, participation: null,
+      questionResults: [{ questionId: 'q-1', responses: [{ attempt: 1, answer: '1' }] }],
+    }));
+    payload.anonymousSummary = { respondentCount: 4, responsesWithheld: true, minimumRespondents: 4 };
+    const defaultGet = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (url) => url === '/sessions/session-1/results'
+      ? { data: payload } : defaultGet(url));
+    renderSessionReview();
+    expect(await screen.findByText('3 responses')).toBeInTheDocument();
+    expect(screen.getByText('4 responses')).toBeInTheDocument();
+    expect(screen.queryByText('0 responses')).not.toBeInTheDocument();
+    expect(screen.getByText('Answers hidden — fewer than 4 respondents.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /response data/i }));
+    const table = await screen.findByRole('table', { name: /student results/i });
+    expect(within(table).getAllByRole('cell', { name: 'B', exact: true })).toHaveLength(4);
+    expect(within(table).getAllByText('Answers hidden — fewer than 4 respondents.')).toHaveLength(4);
+    expect(within(table).queryByText('0%')).not.toBeInTheDocument();
+    const csv = buildSessionResultsCsv({
+      anonymous: true, gradesByStudentId: {}, sessionName: 'Survey', t: i18n.t.bind(i18n),
+      csvQuestionAttempts: [{ question: payload.questions[0], questionNumber: 1, attempts: [1, 2] }],
+      studentResults: payload.studentResults.map((student) => ({ ...student, firstname: `Respondent ${student.anonymousIndex}` })),
+    });
+    expect(csv.csvContent).toContain('Respondent 1,—,—,B,,Answers hidden — fewer than 4 respondents.,');
   });
 
   it('shows anonymous results with respondent labels and a read-only responses tab', async () => {

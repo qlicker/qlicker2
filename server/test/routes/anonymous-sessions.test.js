@@ -483,8 +483,7 @@ describe('anonymous interactive sessions', () => {
     }
     const early = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/results`, { token: profToken });
     expect(early.statusCode).toBe(409);
-    // A sparse second attempt withholds all respondent rows, even though
-    // four people answered both questions on the first attempt.
+    // A sparse second attempt must not suppress eligible first attempts.
     await Response.create({
       questionId: firstQuestionId,
       studentUserId: getAnonymousParticipantId(sessionId, students[0].user._id),
@@ -493,8 +492,19 @@ describe('anonymous interactive sessions', () => {
     });
     await authenticatedRequest(app, 'POST', `/api/v1/sessions/${sessionId}/end`, { token: profToken, payload: {} });
     const withheld = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/results`, { token: profToken });
-    expect(withheld.json().studentResults).toEqual([]);
-    expect(withheld.json().anonymousSummary.responsesWithheld).toBe(true);
+    const partial = withheld.json();
+    expect(partial.studentResults).toHaveLength(4);
+    expect(partial.anonymousSummary.responsesWithheld).toBe(true);
+    expect(partial.questions[0].anonymousResponseAttempts).toEqual([
+      { attempt: 1, respondentCount: 4, responsesWithheld: false, minimumRespondents: 4 },
+      { attempt: 2, respondentCount: 1, responsesWithheld: true, minimumRespondents: 4 },
+    ]);
+    for (const row of partial.studentResults) {
+      expect(row.participation).toBeNull();
+      expect(row.questionResults.map((entry) => entry.responses.length)).toEqual([1, 1]);
+    }
+    expect(JSON.stringify(partial)).not.toContain('follow-up');
+    expectNoIdentity(partial, students);
     await Response.insertMany(students.slice(1).map(({ user }) => ({
       questionId: firstQuestionId,
       studentUserId: getAnonymousParticipantId(sessionId, user._id),
@@ -518,6 +528,46 @@ describe('anonymous interactive sessions', () => {
     }));
     expect(rows[0].questionResults.map((question) => question.questionId)).toEqual([firstQuestionId, secondQuestionId]);
     expectNoIdentity(result.json(), students);
+  });
+
+  it.each([false, true])('releases each ended question independently (quiz=%s) and counts sparse respondents without identifying them', async (quiz, ctx) => {
+    if (mongoose.connection.readyState !== 1) ctx.skip();
+    const { profToken, course, students } = await setupCourse({ studentCount: 5 });
+    const sessionId = (await createSession(profToken, course._id, { anonymous: true, quiz })).json().session._id;
+    const ids = [];
+    for (const label of ['Released', 'Sparse', 'Unanswered']) {
+      ids.push(await addMcQuestion(profToken, sessionId, course._id, label));
+    }
+    await Session.updateOne({ _id: sessionId }, { $set: { status: 'done' } });
+    await Response.insertMany([
+      ...students.slice(0, 4).map(({ user }) => ({
+        questionId: ids[0], studentUserId: getAnonymousParticipantId(sessionId, user._id), attempt: 1, answer: '0',
+      })),
+      ...students.slice(2).map(({ user }) => ({
+        questionId: ids[1], studentUserId: getAnonymousParticipantId(sessionId, user._id), attempt: 1, answer: 'private-answer',
+      })),
+    ]);
+    await Question.updateOne({ _id: ids[1] }, { $set: {
+      'sessionOptions.wordCloudData': { wordFrequencies: [{ text: 'private-answer', value: 3 }] },
+      'sessionOptions.histogramData': { bins: [{ label: 'private-answer', count: 3 }] },
+    } });
+    const result = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${sessionId}/results`, { token: profToken });
+    expect(result.statusCode).toBe(200);
+    const payload = result.json();
+    expect(payload.anonymousSummary).toMatchObject({ respondentCount: 5, responsesWithheld: true });
+    expect(payload.questions.map((q) => q.anonymousResponseAttempts[0])).toEqual([
+      { attempt: 1, respondentCount: 4, responsesWithheld: false, minimumRespondents: 4 },
+      { attempt: 1, respondentCount: 3, responsesWithheld: true, minimumRespondents: 4 },
+      { attempt: 1, respondentCount: 0, responsesWithheld: false, minimumRespondents: 4 },
+    ]);
+    expect(payload.studentResults).toHaveLength(4); // The sparse-only respondent has no row.
+    for (const row of payload.studentResults) {
+      expect(row.questionResults.map((q) => q.responses.length)).toEqual([1, 0, 0]);
+      expect(row.participation).toBeNull();
+    }
+    expect(JSON.stringify(payload)).not.toContain('private-answer');
+    expectNoIdentity(payload, students);
+    expect(JSON.stringify(payload)).not.toContain('anon_');
   });
 
   it('routes live events to joined students without exposing names to instructors', async (ctx) => {

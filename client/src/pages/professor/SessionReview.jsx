@@ -177,12 +177,14 @@ function resolveOptionIndex(answer, options = []) {
 }
 
 function formatParticipation(participation) {
+  if (participation == null) return '—';
   const numeric = Number(participation);
   if (!Number.isFinite(numeric)) return '0%';
   return `${Math.round(numeric)}%`;
 }
 
 function formatPercent(value) {
+  if (value == null) return '—';
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '—';
   return `${Math.round(numeric * 10) / 10}%`;
@@ -252,7 +254,7 @@ function getOptionRichContentProps(option) {
 }
 
 function collectAttemptNumbersForQuestion(question, studentResults = []) {
-  const attemptNumbers = new Set();
+  const attemptNumbers = new Set((question?.anonymousResponseAttempts || []).map((entry) => entry.attempt));
 
   (question?.sessionOptions?.attempts || []).forEach((attempt) => {
     const number = Number(attempt?.number);
@@ -430,6 +432,10 @@ export function buildSessionResultsCsv({
     studentResults.map((student) => [String(student?.studentId || ''), student]),
   );
 
+  const answersWithheld = anonymous && csvQuestionAttempts.some(({ question }) => (
+    question.anonymousResponseAttempts?.some((entry) => entry.responsesWithheld)
+  ));
+
   const headers = anonymous
     ? [
       t('professor.sessionReview.respondent'),
@@ -469,8 +475,8 @@ export function buildSessionResultsCsv({
     const row = anonymous
       ? [
         escapeCsvCell(student.firstname),
-        escapeCsvCell(formatParticipation(student.participation)),
-        escapeCsvCell(formatPercent(visibleStudent?.percentCorrectValue)),
+        escapeCsvCell(formatParticipation(answersWithheld ? null : student.participation)),
+        escapeCsvCell(formatPercent(answersWithheld ? null : visibleStudent?.percentCorrectValue)),
       ]
       : [
         escapeCsvCell(student.lastname),
@@ -502,6 +508,12 @@ export function buildSessionResultsCsv({
       });
 
       attempts.forEach((attemptNumber) => {
+        const release = question.anonymousResponseAttempts?.find((entry) => entry.attempt === attemptNumber);
+        if (anonymous && release?.responsesWithheld) {
+          row.push(escapeCsvCell(t('professor.sessionReview.anonymousAnswersHidden', { minimum: release.minimumRespondents })));
+          row.push('');
+          return;
+        }
         const attemptResponse = responsesByAttempt.get(attemptNumber);
         if (!attemptResponse) {
           row.push(escapeCsvCell(''));
@@ -1092,6 +1104,7 @@ export default function SessionReview() {
     }, []);
 
     return sortedAttempts.map((attemptNumber, attemptIndex) => {
+      const release = q.anonymousResponseAttempts?.find((entry) => entry.attempt === attemptNumber);
       const cachedAttemptStats = attemptStatsByNumber.get(attemptNumber) || null;
       const attemptResponses = responsesByAttempt.get(attemptNumber) || [];
       const distribution = isOptionType && q.options ? q.options.map((_, optionIndex) => {
@@ -1166,9 +1179,11 @@ export default function SessionReview() {
         attemptTotal: sortedAttempts.length,
         qType,
         isOptionType,
-        chartData,
+        chartData: release?.responsesWithheld ? null : chartData,
+        responsesWithheld: !!release?.responsesWithheld,
+        minimumRespondents: release?.minimumRespondents,
         correctIndices,
-        responseCount: cachedAttemptStats ? Number(cachedAttemptStats.total || 0) : attemptResponses.length,
+        responseCount: release?.respondentCount ?? (cachedAttemptStats ? Number(cachedAttemptStats.total || 0) : attemptResponses.length),
         saResponses,
         nuResponses,
       };
@@ -1181,6 +1196,18 @@ export default function SessionReview() {
     attempts: collectAttemptNumbersForQuestion(question, studentResults),
   })), [questions, studentResults]);
 
+  const responseDataColumns = useMemo(() => csvQuestionAttempts.flatMap(({ question, questionNumber, attempts }) => (
+    (anonymousSession ? attempts : [null]).map((attempt) => ({
+      key: anonymousSession ? `${question._id}:${attempt}` : String(question._id),
+      question,
+      attempt,
+      label: anonymousSession && attempts.length > 1
+        ? t('professor.sessionReview.csvAttemptResponse', { number: questionNumber, attempt })
+        : t('grades.coursePanel.questionShort', { index: questionNumber }),
+      release: question.anonymousResponseAttempts?.find((entry) => entry.attempt === attempt),
+    }))
+  )), [anonymousSession, csvQuestionAttempts, t]);
+
   const studentsTabRows = useMemo(() => studentResults.map((student) => {
     const questionResultsById = new Map(
       (student.questionResults || []).map((result) => [String(result.questionId), result]),
@@ -1189,17 +1216,23 @@ export default function SessionReview() {
     let gradedCount = 0;
     let correctCount = 0;
     const questionCells = {};
-    questions.forEach((question) => {
+    responseDataColumns.forEach(({ question, attempt, key, release }) => {
       const qr = questionResultsById.get(String(question._id));
-      const latestResponse = getLatestResponse(qr?.responses || []);
+      const responses = qr?.responses || [];
+      const latestResponse = getLatestResponse(attempt === null ? responses : responses.filter((response) => (Number(response.attempt) || 1) === attempt));
       const responseDisplay = latestResponse ? (formatAnswerText(question, latestResponse?.answer, t) || '—') : '—';
       const responsePoints = getStudentQuestionPoints(gradesByStudentId, student.studentId, question._id);
-      questionCells[String(question._id)] = {
-        display: responseDisplay,
+      questionCells[key] = {
+        display: release?.responsesWithheld
+          ? t('professor.sessionReview.anonymousAnswersHidden', { minimum: release.minimumRespondents })
+          : responseDisplay,
         sortDisplay: normalizeComparableText(responseDisplay),
         pointsValue: responsePoints,
         hasResponse: !!latestResponse,
       };
+    });
+    questions.forEach((question) => {
+      const latestResponse = getLatestResponse(questionResultsById.get(String(question._id))?.responses || []);
       if (!latestResponse) return;
       const correct = isLatestResponseCorrect(question, latestResponse);
       if (correct === null) return;
@@ -1224,12 +1257,12 @@ export default function SessionReview() {
       sortEmail: normalizeAnswerValue(student.email),
       inSessionValue: student.inSession ? 1 : 0,
       gradeValue: Number.isFinite(gradeValue) ? gradeValue : null,
-      participationValue: Number(student.participation) || 0,
-      percentCorrectValue: gradedCount > 0 ? Math.round((1000 * correctCount) / gradedCount) / 10 : null,
+      participationValue: student.participation == null ? null : Number(student.participation) || 0,
+      percentCorrectValue: !(anonymousSession && anonymousSummary?.responsesWithheld) && gradedCount > 0 ? Math.round((1000 * correctCount) / gradedCount) / 10 : null,
       joinedAtValue: Number.isFinite(joinedAtMillis) ? joinedAtMillis : null,
       questionCells,
     };
-  }), [anonymousSession, gradesByStudentId, questions, studentResults, t]);
+  }), [anonymousSession, anonymousSummary, gradesByStudentId, questions, responseDataColumns, studentResults, t]);
 
   const handleStudentsSort = useCallback((field) => {
     setStudentSort((prev) => {
@@ -1638,6 +1671,12 @@ export default function SessionReview() {
                     <RichContent html={q.content} fallback={q.plainText} allowVideoEmbeds />
                   </Box>
 
+                  {row.responsesWithheld && (
+                    <Alert severity="info" sx={{ mb: 1 }}>
+                      {t('professor.sessionReview.anonymousAnswersHidden', { minimum: row.minimumRespondents })}
+                    </Alert>
+                  )}
+
                   {/* Inline stats for MC/TF/MS using option bars */}
                   {isOptionType && row.chartData && (
                     <Box sx={{ mb: 1 }}>
@@ -1797,7 +1836,17 @@ export default function SessionReview() {
       {/* Response Data tab */}
       <TabPanel value={tab} index={1}>
         {studentResults.length === 0 ? (
-          <Alert severity="info">{t('professor.sessionReview.noResults')}</Alert>
+          anonymousSummary?.responsesWithheld ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {questionAttemptRows.filter((row) => !isSlideType(row.qType)).map((row) => (
+                <Alert key={row.key} severity="info">
+                  {t('professor.sessionReview.csvAttemptResponse', { number: row.questionNumber, attempt: row.attemptNumber })}
+                  {' — '}{t('professor.sessionReview.responseCountLabel', { count: row.responseCount })}
+                  {row.responsesWithheld && <>. {t('professor.sessionReview.anonymousAnswersHidden', { minimum: row.minimumRespondents })}</>}
+                </Alert>
+              ))}
+            </Box>
+          ) : <Alert severity="info">{t('professor.sessionReview.noResults')}</Alert>
         ) : (
           <>
             <Box
@@ -1907,15 +1956,20 @@ export default function SessionReview() {
                           </TableSortLabel>
                         </TableCell>
                       )}
-                      {questions.map((_, i) => (
-                        <TableCell key={i} component="th" scope="col" sx={{ fontWeight: 700 }} align="center">
+                      {responseDataColumns.map((column) => (
+                        <TableCell key={column.key} component="th" scope="col" sx={{ fontWeight: 700 }} align="center">
                           <TableSortLabel
-                            active={studentSort.field === `question:${String(questions[i]?._id || i)}`}
-                            direction={studentSort.field === `question:${String(questions[i]?._id || i)}` ? studentSort.direction : 'asc'}
-                            onClick={() => handleStudentsSort(`question:${String(questions[i]?._id || i)}`)}
+                            active={studentSort.field === `question:${column.key}`}
+                            direction={studentSort.field === `question:${column.key}` ? studentSort.direction : 'asc'}
+                            onClick={() => handleStudentsSort(`question:${column.key}`)}
                           >
-                            Q{i + 1}
+                            {column.label}
                           </TableSortLabel>
+                          {anonymousSession && column.release && (
+                            <Typography variant="caption" component="div">
+                              {t('professor.sessionReview.responseCountLabel', { count: column.release.respondentCount })}
+                            </Typography>
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -1958,10 +2012,10 @@ export default function SessionReview() {
                         {!anonymousSession && (
                           <TableCell align="center">{formatJoinedAt(student.joinedAt)}</TableCell>
                         )}
-                        {questions.map((q, qi) => {
-                          const questionCell = student.questionCells?.[String(q._id)];
+                        {responseDataColumns.map((column) => {
+                          const questionCell = student.questionCells?.[column.key];
                           return (
-                            <TableCell key={qi} align="center">
+                            <TableCell key={column.key} align="center">
                               <Typography variant="body2">
                                 {questionCell?.display || '—'}
                                 {questionCell?.pointsValue != null ? ` (${questionCell.pointsValue})` : ''}

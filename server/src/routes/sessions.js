@@ -7957,7 +7957,8 @@ export default async function sessionRoutes(app) {
           if ((!isAnonymousSession(session) && !(session.quiz && !session.practiceQuiz)) || !question.sessionOptions) return question;
           const sessionOptions = { ...question.sessionOptions };
           delete sessionOptions.attemptStats;
-          if (session.quiz && !session.practiceQuiz) {
+          if (isAnonymousSession(session) || (session.quiz && !session.practiceQuiz)) {
+            // Anonymous caches must not bypass per-attempt release checks.
             // Quiz chart snapshots can become stale on submission or ending;
             // regenerate on demand using the currently visible responses.
             delete sessionOptions.wordCloudData;
@@ -7968,9 +7969,52 @@ export default async function sessionRoutes(app) {
 
       // Active quizzes expose submitted attempts only. Ended quizzes retain
       // every saved answer, including students who forgot to submit.
-      const allResponses = questionIds.length > 0
+      let allResponses = questionIds.length > 0
         ? await Response.find({ questionId: { $in: questionIds }, ...getQuizResultsResponseFilter(session) }).lean()
         : [];
+      const anonymousSession = isAnonymousSession(session);
+      const joinedUserIds = new Set((session.joined || []).map((id) => String(id)).filter(Boolean));
+      const courseStudentIds = new Set((course.students || []).map((id) => String(id)).filter(Boolean));
+      let anonymousRespondentCount = 0;
+      let responsesWithheld = false;
+      if (anonymousSession) {
+        const respondentIds = new Set();
+        const respondentsByQuestion = new Map();
+        allResponses.forEach((response) => {
+          const respondentId = getResponseStudentId(response);
+          if (!respondentId) return;
+          respondentIds.add(respondentId);
+          const questionId = String(response.questionId);
+          if (!respondentsByQuestion.has(questionId)) respondentsByQuestion.set(questionId, new Map());
+          const attempts = respondentsByQuestion.get(questionId);
+          const attempt = Number(response.attempt) || 1;
+          if (!attempts.has(attempt)) attempts.set(attempt, new Set());
+          attempts.get(attempt).add(respondentId);
+        });
+        anonymousRespondentCount = respondentIds.size;
+        orderedQuestions.forEach((question) => {
+          const attempts = respondentsByQuestion.get(String(question._id)) || new Map();
+          const attemptNumbers = new Set([
+            ...attempts.keys(),
+            ...(question.sessionOptions?.attempts || []).map((entry) => Number(entry.number)),
+          ].filter((number) => Number.isInteger(number) && number > 0));
+          if (!attemptNumbers.size) attemptNumbers.add(1);
+          // Aggregate counts are safe below the threshold. Never include who
+          // answered a withheld attempt, even as an empty respondent row.
+          question.anonymousResponseAttempts = [...attemptNumbers].sort((a, b) => a - b).map((attempt) => {
+            const respondentCount = attempts.get(attempt)?.size || 0;
+            const withheld = respondentCount > 0 && respondentCount < MIN_ANONYMOUS_RESPONDENTS;
+            responsesWithheld ||= withheld;
+            return { attempt, respondentCount, responsesWithheld: withheld, minimumRespondents: MIN_ANONYMOUS_RESPONDENTS };
+          });
+        });
+        // Filter before building rows or participation totals so sparse answers
+        // cannot leak through derived per-respondent fields or exports.
+        allResponses = allResponses.filter((response) => (
+          (respondentsByQuestion.get(String(response.questionId))?.get(Number(response.attempt) || 1)?.size || 0)
+            >= MIN_ANONYMOUS_RESPONDENTS
+        ));
+      }
 
       const responsesByStudentQuestion = new Map();
       const responderUserIds = new Set();
@@ -7995,35 +8039,20 @@ export default async function sessionRoutes(app) {
         });
       });
 
-      const anonymousSession = isAnonymousSession(session);
-      const joinedUserIds = new Set((session.joined || []).map((id) => String(id)).filter(Boolean));
-      const courseStudentIds = new Set((course.students || []).map((id) => String(id)).filter(Boolean));
-      if (anonymousSession) {
-        const respondentIdsByQuestionAttempt = new Map();
-        allResponses.forEach((response) => {
-          const respondentId = getResponseStudentId(response);
-          if (!respondentId) return;
-          const key = `${String(response.questionId)}::${Number(response.attempt) || 1}`;
-          if (!respondentIdsByQuestionAttempt.has(key)) respondentIdsByQuestionAttempt.set(key, new Set());
-          respondentIdsByQuestionAttempt.get(key).add(respondentId);
-        });
-        const responsesWithheld = responderUserIds.size < MIN_ANONYMOUS_RESPONDENTS
-          || [...respondentIdsByQuestionAttempt.values()].some((ids) => ids.size < MIN_ANONYMOUS_RESPONDENTS);
-        if (responsesWithheld) {
-          return {
-            session: buildSessionForUser(session, request.user, { instructorView: true }),
-            questions: orderedQuestions,
-            studentResults: [],
-            chatPosts: [],
-            anonymousSummary: {
-              respondentCount: responderUserIds.size,
-              joinedCount: joinedUserIds.size,
-              enrolledCount: courseStudentIds.size,
-              responsesWithheld: true,
-              minimumRespondents: MIN_ANONYMOUS_RESPONDENTS,
-            },
-          };
-        }
+      if (anonymousSession && responderUserIds.size === 0) {
+        return {
+          session: buildSessionForUser(session, request.user, { instructorView: true }),
+          questions: orderedQuestions,
+          studentResults: [],
+          chatPosts: [],
+          anonymousSummary: {
+            respondentCount: anonymousRespondentCount,
+            joinedCount: joinedUserIds.size,
+            enrolledCount: courseStudentIds.size,
+            responsesWithheld,
+            minimumRespondents: MIN_ANONYMOUS_RESPONDENTS,
+          },
+        };
       }
       // Anonymous results list respondents only, under stable generic labels.
       const respondentIndexById = anonymousSession
@@ -8134,7 +8163,7 @@ export default async function sessionRoutes(app) {
             profileThumbnail: '',
             inSession: true,
             joinedAt: null,
-            participation,
+            participation: responsesWithheld ? null : participation,
             questionResults,
           };
         }
@@ -8174,7 +8203,9 @@ export default async function sessionRoutes(app) {
         ...(anonymousSession
           ? {
             anonymousSummary: {
-              respondentCount: studentResults.length,
+              respondentCount: anonymousRespondentCount,
+              responsesWithheld,
+              minimumRespondents: MIN_ANONYMOUS_RESPONDENTS,
               joinedCount: joinedUserIds.size,
               enrolledCount: courseStudentIds.size,
             },

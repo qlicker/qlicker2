@@ -20,6 +20,27 @@ const questions = [
 describe('Anonymous response question review', () => {
   beforeEach(() => { vi.clearAllMocks(); i18n.changeLanguage('en'); });
 
+  it.each(questions)('shows the actual withheld count and permits reviewing an eligible attempt for $type', (question) => {
+    render(<AnonymousResponsesPanel
+      questions={[{ ...question, anonymousResponseAttempts: [
+        { attempt: 1, respondentCount: 4, responsesWithheld: false, minimumRespondents: 4 },
+        { attempt: 2, respondentCount: 3, responsesWithheld: true, minimumRespondents: 4 },
+      ] }]}
+      studentResults={Array.from({ length: 4 }, (_, index) => ({
+        studentId: `respondent-${index + 1}`, firstname: `Respondent ${index + 1}`,
+        questionResults: [{ questionId: question._id, responses: [{ attempt: 1, answer: '0' }] }],
+      }))}
+    />);
+    expect(screen.getByText('3 responses')).toBeInTheDocument();
+    expect(screen.getByText('Answers hidden — fewer than 4 respondents.')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByText('No responses yet')).not.toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Attempt' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Attempt 1/2' }));
+    expect(screen.getByText('4 responses')).toBeInTheDocument();
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(5);
+  });
+
   it('uses the grading navigator and full preview for every question type without grading requests', () => {
     render(<AnonymousResponsesPanel questions={questions} studentResults={[]} />);
     expect(screen.getAllByText('Earth').length).toBeGreaterThan(0);

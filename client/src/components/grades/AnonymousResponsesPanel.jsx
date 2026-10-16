@@ -6,6 +6,7 @@ import {
   Alert,
   Box,
   Chip,
+  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -60,18 +61,25 @@ export default function AnonymousResponsesPanel({
   const { t } = useTranslation();
   const [selectedQuestionId, setSelectedQuestionId] = useState('');
   const [answerQuery, setAnswerQuery] = useState('');
+  const [selectedAttempt, setSelectedAttempt] = useState(null);
 
   const activeQuestion = questions.find((question) => String(question._id) === selectedQuestionId)
     || questions[0]
     || null;
   const activeQuestionIndex = activeQuestion ? questions.indexOf(activeQuestion) : -1;
 
+  const attempts = activeQuestion?.anonymousResponseAttempts || [];
+  const activeAttempt = attempts.find((entry) => entry.attempt === selectedAttempt) || attempts.at(-1);
+
   const rows = useMemo(() => {
     if (!activeQuestion) return [];
     const questionId = String(activeQuestion._id);
     return studentResults.flatMap((student) => {
       const result = (student.questionResults || []).find((entry) => String(entry.questionId) === questionId);
-      const response = getLatestResponse(result?.responses || []);
+      const responses = result?.responses || [];
+      const response = getLatestResponse(activeAttempt
+        ? responses.filter((entry) => (Number(entry.attempt) || 1) === activeAttempt.attempt)
+        : responses);
       if (!response) return [];
       const summary = buildResponseSummary(activeQuestion, response, t('grades.questionPanel.noAnswer'));
       return [{
@@ -84,7 +92,7 @@ export default function AnonymousResponsesPanel({
           : null,
       }];
     });
-  }, [activeQuestion, anonymous, getResponseCorrectness, studentResults, t]);
+  }, [activeQuestion, activeAttempt, anonymous, getResponseCorrectness, studentResults, t]);
 
   const filteredRows = useMemo(() => {
     const query = answerQuery.trim().toLowerCase();
@@ -114,21 +122,38 @@ export default function AnonymousResponsesPanel({
         />
       </Box>
 
+      {attempts.length > 1 && (
+        <TextField select size="small" sx={{ maxWidth: 240 }}
+          label={t('professor.sessionReview.attempt')}
+          value={activeAttempt.attempt}
+          onChange={(event) => setSelectedAttempt(Number(event.target.value))}
+        >
+          {attempts.map((entry) => (
+            <MenuItem key={entry.attempt} value={entry.attempt}>
+              {t('professor.sessionReview.attemptProgress', { current: entry.attempt, total: attempts.length })}
+            </MenuItem>
+          ))}
+        </TextField>
+      )}
       <ReviewQuestionPreview
         ungraded
         key={activeQuestion._id}
         question={activeQuestion}
         number={activeQuestionIndex + 1}
         headerExtra={<Chip size="small" variant="outlined"
-          label={t('professor.sessionReview.responseCountLabel', { count: rows.length })} />}
+          label={t('professor.sessionReview.responseCountLabel', { count: activeAttempt?.respondentCount ?? rows.length })} />}
       />
       <ReviewQuestionNavigator
         questionStatuses={questions.map((question, index) => ({ questionId: String(question._id), label: t('grades.coursePanel.questionShort', { index: index + 1 }) }))}
         activeQuestionId={String(activeQuestion._id)}
-        onSelect={setSelectedQuestionId}
+        onSelect={(id) => { setSelectedQuestionId(id); setSelectedAttempt(null); }}
       />
 
-      {filteredRows.length === 0 ? (
+      {activeAttempt?.responsesWithheld ? (
+        <Alert severity="info">
+          {t('professor.sessionReview.anonymousAnswersHidden', { minimum: activeAttempt.minimumRespondents })}
+        </Alert>
+      ) : filteredRows.length === 0 ? (
         <Alert severity="info">
           {rows.length === 0
             ? t('professor.sessionReview.noResponsesYet')
