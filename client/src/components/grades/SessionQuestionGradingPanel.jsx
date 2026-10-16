@@ -376,7 +376,7 @@ function summarizeUngradedFromGrades(gradesByStudentId = {}) {
   };
 }
 
-function RichContent({ html, fallback, allowVideoEmbeds = false }) {
+function RichContent({ html, fallback, allowVideoEmbeds = false, sx = {} }) {
   const ref = useRef(null);
   const prepared = prepareRichTextInput(
     html || '',
@@ -394,7 +394,7 @@ function RichContent({ html, fallback, allowVideoEmbeds = false }) {
   return (
     <Box
       ref={ref}
-      sx={richContentSx}
+      sx={[richContentSx, sx]}
       dangerouslySetInnerHTML={innerHtml}
     />
   );
@@ -736,7 +736,16 @@ export function ReviewQuestionPreview({ question: activeQuestion, number, ungrad
                     <Typography variant="body2" component="span" sx={{ fontWeight: 700 }}>
                       {OPTION_LETTERS[index] || String(index + 1)}:
                     </Typography>
-                    <RichContent html={optionContent.html} fallback={optionContent.fallback} />
+                    <RichContent
+                      html={optionContent.html}
+                      fallback={optionContent.fallback}
+                      sx={{
+                        typography: 'body2',
+                        minWidth: 0,
+                        '& > :first-of-type': { mt: 0 },
+                        '& > :last-child': { mb: 0 },
+                      }}
+                    />
                   </Box>
                 );
               })}
