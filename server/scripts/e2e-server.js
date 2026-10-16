@@ -1,34 +1,53 @@
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'node:os';
 import { fileURLToPath } from 'url';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { buildApp } from '../src/app.js';
+import { configureTestEnvironment } from '../../scripts/test-environment.mjs';
+
+configureTestEnvironment();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const stateFile = process.env.QCLICKER_E2E_STATE_FILE || '/tmp/qlicker-e2e-state.json';
+const stateFile = process.env.QCLICKER_E2E_STATE_FILE || path.join(os.tmpdir(), 'qlicker-e2e-state.json');
 
 let app;
 let mongoServer;
+let cleanupPromise;
 
 async function writeStateFile(payload) {
   await fs.writeFile(stateFile, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
 
-async function cleanup(exitCode = 0) {
-  await fs.rm(stateFile, { force: true }).catch(() => {});
-  if (app) {
-    await app.close().catch(() => {});
-    app = null;
+function cleanup(exitCode = 0) {
+  process.exitCode = Math.max(process.exitCode || 0, exitCode);
+  if (!cleanupPromise) {
+    // Repeated signals must share teardown, never exit while stop is pending.
+    cleanupPromise = (async () => {
+      try {
+        try {
+          if (app) await app.close();
+        } finally {
+          if (mongoServer) await mongoServer.stop();
+        }
+      } catch (err) {
+        console.error('E2E server cleanup failed:', err);
+        process.exitCode = 1;
+      } finally {
+        await fs.rm(stateFile, { force: true }).catch((err) => {
+          console.error('E2E state cleanup failed:', err);
+          process.exitCode = 1;
+        });
+      }
+      process.exit(process.exitCode || 0);
+    })();
   }
-  if (mongoServer) {
-    await mongoServer.stop().catch(() => {});
-    mongoServer = null;
-  }
-  process.exit(exitCode);
+  return cleanupPromise;
 }
 
 async function start() {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = new MongoMemoryServer();
+  await mongoServer.start();
   const mongoUri = mongoServer.getUri();
   const port = Number.parseInt(process.env.PORT || '3001', 10);
   const host = process.env.HOST || '127.0.0.1';

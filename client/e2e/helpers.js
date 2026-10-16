@@ -1,11 +1,12 @@
 import fs from 'fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import AxeBuilder from '@axe-core/playwright';
 import { expect } from '@playwright/test';
 
-const STATE_FILE = process.env.QCLICKER_E2E_STATE_FILE || '/tmp/qlicker-e2e-state.json';
-const ADMIN_STATE_FILE = process.env.QCLICKER_E2E_ADMIN_STATE_FILE || '/tmp/qlicker-e2e-admin.json';
-const AUTH_STATE_DIR = process.env.QCLICKER_E2E_AUTH_STATE_DIR || '/tmp/qlicker-e2e-auth';
+const STATE_FILE = process.env.QCLICKER_E2E_STATE_FILE || path.join(os.tmpdir(), 'qlicker-e2e-state.json');
+const ADMIN_STATE_FILE = process.env.QCLICKER_E2E_ADMIN_STATE_FILE || path.join(os.tmpdir(), 'qlicker-e2e-admin.json');
+const AUTH_STATE_DIR = process.env.QCLICKER_E2E_AUTH_STATE_DIR || path.join(os.tmpdir(), 'qlicker-e2e-auth');
 const CSRF_HEADERS = { 'X-Requested-With': 'XMLHttpRequest' };
 
 let cachedState = null;

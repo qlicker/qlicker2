@@ -237,6 +237,12 @@ if [ -z "$MAIL_URL" ]; then
 fi
 
 # --------------------------------------------------
+# Configure host test storage
+# --------------------------------------------------
+source "$SCRIPT_DIR/setup-test-tmpdir.sh"
+configure_test_tmpdir
+
+# --------------------------------------------------
 # Generate .env file
 # --------------------------------------------------
 echo ""
@@ -256,6 +262,9 @@ JWT_REFRESH_SECRET=$JWT_REFRESH_SECRET
 ROOT_URL=http://localhost:$APP_PORT
 MAIL_URL=$MAIL_URL
 NODE_ENV=development
+
+# Host tests only (empty uses the OS temporary directory)
+TEST_TMPDIR="$TEST_TMPDIR"
 
 # Client
 VITE_API_URL=http://localhost:$API_PORT

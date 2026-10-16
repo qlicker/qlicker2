@@ -1,4 +1,7 @@
 import { defineConfig } from 'vitest/config';
+import { configureTestEnvironment } from '../scripts/test-environment.mjs';
+
+configureTestEnvironment();
 
 export default defineConfig({
   test: {

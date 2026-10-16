@@ -1,3 +1,6 @@
+import { configureTestEnvironment } from '../../scripts/test-environment.mjs';
+configureTestEnvironment();
+
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';

@@ -2,10 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'node:os';
+import { configureTestEnvironment } from '../scripts/test-environment.mjs';
+
+configureTestEnvironment();
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(configDir, '..');
-const stateFile = process.env.QCLICKER_E2E_STATE_FILE || '/tmp/qlicker-e2e-state.json';
+const stateFile = process.env.QCLICKER_E2E_STATE_FILE || path.join(os.tmpdir(), 'qlicker-e2e-state.json');
 
 function readLocalEnv(filePath) {
   try {
@@ -50,13 +54,19 @@ export function createPlaywrightConfig(testDir) {
     },
     webServer: [
       {
-        command: `cd ${repoRoot}/server && QCLICKER_E2E_STATE_FILE=${stateFile} ROOT_URL=${baseURL} HOST=127.0.0.1 PORT=${apiPort} node scripts/e2e-server.js`,
+        command: 'exec node scripts/e2e-server.js',
+        cwd: path.join(repoRoot, 'server'),
+        env: { QCLICKER_E2E_STATE_FILE: stateFile, ROOT_URL: baseURL, HOST: '127.0.0.1', PORT: apiPort },
         url: `${apiBaseUrl}/api/v1/health`,
         reuseExistingServer: false,
         timeout: 120_000,
+        // Let the server await MongoDB shutdown and remove its temporary DB.
+        gracefulShutdown: { signal: 'SIGTERM', timeout: 30_000 },
       },
       {
-        command: `cd ${repoRoot}/client && QCLICKER_E2E_STATE_FILE=${stateFile} VITE_API_URL=${apiBaseUrl} VITE_WS_URL=${wsBaseUrl} npm run dev -- --host 127.0.0.1 --port ${appPort}`,
+        command: `npm run dev -- --host 127.0.0.1 --port ${appPort}`,
+        cwd: path.join(repoRoot, 'client'),
+        env: { QCLICKER_E2E_STATE_FILE: stateFile, VITE_API_URL: apiBaseUrl, VITE_WS_URL: wsBaseUrl },
         url: `${baseURL}/login`,
         reuseExistingServer: false,
         timeout: 120_000,

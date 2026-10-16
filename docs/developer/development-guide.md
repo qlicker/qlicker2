@@ -82,6 +82,20 @@ cd client && npm run test:e2e
 
 The Playwright suite starts isolated app services and an in-memory MongoDB. If a local `.env` points at Redis that is not running, use the service wrapper or clear `REDIS_URL` for the isolated run.
 
+### Temporary test storage
+
+Both setup scripts ask for a host test temporary directory and preserve the current setting when rerun. To put temporary test files on another disk, set this in the untracked root `.env`:
+
+```dotenv
+TEST_TMPDIR="/data/tmp-test"
+```
+
+Use an absolute, writable path; tests create it if necessary and fail clearly if it is unusable. Leaving the setting empty retains the OS default. An explicitly exported `TEST_TMPDIR` overrides `.env`. This setting applies to direct client/server `npm test`, Playwright (including `qlicker.sh e2e`), and repository/load-runner tests that create temporary fixtures. It sets `TMPDIR`, `TMP`, and `TEMP` for the test process and children, including MongoDB databases and Chromium profiles. E2E state and authentication files use the same location unless their individual `QCLICKER_E2E_*` paths are overridden.
+
+This is host configuration: it does not change production storage, install a Docker bind mount, relocate existing files, or move persistent browser/MongoDB binary caches. Browser reports and failure artifacts still live in the configured Playwright output directory. When running tests inside a container, configure a writable path inside that container and mount the desired host storage yourself.
+
+Test teardown awaits MongoDB shutdown, which removes the temporary database directory. Playwright gives the API server up to 30 seconds to finish this cleanup after `SIGTERM`; Vitest stops MongoDB even if Mongoose disconnect fails. Forced termination (`SIGKILL`, a host crash, or the shutdown timeout) can still leave temporary directories. Existing leftovers are not automatically deleted because they may belong to a running test.
+
 ## How to approach a change
 
 1. Read `AGENTS.md` and `CODING_STANDARDS.md`.

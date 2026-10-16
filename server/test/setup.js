@@ -6,11 +6,12 @@ let mongoAvailable = false;
 
 beforeAll(async () => {
   try {
-    mongoServer = await MongoMemoryServer.create({
+    mongoServer = new MongoMemoryServer({
       binary: {
         systemBinary: process.env.MONGOMS_SYSTEM_BINARY || undefined,
       },
     });
+    await mongoServer.start();
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
     mongoAvailable = true;
@@ -32,11 +33,12 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (mongoose.connection.readyState === 1) {
+  try {
     await mongoose.disconnect();
-  }
-  if (mongoServer) {
-    await mongoServer.stop();
+  } finally {
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
   }
 });
 
