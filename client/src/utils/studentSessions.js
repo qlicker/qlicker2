@@ -186,3 +186,8 @@ export function sortStudentSessions(items, now = Date.now()) {
 }
 
 export const sortSessions = sortStudentSessions;
+
+export function matchesStudentSessionStatus(session, filter = 'all') {
+  if (filter === 'reviewable') return session?.status === 'done' && !!session?.reviewable;
+  return filter === 'all' || session?.status === filter;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getStudentSessionAction, sortSessions } from '../../utils/studentSessions';
+import { getStudentSessionAction, matchesStudentSessionStatus, sortSessions } from '../../utils/studentSessions';
 
 describe('getStudentSessionAction', () => {
   it('opens a waiting page for upcoming interactive sessions, while upcoming quizzes stay closed', () => {
@@ -124,5 +124,23 @@ describe('sortSessions', () => {
     ]);
 
     expect(sorted.map((session) => session._id)).toEqual(['open', 'submitted']);
+  });
+});
+
+describe('student session status filters', () => {
+  it.each([false, true])('only includes ended, reviewable activities in Reviewable (quiz=%s)', (quiz) => {
+    for (const status of ['hidden', 'visible', 'running', 'done']) {
+      for (const reviewable of [false, true, undefined]) {
+        expect(matchesStudentSessionStatus({ status, reviewable, quiz }, 'reviewable'))
+          .toBe(status === 'done' && reviewable === true);
+      }
+    }
+  });
+
+  it('preserves All and ordinary status filters', () => {
+    expect(matchesStudentSessionStatus({ status: 'done', reviewable: false }, 'done')).toBe(true);
+    expect(matchesStudentSessionStatus({ status: 'visible' }, 'all')).toBe(true);
+    expect(matchesStudentSessionStatus({ status: 'visible' }, 'running')).toBe(false);
+    expect(matchesStudentSessionStatus({ status: 'running' }, 'running')).toBe(true);
   });
 });

@@ -1397,7 +1397,8 @@
       "createNewQuestion": "Create New",
       "copyFromQuestionLibrary": "Copy from Question Library",
       "practiceSessionQuestions": "Questions in this practice session",
-      "noPracticeQuestionsSelected": "Add or create questions to build this practice session."
+      "noPracticeQuestionsSelected": "Add or create questions to build this practice session.",
+      "reviewable": "Reviewable"
     },
     "liveSession": {
       "currentQuestion": "Current question",
@@ -2468,7 +2469,7 @@
           "subtitle": "Most student work begins from the course dashboard.",
           "bullets": [
             "Enter the enrollment code exactly as your instructor provides it. If the course is inactive, enrollment is rejected and you will need to try again after the course is activated. Search sessions starts expanded and can be collapsed.",
-            "The course page separates lectures or live sessions, quizzes, practice sessions, grades, and question-library material so you can find the right workflow quickly. In courses where practice-question access is disabled, the practice and library tabs stay hidden.",
+            "The course page separates lectures or live sessions, quizzes, practice sessions, grades, and question-library material so you can find the right workflow quickly. In courses where practice-question access is disabled, the practice and library tabs stay hidden. Choose Reviewable in the status filter to show only ended sessions that your instructor has made available for review. Draft is not offered in the student filter.",
             "Session lists keep search, filters, and pagination inside a collapsible Search sessions area so you can expand controls only when you need them.",
             "If your institution requires verified email or SSO, finish that setup first before assuming the enrollment code is wrong.",
             "You usually only need the join code once per course. After it works, the course stays on your dashboard until you are removed or the course is archived for your account.",

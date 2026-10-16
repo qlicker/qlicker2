@@ -1397,7 +1397,8 @@
       "createNewQuestion": "Créer une nouvelle question",
       "copyFromQuestionLibrary": "Copier depuis la bibliothèque de questions",
       "practiceSessionQuestions": "Questions dans cette séance de pratique",
-      "noPracticeQuestionsSelected": "Ajoutez ou créez des questions pour construire cette séance de pratique."
+      "noPracticeQuestionsSelected": "Ajoutez ou créez des questions pour construire cette séance de pratique.",
+      "reviewable": "Consultable"
     },
     "liveSession": {
       "currentQuestion": "Question actuelle",
@@ -2421,7 +2422,7 @@
           "subtitle": "La plupart des tâches étudiantes commencent sur le tableau de bord du cours.",
           "bullets": [
             "Entrez le code d'inscription exactement comme votre enseignant vous le donne. Si le cours est inactif, l'inscription est refusée et vous devrez réessayer après son activation. La recherche de sessions est ouverte par défaut et peut être repliée.",
-            "La page du cours sépare les cours interactifs, les quiz, les séances de pratique, les notes et le contenu de bibliothèque afin que vous trouviez rapidement le bon flux. Dans les cours où l'accès à la pratique est désactivé, les onglets de pratique et de bibliothèque restent cachés.",
+            "La page du cours sépare les cours interactifs, les quiz, les séances de pratique, les notes et le contenu de bibliothèque afin que vous trouviez rapidement le bon flux. Dans les cours où l'accès à la pratique est désactivé, les onglets de pratique et de bibliothèque restent cachés. Choisissez Consultable dans le filtre de statut pour afficher uniquement les séances terminées que votre enseignant a rendues consultables. Le statut Brouillon n’est pas proposé dans le filtre étudiant.",
             "Les listes de séances gardent la recherche, les filtres et la pagination dans une zone Rechercher des séances repliable afin que vous n'ouvriez les contrôles que lorsque nécessaire.",
             "Si votre établissement exige une vérification d'e-mail ou un SSO, terminez cette configuration avant de supposer que le code d'inscription est mauvais.",
             "En général, vous n'avez besoin du code d'inscription qu'une seule fois par cours. Une fois accepté, le cours reste sur votre tableau de bord jusqu'à ce que vous en soyez retiré ou qu'il soit archivé pour votre compte.",

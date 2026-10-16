@@ -97,7 +97,7 @@ If practice access is disabled, **Practice Sessions** and **Question Library** a
 
 Cards show status and the action currently available: join, start/continue a quiz, review, or no action yet. Quiz cards display the relevant start/end time. A live activity may also appear above the tabs as a quick-access tile.
 
-**Search sessions** starts expanded so you can search, filter by status, choose rows per page, and navigate pages. Select its heading to collapse or reopen it. The app may load the first group of cards before background loading finishes.
+**Search sessions** starts expanded so you can search, filter by status, choose rows per page, and navigate pages. Choose **Reviewable** to show only ended sessions that your instructor has made available for review. Draft is not offered in the student filter. Select its heading to collapse or reopen it. The app may load the first group of cards before background loading finishes.
 
 ### Anonymous sessions
 

@@ -1397,7 +1397,8 @@
       "createNewQuestion": "Chart New",
       "copyFromQuestionLibrary": "Copy from Riddle Chest",
       "practiceSessionQuestions": "Riddles in this drill voyage",
-      "noPracticeQuestionsSelected": "Add or chart riddles to build this drill voyage."
+      "noPracticeQuestionsSelected": "Add or chart riddles to build this drill voyage.",
+      "reviewable": "Ready fer review"
     },
     "liveSession": {
       "currentQuestion": "Current riddle",
@@ -2421,7 +2422,7 @@
           "subtitle": "Most crew member work begins from th' ship quarterdeck.",
           "bullets": [
             "Enter th' boarding code exactly as yer officer gives it. If th' ship be mothballed, boarding be rejected an' ye'll need to try again after th' ship be activated. Search sessions starts unfurled and can be stowed.",
-            "Th' ship page separates sermons or underway voyages, reckonings, drill voyages, ledgers, an' riddle-chest material so ye can find th' right workflow quick. In ships where drill-riddle access be struck, th' drill an' chest tabs stay stowed away.",
+            "Th' ship page separates sermons or underway voyages, reckonings, drill voyages, ledgers, an' riddle-chest material so ye can find th' right workflow quick. In ships where drill-riddle access be struck, th' drill an' chest tabs stay stowed away. Choose Ready fer review in the status filter to show only ended voyages yer captain has opened fer review. Draft be absent from the crew’s filter.",
             "Voyage lists keep hunt, filters, an' pagination inside a collapsible Hunt voyages area so ye can expand controls only when ye need 'em.",
             "If yer institution requires vouched fer missive or SSO, finish that setup first afore assumin' th' boarding code be wrong.",
             "Ye usually only need th' board code once per ship. After it works, th' ship stays on yer quarterdeck until ye're removed or th' ship be buried fer yer account.",

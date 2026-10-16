@@ -1397,7 +1397,8 @@
       "createNewQuestion": "Crea nuova",
       "copyFromQuestionLibrary": "Copia dalla libreria delle domande",
       "practiceSessionQuestions": "Domande in questa sessione di pratica",
-      "noPracticeQuestionsSelected": "Aggiungi o crea domande per costruire questa sessione di pratica."
+      "noPracticeQuestionsSelected": "Aggiungi o crea domande per costruire questa sessione di pratica.",
+      "reviewable": "Consultabile"
     },
     "liveSession": {
       "currentQuestion": "Domanda attuale",
@@ -2421,7 +2422,7 @@
           "subtitle": "La maggior parte del lavoro dello studente inizia dalla dashboard del corso.",
           "bullets": [
             "Inserisci il codice di iscrizione esattamente come te lo fornisce il tuo docente. Se il corso è inattivo, l'iscrizione viene rifiutata e dovrai riprovare dopo che il corso è stato attivato. La ricerca delle sessioni è aperta per impostazione predefinita e può essere chiusa.",
-            "La pagina del corso separa lezioni o sessioni in diretta, quiz, sessioni di pratica, voti e materiale della libreria delle domande, così puoi trovare rapidamente il flusso giusto. Nei corsi in cui l'accesso alle domande di pratica è disattivato, le schede di pratica e libreria restano nascoste.",
+            "La pagina del corso separa lezioni o sessioni in diretta, quiz, sessioni di pratica, voti e materiale della libreria delle domande, così puoi trovare rapidamente il flusso giusto. Nei corsi in cui l'accesso alle domande di pratica è disattivato, le schede di pratica e libreria restano nascoste. Scegli Consultabile nel filtro di stato per mostrare solo le sessioni terminate che il docente ha reso disponibili per la revisione. Bozza non compare nel filtro degli studenti.",
             "Gli elenchi delle sessioni mantengono ricerca, filtri e paginazione dentro un'area comprimibile Cerca sessioni, così puoi espandere i controlli solo quando ti servono.",
             "Se la tua istituzione richiede email verificata o SSO, completa prima questa configurazione prima di supporre che il codice di iscrizione sia sbagliato.",
             "Di solito ti serve il codice di iscrizione solo una volta per corso. Una volta funzionante, il corso resta sulla tua dashboard finché non vieni rimosso o il corso viene archiviato per il tuo account.",

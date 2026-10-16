@@ -14,6 +14,7 @@ import {
   getStudentSessionAction,
   isQuizSession,
   isSubmittedLiveQuiz,
+  matchesStudentSessionStatus,
   shouldShowStudentSessionQuestionCount,
   sortStudentSessions,
 } from '../../utils/studentSessions';
@@ -60,10 +61,10 @@ const SESSION_PAGE_SIZE_OPTIONS = [15, 30, 50];
 const SESSION_STATUS_FILTER_ALL = 'all';
 const SESSION_STATUS_FILTER_OPTIONS = [
   { value: SESSION_STATUS_FILTER_ALL, labelKey: 'common.all', defaultLabel: 'All' },
-  { value: 'hidden', labelKey: 'sessionStatus.draft', defaultLabel: 'Draft' },
   { value: 'visible', labelKey: 'sessionStatus.upcoming', defaultLabel: 'Upcoming' },
   { value: 'running', labelKey: 'sessionStatus.live', defaultLabel: 'Live' },
   { value: 'done', labelKey: 'sessionStatus.ended', defaultLabel: 'Ended' },
+  { value: 'reviewable', labelKey: 'student.course.reviewable', defaultLabel: 'Reviewable' },
 ];
 
 function normalizeSessionSearchValue(value) {
@@ -737,8 +738,7 @@ export default function StudentCourseDetail() {
       ? sessionItems.filter((session) => {
         const matchesSearch = !normalizedSearchTerm
           || String(session?.name || '').toLowerCase().includes(normalizedSearchTerm);
-        const matchesStatus = statusFilter === SESSION_STATUS_FILTER_ALL
-          || String(session?.status || '') === statusFilter;
+        const matchesStatus = matchesStudentSessionStatus(session, statusFilter);
         return matchesSearch && matchesStatus;
       })
       : sessionItems;
@@ -1019,8 +1019,7 @@ export default function StudentCourseDetail() {
             ? practiceSessions.filter((session) => {
               const matchesSearch = !normalizedSearchTerm
                 || String(session?.name || '').toLowerCase().includes(normalizedSearchTerm);
-              const matchesStatus = statusFilter === SESSION_STATUS_FILTER_ALL
-                || String(session?.status || '') === statusFilter;
+              const matchesStatus = matchesStudentSessionStatus(session, statusFilter);
               return matchesSearch && matchesStatus;
             })
             : practiceSessions;

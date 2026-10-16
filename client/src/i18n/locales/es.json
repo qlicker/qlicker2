@@ -1397,7 +1397,8 @@
       "createNewQuestion": "Crear nueva",
       "copyFromQuestionLibrary": "Copiar de la biblioteca de preguntas",
       "practiceSessionQuestions": "Preguntas en esta sesión de práctica",
-      "noPracticeQuestionsSelected": "Agregue o cree preguntas para armar esta sesión de práctica."
+      "noPracticeQuestionsSelected": "Agregue o cree preguntas para armar esta sesión de práctica.",
+      "reviewable": "Revisable"
     },
     "liveSession": {
       "currentQuestion": "Pregunta actual",
@@ -2421,7 +2422,7 @@
           "subtitle": "La mayor parte del trabajo del estudiante comienza desde el panel del curso.",
           "bullets": [
             "Introduzca el código de inscripción exactamente como lo proporciona su instructor. Si el curso está inactivo, la inscripción se rechaza y deberá intentarlo de nuevo después de que el curso se active. La búsqueda de sesiones se abre desplegada y puede contraerse.",
-            "La página del curso separa las clases o sesiones en vivo, los cuestionarios, las sesiones de práctica, las calificaciones y el material de la biblioteca de preguntas para que pueda encontrar rápidamente el flujo de trabajo correcto. En los cursos donde el acceso a preguntas de práctica está deshabilitado, las pestañas de práctica y biblioteca permanecen ocultas.",
+            "La página del curso separa las clases o sesiones en vivo, los cuestionarios, las sesiones de práctica, las calificaciones y el material de la biblioteca de preguntas para que pueda encontrar rápidamente el flujo de trabajo correcto. En los cursos donde el acceso a preguntas de práctica está deshabilitado, las pestañas de práctica y biblioteca permanecen ocultas. Elige Revisable en el filtro de estado para mostrar solo las sesiones finalizadas que el docente haya habilitado para revisión. Borrador no aparece en el filtro de estudiantes.",
             "Las listas de sesiones mantienen la búsqueda, los filtros y la paginación dentro de un área plegable de Buscar sesiones para que pueda expandir los controles solo cuando los necesite.",
             "Si su institución requiere correo verificado o SSO, complete primero esa configuración antes de suponer que el código de inscripción es incorrecto.",
             "Por lo general, solo necesita el código de acceso una vez por curso. Después de que funcione, el curso permanece en su panel hasta que se le quite o el curso se archive para su cuenta.",

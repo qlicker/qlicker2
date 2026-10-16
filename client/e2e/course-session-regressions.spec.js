@@ -264,3 +264,38 @@ test('quiz status controls agree across the course and editor and Live keeps the
   await page.goto(editorPath);
   await expect(status).toHaveText('Live');
 });
+
+test('student status filters offer Reviewable instead of Draft for lectures and quizzes', async ({ page, request }) => {
+  const { admin, student } = await seedUsers(request);
+  const course = await createCourseViaApi(request, admin.token);
+  await enrollStudentViaApi(request, student.token, course.enrollmentCode);
+  for (const quiz of [false, true]) {
+    for (const [name, status, reviewable] of [
+      ['Ready for review', 'done', true],
+      ['Review disabled', 'done', false],
+      ['Not started', 'visible', false],
+      ['Private draft', 'hidden', false],
+    ]) {
+      const session = await createSessionViaApi(request, admin.token, course._id, { name, quiz });
+      await patchSessionViaApi(request, admin.token, session._id, { status, reviewable });
+    }
+  }
+  await loginViaUi(page, student.email, student.password, /\/student$/);
+  await page.goto(`/student/course/${course._id}`);
+  for (const name of [/^Lectures/, /^Quizzes/]) {
+    await page.getByRole('tab', { name }).click();
+    await expect(page.getByText('Private draft', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Review disabled', { exact: true })).toBeVisible();
+    const status = page.getByRole('combobox', { name: 'Status', exact: true });
+    await status.click();
+    await expect(page.getByRole('option', { name: 'Draft', exact: true })).toHaveCount(0);
+    await page.getByRole('option', { name: 'Reviewable', exact: true }).click();
+    await expect(page.getByText('Ready for review', { exact: true })).toBeVisible();
+    await expect(page.getByText('Review disabled', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Not started', { exact: true })).toHaveCount(0);
+    await status.click();
+    await page.getByRole('option', { name: 'Ended', exact: true }).click();
+    await expect(page.getByText('Review disabled', { exact: true })).toBeVisible();
+    await expect(page.getByText('Ready for review', { exact: true })).toBeVisible();
+  }
+});

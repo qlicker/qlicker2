@@ -1397,7 +1397,8 @@
       "createNewQuestion": "Neu erstellen",
       "copyFromQuestionLibrary": "Aus Fragenbibliothek kopieren",
       "practiceSessionQuestions": "Fragen in dieser Übungssitzung",
-      "noPracticeQuestionsSelected": "Fügen Sie Fragen hinzu oder erstellen Sie welche, um diese Übungssitzung aufzubauen."
+      "noPracticeQuestionsSelected": "Fügen Sie Fragen hinzu oder erstellen Sie welche, um diese Übungssitzung aufzubauen.",
+      "reviewable": "Zur Nachbereitung verfügbar"
     },
     "liveSession": {
       "currentQuestion": "Aktuelle Frage",
@@ -2421,7 +2422,7 @@
           "subtitle": "Die meiste Studierendenarbeit beginnt vom Kurs-Dashboard aus.",
           "bullets": [
             "Geben Sie den Einschreibungscode genau so ein, wie Ihr Dozent ihn bereitstellt. Wenn der Kurs inaktiv ist, wird die Einschreibung abgelehnt und Sie müssen es erneut versuchen, nachdem der Kurs aktiviert wurde. Die Sitzungssuche ist standardmäßig aufgeklappt und kann eingeklappt werden.",
-            "Die Kursseite trennt Vorlesungen oder Live-Sitzungen, Quizze, Übungssitzungen, Noten und Fragenbibliothek-Material, sodass Sie den richtigen Arbeitsablauf schnell finden. In Kursen, in denen der Zugang zu Übungsfragen deaktiviert ist, bleiben die Übungs- und Bibliotheks-Tabs verborgen.",
+            "Die Kursseite trennt Vorlesungen oder Live-Sitzungen, Quizze, Übungssitzungen, Noten und Fragenbibliothek-Material, sodass Sie den richtigen Arbeitsablauf schnell finden. In Kursen, in denen der Zugang zu Übungsfragen deaktiviert ist, bleiben die Übungs- und Bibliotheks-Tabs verborgen. Wählen Sie Zur Nachbereitung verfügbar im Statusfilter, um nur beendete Sitzungen anzuzeigen, die Ihre Lehrkraft zur Nachbereitung freigegeben hat. Entwurf wird im Filter für Studierende nicht angeboten.",
             "Sitzungslisten halten Suche, Filter und Seitennavigation in einem ausklappbaren Bereich „Sitzungen suchen“, sodass Sie die Steuerung nur bei Bedarf erweitern können.",
             "Wenn Ihre Einrichtung eine verifizierte E-Mail-Adresse oder SSO erfordert, schließen Sie diese Einrichtung zuerst ab, bevor Sie annehmen, dass der Einschreibungscode falsch ist.",
             "Sie benötigen den Beitrittscode normalerweise nur einmal pro Kurs. Nachdem er funktioniert hat, bleibt der Kurs auf Ihrem Dashboard, bis Sie entfernt werden oder der Kurs für Ihr Konto archiviert wird.",
