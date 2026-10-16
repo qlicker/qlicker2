@@ -13,6 +13,16 @@ npm ci --prefix server
 npm ci --prefix client
 ```
 
+### Dependency maintenance
+
+The client, server, and load-test seeder have separate manifests and lockfiles. Update both files in each affected workspace and keep the seeder's Mongoose and Argon2 versions aligned with the server. Use `npm outdated --prefix <workspace>` to inspect available updates and `npm audit --prefix <workspace>` to check advisories. Review major upgrades separately; do not use `npm audit fix --force` to apply unreviewed migrations or downgrades.
+
+Some dependencies have explicit security overrides. The client uses its direct KaTeX version for the Markdown math pipeline as well as the question editor, so older nested copies cannot remain installed. The server pins patched `@xmldom/xmldom` on the 0.8 maintenance line for SAML and patched static-file/glob dependencies. Review these constraints when updating their parent packages, and verify the resolved tree with `npm ls --prefix <workspace> --all`.
+
+Dependency validation includes the client and server suites, client production build, load-test infrastructure tests, and browser workflows. The email integration test uses the real Nodemailer SMTP transport against an isolated loopback fixture; the Markdown math tests exercise the real rendering pipeline and its trust restrictions. After upgrading Playwright, install its matching browser with `cd client && npx playwright install chromium` before running E2E tests. On a resource-constrained machine, pass `-- --maxWorkers=4` to each workspace's `npm test` command.
+
+Rebuild Docker images to deploy dependency updates; pulling the source alone does not change packages inside an existing image. Smoke-test your configured SMTP delivery and SAML identity provider after deploying mail or SAML dependency updates.
+
 ### Run the app
 
 Use the repository scripts when possible:
