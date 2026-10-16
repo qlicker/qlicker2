@@ -97,5 +97,8 @@ test('course and live-session chat stay responsive while typing', async ({ page,
   await typeWithPauses(page, sessionEditor, [' Pauses', ' keep', ' every character.']);
   const fullSessionMessage = `${sessionMessage} Pauses keep every character.`;
   await page.getByRole('button', { name: 'Post', exact: true }).click();
+  // The WebSocket can publish the post before the request clears the composer.
+  // Verify clearing before matching text that briefly exists in both places.
+  await expect(sessionEditor).toHaveText('');
   await expect(page.getByText(fullSessionMessage)).toBeVisible();
 });
