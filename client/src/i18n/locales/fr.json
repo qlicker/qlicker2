@@ -1038,7 +1038,11 @@
       "sessionName": "Nom de la séance",
       "tags": "Étiquettes de la séance",
       "tagsPlaceholder": "Ajouter une étiquette de sujet",
-      "tagsHelp": "Créez les étiquettes dans les paramètres du cours, puis sélectionnez celles qui décrivent cette séance et ses questions."
+      "tagsHelp": "Créez les étiquettes dans les paramètres du cours, puis sélectionnez celles qui décrivent cette séance et ses questions.",
+      "expandAllPreviews": "Développer tous les aperçus",
+      "collapseAllPreviews": "Réduire tous les aperçus",
+      "expandQuestion": "Développer la question {{number}}",
+      "collapseQuestion": "Réduire la question {{number}}"
     },
     "liveSession": {
       "currentQuestion": "Question actuelle",
@@ -1845,7 +1849,8 @@
       "acceptAutoGrade": "Accepter note auto",
       "setAutomatic": "Définir automatique",
       "questionContentNotLoaded": "Le contenu de la question n'a pas pu être chargé pour ce conflit.",
-      "toleranceLabel": "{{expected}} | tolérance : {{tolerance}}"
+      "toleranceLabel": "{{expected}} | tolérance : {{tolerance}}",
+      "noReviewableSessions": "Aucune session n’est encore disponible pour consultation. Vos moyennes apparaîtront lorsque votre enseignant publiera les notes en rendant une session consultable."
     },
     "questionPanel": {
       "selectQuestion": "Sélectionnez une question pour commencer l'évaluation.",
@@ -2292,7 +2297,8 @@
             "Utilisez l'éditeur de séance pour définir le nom, la description, la visibilité, la révision, le code d'accès, la fenêtre du quiz, les prolongations et la méthode de notation des questions multi-sélection. Créez les étiquettes dans les paramètres du cours, puis sélectionnez celles qui décrivent cette séance et ses questions.",
             "Ajoutez de nouvelles questions, choisissez du contenu dans la bibliothèque, importez du JSON de séance ou insérez des diapositives à n'importe quel endroit de la séquence.",
             "Les diapositives sont des pages de contenu seulement, idéales pour les consignes, les exemples travaillés ou les pauses de discussion entre les questions notées.",
-            "La visibilité des questions compte : gardez le contenu privé quand il doit l'être, partagez volontairement au niveau du cours et utilisez la visibilité globale seulement si vous voulez réellement une réutilisation large."
+            "La visibilité des questions compte : gardez le contenu privé quand il doit l'être, partagez volontairement au niveau du cours et utilisez la visibilité globale seulement si vous voulez réellement une réutilisation large.",
+            "Utilisez Développer tous les aperçus ou Réduire tous les aperçus au-dessus de la liste des questions, ou ouvrez et fermez chaque aperçu individuellement."
           ],
           "warning": "Lorsqu'une question possède déjà des réponses, certaines modifications sont volontairement limitées pour protéger le sens des résultats passés.",
           "screenshot": {
@@ -2469,7 +2475,8 @@
             "Ouvrez les séances révisables depuis la page du cours après la fin de l'activité et l'activation de la révision par votre enseignant. Cliquez sur une note dans le tableau des notes pour ouvrir la révision de la séance.",
             "Avancez une question à la fois pour comparer votre réponse, la réponse publiée, l'explication et la rétroaction de l'enseignant sans passer trop vite sur les détails.",
             "Surveillez les notifications de rétroaction parce qu'elles indiquent que de nouveaux commentaires ou ajustements de note sont disponibles.",
-            "Les moyennes de note et de participation utilisent vos éléments de note visibles des séances terminées et consultables. Les éléments manquants sont exclus ; les zéros enregistrés comptent."
+            "Les moyennes de note et de participation utilisent vos éléments de note visibles des séances terminées et consultables. Les éléments manquants sont exclus ; les zéros enregistrés comptent.",
+            "Si aucune session n’est encore consultable, vos moyennes indiquent Sans objet, même si votre enseignant a déjà noté votre travail."
           ],
           "success": "Les étudiants progressent souvent le plus lorsqu'ils lisent la rétroaction puis refont immédiatement une question semblable.",
           "screenshot": {

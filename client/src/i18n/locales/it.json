@@ -1038,7 +1038,11 @@
       "sessionName": "Nome della sessione",
       "tags": "Tag della sessione",
       "tagsPlaceholder": "Aggiungi un tag argomento",
-      "tagsHelp": "Crea i tag nelle impostazioni del corso, poi seleziona quelli che descrivono questa sessione e le sue domande."
+      "tagsHelp": "Crea i tag nelle impostazioni del corso, poi seleziona quelli che descrivono questa sessione e le sue domande.",
+      "expandAllPreviews": "Espandi tutte le anteprime",
+      "collapseAllPreviews": "Comprimi tutte le anteprime",
+      "expandQuestion": "Espandi la domanda {{number}}",
+      "collapseQuestion": "Comprimi la domanda {{number}}"
     },
     "liveSession": {
       "currentQuestion": "Domanda attuale",
@@ -1845,7 +1849,8 @@
       "acceptAutoGrade": "Accetta voto automatico",
       "setAutomatic": "Imposta automatico",
       "questionContentNotLoaded": "Non è stato possibile caricare il contenuto della domanda per questo conflitto.",
-      "toleranceLabel": "{{expected}} | tolleranza: {{tolerance}}"
+      "toleranceLabel": "{{expected}} | tolleranza: {{tolerance}}",
+      "noReviewableSessions": "Non ci sono ancora sessioni disponibili per la revisione. Le tue medie appariranno quando il docente pubblicherà i voti rendendo una sessione disponibile per la revisione."
     },
     "questionPanel": {
       "selectQuestion": "Seleziona una domanda per iniziare la valutazione.",
@@ -2292,7 +2297,8 @@
             "Usa l'editor di sessione per impostare nome, descrizione, visibilità, possibilità di revisione, requisito del codice di accesso, finestra del quiz, proroghe e metodo di punteggio per la selezione multipla. Crea i tag nelle impostazioni del corso, poi seleziona quelli che descrivono questa sessione e le sue domande.",
             "Aggiungi nuove domande, scegli dalla libreria delle domande, importa il JSON di una sessione o inserisci diapositive in qualsiasi punto della sequenza.",
             "Le diapositive sono pagine di solo contenuto, quindi sono ideali per istruzioni, esempi svolti o spunti di discussione tra una domanda valutata e l'altra.",
-            "La visibilità delle domande è importante: mantieni privato il contenuto privato, condividi intenzionalmente il materiale pubblico del corso e usa la visibilità a livello di Qlicker solo quando desideri davvero un riutilizzo ampio."
+            "La visibilità delle domande è importante: mantieni privato il contenuto privato, condividi intenzionalmente il materiale pubblico del corso e usa la visibilità a livello di Qlicker solo quando desideri davvero un riutilizzo ampio.",
+            "Usa Espandi tutte le anteprime o Comprimi tutte le anteprime sopra l’elenco delle domande, oppure apri e chiudi le singole anteprime."
           ],
           "warning": "Una volta che una domanda ha dati di risposta, alcune modifiche sono intenzionalmente limitate per proteggere il significato dei risultati passati.",
           "screenshot": {
@@ -2469,7 +2475,8 @@
             "Apri le sessioni rivedibili dalla pagina del corso dopo che il tuo docente termina l'attività e attiva la revisione. Fai clic su un voto nella tabella dei voti per aprire la revisione della sessione.",
             "Avanza una domanda alla volta per confrontare la tua risposta, la risposta pubblicata, la spiegazione e ogni feedback del docente senza saltare i dettagli.",
             "Tieni d'occhio le notifiche di feedback perché ti avvisano quando sono disponibili nuovi commenti o aggiornamenti di valutazione.",
-            "Le medie dei voti e della partecipazione usano i tuoi voti visibili delle sessioni terminate e disponibili per la revisione. I voti mancanti sono esclusi; gli zeri registrati contano."
+            "Le medie dei voti e della partecipazione usano i tuoi voti visibili delle sessioni terminate e disponibili per la revisione. I voti mancanti sono esclusi; gli zeri registrati contano.",
+            "Se nessuna sessione è ancora disponibile per la revisione, le tue medie mostrano Non applicabile, anche se il docente ha già valutato il tuo lavoro."
           ],
           "success": "Gli studenti spesso migliorano più in fretta quando leggono il feedback e poi provano subito di nuovo una domanda simile.",
           "screenshot": {

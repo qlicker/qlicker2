@@ -214,6 +214,8 @@ Not every detail is always released. The instructor controls reviewability and g
 
 The **Grades** tab shows only your own results from ended, reviewable sessions. Average grade and participation are the arithmetic means of your visible grade items in those sessions. Missing or unpublished grade items are excluded; recorded zeros, including missed work, count. When no applicable grade items exist, no average is shown.
 
+If none of the sessions are reviewable yet, the tab explains that grades have not been released and shows **Not applicable** for both averages. Your instructor may already see grades; they become available to you when the instructor makes the sessions reviewable.
+
 - Objective items may be graded automatically.
 - Short answers usually remain incomplete until an instructor assigns points.
 - Feedback can appear after the initial result.

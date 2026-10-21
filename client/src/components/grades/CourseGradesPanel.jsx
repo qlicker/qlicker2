@@ -2180,6 +2180,11 @@ export default function CourseGradesPanel({
             <Alert severity="error">{error}</Alert>
           ) : (
             <>
+              {!instructorView && visibleSessions.length === 0 && (
+                <Alert severity="info" sx={{ mb: 1.5 }}>
+                  {t('grades.coursePanel.noReviewableSessions')}
+                </Alert>
+              )}
               <TablePagination
                 component="div"
                 count={sortedRows.length}

@@ -179,6 +179,8 @@ Check the correct answer, point value, multi-select method, numerical tolerance,
 
 Confirm the activity is reviewable and its grade is visible to students. Manual grading can exist instructor-side before release.
 
+The **Reviewable** control automatically synchronizes grade visibility; there is no separate grade-visibility control in the interface. If no sessions are reviewable, the student's course table has no grades to average and shows **Not applicable**, even when the instructor sees grades. Student averages use released grade items from reviewable sessions; instructor averages use grade items from the sessions selected for their table. Missing grade items are excluded and recorded zeros count.
+
 ### Duplicate or inconsistent legacy rows appear
 
 Do not fix production data manually in MongoDB. Operators/developers should back up first and use the documented maintenance scripts and current server protections; see [developer grading notes](../developer/grading.md).

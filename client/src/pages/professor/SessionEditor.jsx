@@ -1032,6 +1032,15 @@ export default function SessionEditor() {
     handleMove(idx, direction);
   };
 
+  const allQuestionsExpanded = questions.length > 0
+    && questions.every((question) => !!expandedQuestions[question._id]);
+
+  const toggleAllQuestionsExpanded = () => {
+    setExpandedQuestions(Object.fromEntries(
+      questions.map((question) => [question._id, !allQuestionsExpanded])
+    ));
+  };
+
   const toggleQuestionExpanded = (questionId) => {
     setExpandedQuestions((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
   };
@@ -1970,6 +1979,17 @@ export default function SessionEditor() {
         >
           <Typography variant="h6">{t('professor.sessionEditor.questionsCount', { count: questions.length })}</Typography>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              onClick={toggleAllQuestionsExpanded}
+              disabled={questions.length === 0}
+              aria-expanded={allQuestionsExpanded}
+              sx={{ minHeight: 40 }}
+            >
+              {t(allQuestionsExpanded
+                ? 'professor.sessionEditor.collapseAllPreviews'
+                : 'professor.sessionEditor.expandAllPreviews')}
+            </Button>
             <TextField
               label={t('professor.sessionEditor.pointsPerQuestion')}
               type="number"
@@ -2251,9 +2271,9 @@ export default function SessionEditor() {
                             role="button"
                             tabIndex={0}
                             aria-expanded={isQuestionExpanded}
-                            aria-label={isQuestionExpanded
-                              ? `Collapse question ${displayedQuestionNumber}`
-                              : `Expand question ${displayedQuestionNumber}`}
+                            aria-label={t(isQuestionExpanded
+                              ? 'professor.sessionEditor.collapseQuestion'
+                              : 'professor.sessionEditor.expandQuestion', { number: displayedQuestionNumber })}
                           >
                             {normalizeTagValues(currentQuestion.tags || []).filter((tag) => tag.toLowerCase() !== 'qlicker').length > 0 ? (
                               <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', px: { xs: 0.25, sm: 0.5 }, pb: 0.5 }}>
