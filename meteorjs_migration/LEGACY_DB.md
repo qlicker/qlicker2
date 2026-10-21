@@ -158,6 +158,7 @@ Legacy installations use `users`, `courses`, `sessions`, `questions`, `responses
   }],
   submittedQuiz: [String],        // New: student IDs who submitted
   reviewable: Boolean,
+  gradesVisible: Boolean,         // New: independent summary-grade release; default false
   date: Date,
   msScoringMethod: String,        // New: 'right-minus-wrong'|'all-or-nothing'|'correctness-ratio'
   joinCodeEnabled: Boolean,       // New
@@ -381,3 +382,5 @@ cd scripts
 Some sessions created through older copy/order workflows may contain duplicate question IDs or references to questions owned by a library or another session. Use the [question reference repair guide](../docs/developer/question-reference-repair.md) to diagnose all sessions by course/session name through the production Bash/Docker launcher. The interactive repair can copy unused questions or remove duplicate positions with an explicit decision to keep or recalculate grades. Existing responses cannot be split by question position or session automatically: their persisted key is `questionId`, not session plus position. The utility preserves legacy fields and string IDs, leaves response rows untouched, and preserves manual grading overrides.
 
 Course documents without `allowSharedActivities` remain in the default-off state for activity-code access; no migration is needed.
+
+`Session.gradesVisible` is additive; no migration is needed. Existing reviewable sessions remain released. Current grade reads retain the legacy `Grade.visibleToStudents` filter. Publication writes both the session setting and grade flags; recalculation and enrollment preserve independent grade release. See [grading release rules](../docs/developer/grading.md#independent-grade-release).

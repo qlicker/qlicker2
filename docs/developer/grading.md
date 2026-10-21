@@ -36,8 +36,8 @@ Session reviewable integration is in:
 unweighted arithmetic means of existing applicable grade items per student,
 rounded to one decimal place. Zero-valued items count; synthetic missing-item
 placeholders and `notApplicable` items do not. An empty denominator returns `null`.
-Student rows use only published grades in ended, reviewable, non-anonymous sessions
-with no remaining extensions; other students' private practice sessions are excluded.
+Student rows use only published grades in ended, non-anonymous sessions
+with no remaining extensions, whether or not review is enabled; other students' private practice sessions are excluded. Sessions without a visible grade item for the caller are omitted. Non-reviewable sessions expose only aggregate scores and basic session metadata, without question marks, feedback, or review navigation. Reviewable grade payloads retain sanitized student marks. Review/response/feedback endpoints and student AI tools continue to require reviewability.
 Instructor rows use the requested/displayed sessions, including unpublished grade
 items. Selecting an empty session does not dilute averages.
 
@@ -47,6 +47,22 @@ items. Selecting an empty session does not dilute averages.
 not stored model fields. The picker offers graded-only selection and still permits
 explicit selection of empty sessions. Table sorting and CSV use the same server
 averages. No migration or live-response-path changes are needed.
+
+## Independent grade release
+
+`Session.gradesVisible` is an additive Boolean, defaulting to false. Grade rows retain
+`visibleToStudents` as the read filter. Legacy reviewable sessions remain released;
+no migration is required. `PATCH /sessions/:id/grades/visibility` stores the session
+setting and synchronizes grade rows. Publication seeds missing rows without
+replacing existing grades or manual overrides. Recalculation and enrollment use
+`reviewable || gradesVisible` for new/refreshed rows.
+
+All reviewable mutation paths (`PATCH /sessions/:id`, `/reviewable`, and `/end`)
+synchronize both settings: review on releases grades; review off hides them.
+Grade visibility cannot be disabled while review is on. Publication rejects
+anonymous/student-created sessions and sessions not ended or with remaining
+extensions. Restart and extension paths clear both settings and row visibility.
+Copies start unreleased. The existing metadata event updates course/session views.
 
 ## Latest Attempt and Legacy Data
 

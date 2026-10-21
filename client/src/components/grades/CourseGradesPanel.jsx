@@ -1816,11 +1816,11 @@ export default function CourseGradesPanel({
 
   const handleOpenGradeDialog = useCallback((grade, student) => {
     if (!grade?._id) return;
+    const matchingSession = visibleSessions.find((session) => String(session._id) === String(grade?.sessionId));
     if (!instructorView) {
-      onOpenSession?.(grade.sessionId);
+      if (matchingSession?.reviewable) onOpenSession?.(grade.sessionId);
       return;
     }
-    const matchingSession = visibleSessions.find((session) => String(session._id) === String(grade?.sessionId));
     setGradeDialogState({
       open: true,
       grade,
@@ -2182,7 +2182,7 @@ export default function CourseGradesPanel({
             <>
               {!instructorView && visibleSessions.length === 0 && (
                 <Alert severity="info" sx={{ mb: 1.5 }}>
-                  {t('grades.coursePanel.noReviewableSessions')}
+                  {t('grades.coursePanel.noVisibleGrades')}
                 </Alert>
               )}
               <TablePagination
@@ -2290,7 +2290,7 @@ export default function CourseGradesPanel({
                                 >
                                   {t('grades.coursePanel.sessionMarkHeader', { name: session.name })}
                                 </TableSortLabel>
-                                {typeof onOpenSession === 'function' && (
+                                {typeof onOpenSession === 'function' && (instructorView || session.reviewable) && (
                                   <Tooltip title={t('grades.coursePanel.openSessionReview')}>
                                     <span>
                                       <IconButton
@@ -2380,7 +2380,7 @@ export default function CourseGradesPanel({
                                   size="small"
                                   variant="text"
                                   onClick={() => handleOpenGradeDialog(grade, row.student)}
-                                  disabled={!grade?._id}
+                                  disabled={!grade?._id || (!instructorView && !session.reviewable)}
                                   sx={{ textTransform: 'none', px: 0 }}
                                 >
                                   {markLabel}

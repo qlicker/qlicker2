@@ -5,7 +5,7 @@ import {
   expectNoCriticalAccessibilityViolations, loginViaUi, patchSessionViaApi, patchSettingsViaApi, seedUsers,
 } from './helpers.js';
 
-test('session previews toggle together and student averages appear only after review publication', async ({ page, request, browser }) => {
+test('session previews and independent grade release work across instructor views without opening student review', async ({ page, request, browser }) => {
   const { admin, professor, student } = await seedUsers(request);
   const course = await createCourseViaApi(request, admin.token);
   await addInstructorToCourseViaApi(request, admin.token, course._id, professor.user._id);
@@ -55,16 +55,56 @@ test('session previews toggle together and student averages appear only after re
     await loginViaUi(studentPage, student.email, student.password, /\/student$/);
     await studentPage.goto(`/student/course/${course._id}`);
     await studentPage.getByRole('tab', { name: 'Grades', exact: true }).click();
-    await expect(studentPage.getByRole('alert')).toContainText('No sessions are available for review yet');
+    await expect(studentPage.getByRole('alert')).toContainText('No grades have been released yet');
     await expect(studentPage.getByText('Not applicable', { exact: true })).toHaveCount(2);
     await expectNoCriticalAccessibilityViolations(studentPage);
 
-    await patchSessionViaApi(request, professor.token, session._id, { reviewable: true });
+    // The editor releases summary grades without opening review.
+    await page.goto(`/prof/course/${course._id}/session/${session._id}`);
+    await page.getByRole('switch', { name: 'Grades visible', exact: true }).click();
+    await expect(page.getByRole('switch', { name: 'Grades visible', exact: true })).toBeChecked();
+    await page.reload();
+    await expect(page.getByRole('switch', { name: 'Grades visible', exact: true })).toBeChecked();
+    await studentPage.reload();
+    await studentPage.getByRole('tab', { name: 'Grades', exact: true }).click();
+    await expect(studentPage.getByRole('button', { name: '80%', exact: true })).toBeDisabled();
+    await expect(studentPage.getByRole('button', { name: 'Open review', exact: true })).toHaveCount(0);
+    await expectNoCriticalAccessibilityViolations(studentPage);
+
+    // The review page and course card expose the same persisted switch.
+    await page.goto(`/prof/course/${course._id}/session/${session._id}/review`);
+    const gradeSwitch = page.getByRole('switch', { name: 'Grades visible', exact: true });
+    await expect(gradeSwitch).toBeChecked();
+    await gradeSwitch.click();
+    await expect(gradeSwitch).not.toBeChecked();
+    await page.goto(`/prof/course/${course._id}`);
+    await expect(gradeSwitch).not.toBeChecked();
+    await gradeSwitch.click();
+    await expect(gradeSwitch).toBeChecked();
+    await page.reload();
+    await expect(gradeSwitch).toBeChecked();
+
+    // Review on forces grades on; review off resets both until explicitly released.
+    await page.goto(`/prof/course/${course._id}/session/${session._id}/review`);
+    const reviewSwitch = page.getByRole('switch', { name: 'Toggle student review access', exact: true });
+    await reviewSwitch.click();
+    await expect(reviewSwitch).toBeChecked();
+    await expect(gradeSwitch).toBeChecked();
+    await expect(gradeSwitch).toBeDisabled();
+    await reviewSwitch.click();
+    await expect(reviewSwitch).not.toBeChecked();
+    await expect(gradeSwitch).not.toBeChecked();
+    await studentPage.reload();
+    await studentPage.getByRole('tab', { name: 'Grades', exact: true }).click();
+    await expect(studentPage.getByRole('alert')).toContainText('No grades have been released yet');
+    await reviewSwitch.click();
+    await expect(reviewSwitch).toBeChecked();
     await studentPage.reload();
     await studentPage.getByRole('tab', { name: 'Grades', exact: true }).click();
     const studentRow = studentPage.getByRole('row').filter({ hasText: student.email });
     await expect(studentRow.getByRole('cell', { name: '80%', exact: true })).toHaveCount(2);
-    await expect(studentPage.getByText(/No sessions are available for review yet/)).toHaveCount(0);
+    await expect(studentRow.getByRole('button', { name: '80%', exact: true })).toBeEnabled();
+    await expect(studentPage.getByText(/No grades have been released yet/)).toHaveCount(0);
   } finally {
     await studentContext.close();
   }

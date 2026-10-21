@@ -238,6 +238,23 @@ describe('SessionEditor inline close behavior', () => {
     expect(await screen.findByRole('button', { name: 'professor.sessionEditor.expandAllPreviews' })).toBeDisabled();
   });
 
+  it('publishes grades from the editor without enabling review or losing session settings', async () => {
+    const originalGet = apiClientMock.get.getMockImplementation();
+    apiClientMock.get.mockImplementation(async (url) => {
+      const result = await originalGet(url);
+      if (url === '/sessions/session-1') result.data.session.status = 'done';
+      return result;
+    });
+    apiClientMock.patch.mockResolvedValueOnce({ data: { session: { _id: 'session-1', gradesVisible: true, reviewable: false } } });
+    render(<SessionEditor />);
+    const control = await screen.findByRole('switch', { name: 'grades.visibility.label' });
+    fireEvent.click(control);
+    await waitFor(() => expect(control).toBeChecked());
+    expect(apiClientMock.patch).toHaveBeenCalledWith('/sessions/session-1/grades/visibility', { visibleToStudents: true });
+    expect(screen.getByRole('switch', { name: 'professor.sessionEditor.reviewableHelp' })).not.toBeChecked();
+    expect(screen.getByText('Original content')).toBeInTheDocument();
+  });
+
   it('routes outer close buttons through the question editor close handler', async () => {
     render(<SessionEditor />);
 

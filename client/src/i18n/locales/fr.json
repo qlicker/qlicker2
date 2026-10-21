@@ -1850,7 +1850,7 @@
       "setAutomatic": "Définir automatique",
       "questionContentNotLoaded": "Le contenu de la question n'a pas pu être chargé pour ce conflit.",
       "toleranceLabel": "{{expected}} | tolérance : {{tolerance}}",
-      "noReviewableSessions": "Aucune session n’est encore disponible pour consultation. Vos moyennes apparaîtront lorsque votre enseignant publiera les notes en rendant une session consultable."
+      "noVisibleGrades": "Aucune note n’a encore été publiée. Vos moyennes apparaîtront lorsque votre enseignant rendra les notes visibles ou autorisera la révision d’une séance."
     },
     "questionPanel": {
       "selectQuestion": "Sélectionnez une question pour commencer l'évaluation.",
@@ -1971,6 +1971,11 @@
       "clickQuestionToEdit": "Cliquez sur cette ligne pour modifier sa grille",
       "guidanceMissing": "Consignes requises",
       "notEligible": "Cette question ne peut pas être évaluée par IA"
+    },
+    "visibility": {
+      "label": "Notes visibles",
+      "help": "Publiez les notes sans autoriser la révision de la séance. Activer la révision publie aussi les notes ; la désactiver les masque à nouveau. Pour publier uniquement les notes, laissez la révision désactivée et activez Notes visibles.",
+      "failed": "Impossible de modifier la visibilité des notes."
     }
   },
   "pageTitles": {
@@ -2298,7 +2303,8 @@
             "Ajoutez de nouvelles questions, choisissez du contenu dans la bibliothèque, importez du JSON de séance ou insérez des diapositives à n'importe quel endroit de la séquence.",
             "Les diapositives sont des pages de contenu seulement, idéales pour les consignes, les exemples travaillés ou les pauses de discussion entre les questions notées.",
             "La visibilité des questions compte : gardez le contenu privé quand il doit l'être, partagez volontairement au niveau du cours et utilisez la visibilité globale seulement si vous voulez réellement une réutilisation large.",
-            "Utilisez Développer tous les aperçus ou Réduire tous les aperçus au-dessus de la liste des questions, ou ouvrez et fermez chaque aperçu individuellement."
+            "Utilisez Développer tous les aperçus ou Réduire tous les aperçus au-dessus de la liste des questions, ou ouvrez et fermez chaque aperçu individuellement.",
+            "Utilisez Notes visibles à côté du contrôle de révision dans la liste des séances, l’éditeur ou la page de révision pour publier les résultats sans ouvrir la révision. Le contrôle de révision active ou désactive aussi la visibilité des notes. Lorsque la révision est désactivée, vous pouvez publier explicitement les notes. La publication est disponible après la fin de la séance et de toute prolongation."
           ],
           "warning": "Lorsqu'une question possède déjà des réponses, certaines modifications sont volontairement limitées pour protéger le sens des résultats passés.",
           "screenshot": {
@@ -2475,8 +2481,8 @@
             "Ouvrez les séances révisables depuis la page du cours après la fin de l'activité et l'activation de la révision par votre enseignant. Cliquez sur une note dans le tableau des notes pour ouvrir la révision de la séance.",
             "Avancez une question à la fois pour comparer votre réponse, la réponse publiée, l'explication et la rétroaction de l'enseignant sans passer trop vite sur les détails.",
             "Surveillez les notifications de rétroaction parce qu'elles indiquent que de nouveaux commentaires ou ajustements de note sont disponibles.",
-            "Les moyennes de note et de participation utilisent vos éléments de note visibles des séances terminées et consultables. Les éléments manquants sont exclus ; les zéros enregistrés comptent.",
-            "Si aucune session n’est encore consultable, vos moyennes indiquent Sans objet, même si votre enseignant a déjà noté votre travail."
+            "Les moyennes de note et de participation utilisent toutes vos notes visibles, y compris celles des séances non révisables. Les notes manquantes sont exclues ; les zéros enregistrés comptent. Une note ouvre la révision uniquement si celle-ci est activée.",
+            "Si aucune note n’a été publiée, vos moyennes indiquent Sans objet, même si votre enseignant a déjà noté votre travail."
           ],
           "success": "Les étudiants progressent souvent le plus lorsqu'ils lisent la rétroaction puis refont immédiatement une question semblable.",
           "screenshot": {

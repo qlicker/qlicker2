@@ -33,6 +33,7 @@ import AutoSaveStatus from '../../components/common/AutoSaveStatus';
 import ResponsiveTabsNavigation from '../../components/common/ResponsiveTabsNavigation';
 import SessionStatusChip from '../../components/common/SessionStatusChip';
 import SessionListCard from '../../components/common/SessionListCard';
+import SessionGradesVisibilityControl from '../../components/common/SessionGradesVisibilityControl';
 import SessionSelectorDialog from '../../components/common/SessionSelectorDialog';
 import StudentListItem from '../../components/common/StudentListItem';
 import StudentInfoModal from '../../components/common/StudentInfoModal';
@@ -1413,7 +1414,9 @@ export default function CourseDetail() {
             sessionId,
             reviewable: updates.reviewable,
           })
-        : (await apiClient.patch(`/sessions/${sessionId}`, updates)).data;
+        : Object.prototype.hasOwnProperty.call(updates, 'gradesVisible')
+          ? (await apiClient.patch(`/sessions/${sessionId}/grades/visibility`, { visibleToStudents: updates.gradesVisible })).data
+          : (await apiClient.patch(`/sessions/${sessionId}`, updates)).data;
       const data = result;
       const updated = data.session || data;
       setSessions((prev) => prev.map((session) => (session._id === sessionId ? { ...session, ...updated } : session)));
@@ -1832,6 +1835,12 @@ export default function CourseDetail() {
                             <span><Typography variant="caption">{t('professor.course.reviewable')}</Typography></span>
                           </Tooltip>
                         )}
+                      />
+                      <SessionGradesVisibilityControl
+                        session={s}
+                        sx={{ '& .MuiFormControlLabel-label': { typography: 'caption' } }}
+                        disabled={!!sessionUpdatesInFlight[s._id]}
+                        onChange={(checked) => patchSessionFromList(s._id, { gradesVisible: checked })}
                       />
                       <Tooltip title={t('professor.course.copySession')}>
                         <IconButton

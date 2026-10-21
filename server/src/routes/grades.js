@@ -8,7 +8,6 @@ import {
   getStudentSessionReviewRestriction,
   isCourseInstructorOrAdmin as isInstructorOrAdmin,
   isCourseMember,
-  studentReviewableSessionQuery,
   studentVisibleGradeQuery,
 } from '../utils/courseAccess.js';
 import {
@@ -139,6 +138,7 @@ const recalcSchema = {
 };
 
 const visibilitySchema = {
+  description: 'Release or hide summary grades independently of session review. Requires an ended, non-anonymous, instructor-created session with no remaining extensions. Reviewable sessions cannot hide grades. Does not enable review or release question marks/feedback.',
   body: {
     type: 'object',
     required: ['visibleToStudents'],
@@ -299,7 +299,7 @@ export default async function gradeRoutes(app) {
         sessionDoc: session,
         courseDoc: course,
         missingOnly,
-        visibleToStudents: session.reviewable,
+        visibleToStudents: !!(session.reviewable || session.gradesVisible),
       });
 
       return {
@@ -397,14 +397,35 @@ export default async function gradeRoutes(app) {
         return reply.code(403).send({ error: 'Forbidden', message: 'Insufficient permissions' });
       }
 
+      if (!ensureSessionEndedForGrading(session, reply)) return;
+      if (session.studentCreated) {
+        return reply.code(409).send({ error: 'Conflict', message: 'Student-created sessions do not support grade publication' });
+      }
+      if (session.reviewable && !request.body.visibleToStudents) {
+        return reply.code(409).send({ error: 'Conflict', message: 'Turn off reviewability before hiding grades' });
+      }
+
+      // Publication also fills missing rows without changing existing scores.
+      if (request.body.visibleToStudents) {
+        await recalculateSessionGrades({
+          sessionId: session._id, sessionDoc: session, courseDoc: course,
+          missingOnly: true, visibleToStudents: true,
+        });
+      }
       await setSessionGradesVisibility({
         sessionId: session._id,
         visibleToStudents: request.body.visibleToStudents,
+      });
+      await Session.updateOne({ _id: session._id }, { $set: { gradesVisible: request.body.visibleToStudents } });
+
+      app.wsSendToUsers?.([...new Set([...(course.instructors || []), ...(course.students || [])])], 'session:metadata-changed', {
+        courseId: String(course._id), sessionId: String(session._id),
       });
 
       return {
         success: true,
         visibleToStudents: !!request.body.visibleToStudents,
+        session: { _id: String(session._id), reviewable: !!session.reviewable, gradesVisible: !!request.body.visibleToStudents },
       };
     }
   );
@@ -746,7 +767,10 @@ export default async function gradeRoutes(app) {
 
   app.get(
     '/courses/:courseId/grades',
-    { preHandler: authenticate },
+    {
+      preHandler: authenticate,
+      schema: { description: 'Course grade table. Student averages include their visible grade items in ended, non-anonymous sessions without remaining extensions. Non-reviewable sessions expose summary scores only; review endpoints remain protected. Instructor averages use selected sessions.' },
+    },
     async (request, reply) => {
       const course = await Course.findById(request.params.courseId).lean();
       if (!course) {
@@ -770,13 +794,22 @@ export default async function gradeRoutes(app) {
       if (instructorView) {
         sessionQuery.studentCreated = { $ne: true };
       } else {
-        Object.assign(sessionQuery, studentReviewableSessionQuery({ includeStudentCreated: true }));
+        const visibleSessionIds = await Grade.distinct('sessionId', {
+          courseId: String(course._id), userId: request.user.userId, visibleToStudents: true,
+        });
+        sessionQuery._id = { $in: requestedSessionIds.length > 0
+          ? visibleSessionIds.filter((id) => requestedSessionIds.includes(String(id)))
+          : visibleSessionIds };
+        sessionQuery.status = 'done';
+        sessionQuery.quizExtensions = { $not: { $elemMatch: { quizEnd: { $gte: new Date() } } } };
         sessionQuery.$or = [{ studentCreated: { $ne: true } }, { creator: request.user.userId }];
       }
 
-      const sessions = await Session.find(sessionQuery)
+      const candidateSessions = await Session.find(sessionQuery)
         .select('_id name status date quizStart quizEnd quizExtensions createdAt reviewable quiz practiceQuiz questions joined submittedQuiz activityEverShared')
         .lean();
+
+      const sessions = instructorView ? candidateSessions : candidateSessions.filter((session) => !getSessionGradingLockReason(session));
 
       sessions.sort((a, b) => {
         const aTime = new Date(a.date || a.quizStart || a.createdAt || 0).getTime();
@@ -822,7 +855,7 @@ export default async function gradeRoutes(app) {
         studentIds.length > 0
           ? User.find({ _id: { $in: studentIds } }).select('_id profile emails email').lean()
           : Promise.resolve([]),
-        getSessionUngradedSummary(sessionIds),
+        instructorView ? getSessionUngradedSummary(sessionIds) : Promise.resolve({}),
         uniqueQuestionIds.length > 0
           ? Question.find({ _id: { $in: uniqueQuestionIds } }).select('_id type').lean()
           : Promise.resolve([]),
@@ -868,8 +901,14 @@ export default async function gradeRoutes(app) {
           const submitted = Array.isArray(session?.submittedQuiz) && session.submittedQuiz.includes(studentId);
 
           if (grade) {
+            const studentGrade = sanitizeStudentVisibleGrade(grade);
+            if (!session.reviewable) delete studentGrade.marks;
             return {
-              ...grade,
+              ...(instructorView ? grade : {
+                ...studentGrade,
+                _id: grade._id, sessionId, courseId: String(course._id), userId: studentId,
+                joined: !!grade.joined, visibleToStudents: true,
+              }),
               hasGradeItem: true,
               ...(instructorView ? { gradingLockReason: getSessionGradingLockReason(session) } : {}),
               name: grade.name || session.name,
@@ -928,6 +967,14 @@ export default async function gradeRoutes(app) {
       const sessionsWithGradeItems = new Set(grades.map((grade) => String(grade.sessionId)));
       const sessionPayload = sessions.map((session) => {
         const sessionId = String(session._id);
+        if (!instructorView && !session.reviewable) {
+          return {
+            _id: sessionId, name: session.name, status: session.status,
+            reviewable: !!session.reviewable, hasGradeItems: sessionsWithGradeItems.has(sessionId),
+            quiz: !!session.quiz, practiceQuiz: !!session.practiceQuiz,
+            date: session.date, quizStart: session.quizStart, createdAt: session.createdAt,
+          };
+        }
         const ungraded = ungradedSummaryBySessionId[sessionId] || {
           studentsNeedingGrading: 0,
           marksNeedingGrading: 0,

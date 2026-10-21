@@ -1850,7 +1850,7 @@
       "setAutomatic": "Set Automatic",
       "questionContentNotLoaded": "Question content could not be loaded for this conflict.",
       "toleranceLabel": "{{expected}} | tolerance: {{tolerance}}",
-      "noReviewableSessions": "No sessions are available for review yet. Your averages will appear when your instructor releases grades by making a session reviewable."
+      "noVisibleGrades": "No grades have been released yet. Your averages will appear when your instructor makes grades visible or makes a session reviewable."
     },
     "questionPanel": {
       "selectQuestion": "Select a question to begin grading.",
@@ -1971,6 +1971,11 @@
       "logRunAt": "Run started: {{timestamp}}",
       "inappropriateResponses": "Flagged inappropriate responses",
       "noInappropriateResponses": "No inappropriate responses were flagged."
+    },
+    "visibility": {
+      "label": "Grades visible",
+      "help": "Release grades without allowing session review. Turning Reviewable on also releases grades; turning it off hides them again. To release only grades, leave Reviewable off and turn Grades visible on.",
+      "failed": "Failed to update grade visibility."
     }
   },
   "pageTitles": {
@@ -2345,7 +2350,8 @@
             "Add new questions, pick from the question library, import session JSON, or insert slides anywhere in the sequence.",
             "Slides are content-only pages, so they are ideal for instructions, worked examples, or discussion prompts between graded questions.",
             "Question visibility matters: keep private content private, share course-public material intentionally, and use Qlicker-wide visibility only when broad reuse is really desired.",
-            "Use Expand all previews or Collapse all previews above the question list, or toggle an individual question preview."
+            "Use Expand all previews or Collapse all previews above the question list, or toggle an individual question preview.",
+            "Use Grades visible beside Reviewable in the session list, editor, or review page to release scores without opening session review. Reviewable turns grade visibility on or off with it. While Reviewable is off, you can explicitly release grades. Release is available after the session and any extensions end."
           ],
           "warning": "Once a question has response data, some edits are intentionally restricted to protect the meaning of past results.",
           "screenshot": {
@@ -2522,8 +2528,8 @@
             "Open reviewable sessions from the course page after your instructor ends the activity and turns on review. Click a grade in the Grades table to open the session review.",
             "Move one question at a time to compare your answer, the released answer, the explanation, and any instructor feedback without rushing past details.",
             "Watch for feedback notifications because they tell you when new comments or grading updates are available.",
-            "Average grade and participation use your visible grade items from ended, reviewable sessions. Missing items are excluded; recorded zeros count.",
-            "If no sessions are reviewable yet, your averages show Not applicable even if your instructor has already graded your work."
+            "Average grade and participation use all your visible grade items, including sessions that are not reviewable. Missing items are excluded; recorded zeros count. A grade opens session review only when Reviewable is on.",
+            "If no grades have been released, your averages show Not applicable even if your instructor has already graded your work."
           ],
           "success": "Students often improve fastest when they read the feedback and then immediately try a similar question again.",
           "screenshot": {

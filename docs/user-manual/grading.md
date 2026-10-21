@@ -13,8 +13,8 @@ These states are intentionally separate:
 
 - **Running/visible** controls participation.
 - **Ended** creates or refreshes grade items. Grading unlocks once all active or upcoming extensions have expired or been removed and grade items exist.
-- **Reviewable** recalculates automatic grades and releases the session/results to students. Manual overrides are preserved. Review any warnings about responses that still require manual grading.
-- Grade visibility can be managed while corrections or manual work are underway.
+- **Reviewable** recalculates automatic grades and releases the session/results and grades to students. Manual overrides are preserved. Review any warnings about responses that still require manual grading.
+- **Grades visible** can release summary grades independently after the session and all extensions end. It does not open session review.
 
 Scheduled quizzes close automatically when accessed after the final time window, including any extensions. If a quiz was ended early and then returned to its schedule, the final closure refreshes automatic marks for later responses while preserving confirmed manual grades.
 
@@ -117,7 +117,7 @@ Avoid changing the meaning/correct answer of a question after students have resp
 
 ## Student visibility
 
-Students see only their own grades and only activities released through the current reviewability/visibility rules. They may see:
+Students see only their own released grades. **Grades visible** releases summary scores and participation in the course grade table, even when **Reviewable** is off. Grade-only cells cannot be clicked and have no review link; question marks and feedback remain protected until review is enabled. They may see:
 
 - their submitted answer and attempt
 - released correct answer and solution
@@ -125,7 +125,7 @@ Students see only their own grades and only activities released through the curr
 - instructor feedback
 - participation information
 
-They do not see instructor-only grading conflicts or other students' identities/marks. A non-reviewable activity can be present in instructor grade data while absent from the student's course/grade view.
+They do not see instructor-only grading conflicts or other students' identities/marks. An activity with neither review nor grade visibility enabled remains absent from the student grade table.
 
 ## Recalculation scenarios
 
@@ -177,9 +177,11 @@ Check the correct answer, point value, multi-select method, numerical tolerance,
 
 ### A student cannot see a grade
 
-Confirm the activity is reviewable and its grade is visible to students. Manual grading can exist instructor-side before release.
+Confirm the activity is ended, all extensions have ended, and **Grades visible** or **Reviewable** is enabled. Manual grading can exist instructor-side before release.
 
-The **Reviewable** control automatically synchronizes grade visibility; there is no separate grade-visibility control in the interface. If no sessions are reviewable, the student's course table has no grades to average and shows **Not applicable**, even when the instructor sees grades. Student averages use released grade items from reviewable sessions; instructor averages use grade items from the sessions selected for their table. Missing grade items are excluded and recorded zeros count.
+The **Grades visible** switch is beside **Reviewable** in the instructor session list, session editor, and session review page. Turning **Reviewable** on also turns grade visibility on; turning it off hides grades again. While review is off, you can explicitly enable **Grades visible**. While review is on, grade visibility stays on and its switch is disabled. Both publication controls are unavailable until the session and all extensions end. Anonymous sessions have no grade-visibility switch.
+
+Student averages use all released grade items, including non-reviewable sessions; instructor averages use the sessions selected for their table. Missing grade items are excluded and recorded zeros count. No released items means **Not applicable**. Recalculation and later enrollment preserve independent grade release. Restarting a session or granting a remaining extension hides its grades until explicitly released again.
 
 ### Duplicate or inconsistent legacy rows appear
 
