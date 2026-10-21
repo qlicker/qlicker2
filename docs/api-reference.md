@@ -178,7 +178,30 @@ For authentication, SSO, uploads, AI URL policy, grading, or WebSocket changes, 
 `avgParticipation` (percentage means, one decimal place, or `null` without applicable
 items). Both use actual grade items for the returned sessions, excluding missing
 placeholders and not-applicable entries while retaining recorded zeros. Student
-queries retain the ended/reviewable/visibility restrictions and exclude other
+queries require visible grade items in ended sessions without remaining extensions and exclude anonymous sessions and other
 students' private practice sessions. Instructor `sessionIds` determines the averaging
 scope. `sessions[].hasGradeItems` and `rows[].grades[].hasGradeItem` are derived
 booleans; student availability refers only to that student's published items.
+
+
+### Independent grade publication
+
+`PATCH /api/v1/sessions/:id/grades/visibility` accepts `{ "visibleToStudents": true | false }`.
+Only course instructors and admins may use it. It returns `success`,
+`visibleToStudents`, and a partial `session` containing `_id`, `reviewable`, and
+`gradesVisible`; clients merge this metadata. Publication creates missing grade rows
+without overwriting existing scores. The route returns `409` for anonymous or
+student-created sessions, sessions not ended or with remaining extensions, and
+requests to hide grades while review is enabled. It emits `session:metadata-changed`.
+
+Reviewable transitions through all session mutation routes synchronize grade
+visibility, including hiding grades when review is disabled. Independent grade
+publication never changes `reviewable`. Restarts and remaining extensions clear
+both settings. Recalculation and enrollment preserve independent release.
+
+The student course grade table includes all visible grade items. For a
+non-reviewable session it returns aggregate grade scores and basic session metadata
+without marks, feedback, question metadata, or class grading summaries. Reviewable
+sessions retain their normal review navigation; grade-only cells and headers must
+not link to review. Review, results, session-grade detail, feedback, and student AI
+review endpoints still enforce reviewability.

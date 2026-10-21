@@ -201,3 +201,7 @@ Compatibility rules to preserve include:
 - old public image URLs migrated only through the documented storage cutover
 
 Schema defaults do not automatically rewrite older documents. Readers must tolerate absent legacy fields; backfills should be explicit, idempotent, tested, and preceded by a backup.
+
+### Independent grade visibility
+
+Sessions have an additive `gradesVisible` Boolean (default false). It records an explicit release of summary grades independently of `reviewable`, while existing `Grade.visibleToStudents` flags determine which student rows are returned. Reviewable transitions set both visibility states together; review off hides grades until explicitly released again. Recalculation and enrollment respect `reviewable || gradesVisible`. Restarts and remaining extensions revoke release. Existing reviewable sessions and legacy grade rows remain compatible without a migration. See [grading](grading.md#independent-grade-release).

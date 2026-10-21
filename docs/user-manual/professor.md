@@ -220,7 +220,7 @@ Use **Set all question points** only after considering ungraded slides and delib
 ### Session-level controls
 
 - **Status** controls whether the activity is hidden/draft, visible, running, or ended. When an interactive session becomes Live, Qlicker selects the first question or slide if none is active. An existing active item is preserved. A newly selected first item starts hidden until you reveal it, just as with Launch.
-- **Reviewable** controls whether students can later see review/grades; it is not the same as ending the session.
+- **Reviewable** releases session review and grades. **Grades visible** can release only summary grades after the session ends.
 - **Join code/passcode** and refresh interval provide controlled entry for live activities.
 - **Multi-select scoring** applies to multi-select questions in the session.
 - **Anonymous responses** hides who gave each answer. See [Run an anonymous survey](#run-an-anonymous-survey).
@@ -535,6 +535,10 @@ Review tabs can include result summaries, per-question response data, students, 
 Open the course **Grades** tab and choose **Show Grade Table**. Use **Select sessions with grade items** to select the matching sessions that have grades. Sessions labelled **No grade items** remain available for manual selection or **Select All**.
 
 ![Session picker identifying sessions without grade items](../assets/manuals/professor-grade-session-picker.png)
+
+Use **Grades visible** beside **Reviewable** on the session card, session editor, or review page to release summary scores without allowing session review. Turning **Reviewable** on releases grades too; turning it off hides grades, after which you can explicitly release only grades. Grade visibility is locked on while review is enabled. Publication requires an ended session with no remaining extensions. Anonymous sessions have no grades or grade-visibility switch.
+
+![Instructor session review with grade visibility controls](../assets/manuals/professor-session-review.png)
 
 Average grade and participation use only each student's actual, applicable grade items from the displayed sessions. Missing grade items appear as **Not applicable** and do not reduce the average; recorded zeros do count. With no applicable grade items, the average is **Not applicable**. CSV exports use the same averages.
 

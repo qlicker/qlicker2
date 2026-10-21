@@ -905,7 +905,7 @@ export async function recalculateSessionGrades({
   const msScoringMethod = getSessionMsScoringMethod(session);
   const visibleFlag = visibleToStudents !== null && visibleToStudents !== undefined
     ? !!visibleToStudents
-    : !!session.reviewable;
+    : !!(session.reviewable || session.gradesVisible);
 
   const ungradableQuestionIds = new Set();
   const lowResponseExcludedQuestionIds = new Set();

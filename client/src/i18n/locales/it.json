@@ -1850,7 +1850,7 @@
       "setAutomatic": "Imposta automatico",
       "questionContentNotLoaded": "Non è stato possibile caricare il contenuto della domanda per questo conflitto.",
       "toleranceLabel": "{{expected}} | tolleranza: {{tolerance}}",
-      "noReviewableSessions": "Non ci sono ancora sessioni disponibili per la revisione. Le tue medie appariranno quando il docente pubblicherà i voti rendendo una sessione disponibile per la revisione."
+      "noVisibleGrades": "Non sono ancora stati pubblicati voti. Le tue medie appariranno quando il docente renderà visibili i voti o abiliterà la revisione di una sessione."
     },
     "questionPanel": {
       "selectQuestion": "Seleziona una domanda per iniziare la valutazione.",
@@ -1971,6 +1971,11 @@
       "clickQuestionToEdit": "Fai clic su questa riga per modificare la rubrica",
       "guidanceMissing": "Istruzioni mancanti",
       "notEligible": "Questa domanda non può essere valutata dall'IA"
+    },
+    "visibility": {
+      "label": "Voti visibili",
+      "help": "Pubblica i voti senza consentire la revisione della sessione. Attivare la revisione pubblica anche i voti; disattivarla li nasconde di nuovo. Per pubblicare solo i voti, lascia la revisione disattivata e attiva Voti visibili.",
+      "failed": "Impossibile aggiornare la visibilità dei voti."
     }
   },
   "pageTitles": {
@@ -2298,7 +2303,8 @@
             "Aggiungi nuove domande, scegli dalla libreria delle domande, importa il JSON di una sessione o inserisci diapositive in qualsiasi punto della sequenza.",
             "Le diapositive sono pagine di solo contenuto, quindi sono ideali per istruzioni, esempi svolti o spunti di discussione tra una domanda valutata e l'altra.",
             "La visibilità delle domande è importante: mantieni privato il contenuto privato, condividi intenzionalmente il materiale pubblico del corso e usa la visibilità a livello di Qlicker solo quando desideri davvero un riutilizzo ampio.",
-            "Usa Espandi tutte le anteprime o Comprimi tutte le anteprime sopra l’elenco delle domande, oppure apri e chiudi le singole anteprime."
+            "Usa Espandi tutte le anteprime o Comprimi tutte le anteprime sopra l’elenco delle domande, oppure apri e chiudi le singole anteprime.",
+            "Usa Voti visibili accanto al controllo di revisione nell’elenco delle sessioni, nell’editor o nella pagina di revisione per pubblicare i risultati senza aprire la revisione. Il controllo di revisione attiva o disattiva anche la visibilità dei voti. Quando la revisione è disattivata, puoi pubblicare esplicitamente i voti. La pubblicazione è disponibile dopo la fine della sessione e di tutte le proroghe."
           ],
           "warning": "Una volta che una domanda ha dati di risposta, alcune modifiche sono intenzionalmente limitate per proteggere il significato dei risultati passati.",
           "screenshot": {
@@ -2475,8 +2481,8 @@
             "Apri le sessioni rivedibili dalla pagina del corso dopo che il tuo docente termina l'attività e attiva la revisione. Fai clic su un voto nella tabella dei voti per aprire la revisione della sessione.",
             "Avanza una domanda alla volta per confrontare la tua risposta, la risposta pubblicata, la spiegazione e ogni feedback del docente senza saltare i dettagli.",
             "Tieni d'occhio le notifiche di feedback perché ti avvisano quando sono disponibili nuovi commenti o aggiornamenti di valutazione.",
-            "Le medie dei voti e della partecipazione usano i tuoi voti visibili delle sessioni terminate e disponibili per la revisione. I voti mancanti sono esclusi; gli zeri registrati contano.",
-            "Se nessuna sessione è ancora disponibile per la revisione, le tue medie mostrano Non applicabile, anche se il docente ha già valutato il tuo lavoro."
+            "Le medie dei voti e della partecipazione usano tutti i tuoi voti visibili, anche quelli delle sessioni senza revisione abilitata. I voti mancanti sono esclusi; gli zeri registrati contano. Un voto apre la revisione solo se questa è abilitata.",
+            "Se non sono stati pubblicati voti, le tue medie mostrano Non applicabile, anche se il docente ha già valutato il tuo lavoro."
           ],
           "success": "Gli studenti spesso migliorano più in fretta quando leggono il feedback e poi provano subito di nuovo una domanda simile.",
           "screenshot": {

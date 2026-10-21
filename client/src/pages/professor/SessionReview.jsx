@@ -46,6 +46,7 @@ import ResponsiveTabsNavigation from '../../components/common/ResponsiveTabsNavi
 import { buildCourseTitle } from '../../utils/courseTitle';
 import { getLatestResponse, sortResponsesNewestFirst } from '../../utils/responses';
 import { toggleSessionReviewable } from '../../utils/reviewableToggle';
+import SessionGradesVisibilityControl from '../../components/common/SessionGradesVisibilityControl';
 
 // ---------------------------------------------------------------------------
 // Constants & helpers
@@ -960,20 +961,22 @@ export default function SessionReview() {
 
   // ---- Toggle reviewable ----
 
-  const handleToggleReviewable = useCallback(async (checked) => {
+  const handleToggleReviewable = useCallback(async (checked, gradesOnly = false) => {
     setTogglingReviewable(true);
     try {
-      const data = await toggleSessionReviewable({
-        apiClient,
-        sessionId,
-        reviewable: checked,
-      });
+      const data = gradesOnly
+        ? (await apiClient.patch(`/sessions/${sessionId}/grades/visibility`, { visibleToStudents: checked })).data
+        : await toggleSessionReviewable({
+          apiClient,
+          sessionId,
+          reviewable: checked,
+        });
       const updatedSession = data.session || data;
       const warnings = data.grading?.warnings || [];
       setSession((prev) => (prev ? { ...prev, ...updatedSession } : prev));
       setReviewableWarning(warnings.join(' '));
     } catch (err) {
-      setReviewableWarning(err.response?.data?.message || t('professor.sessionReview.failedToUpdateReviewable'));
+      setReviewableWarning(err.response?.data?.message || t(gradesOnly ? 'grades.visibility.failed' : 'professor.sessionReview.failedToUpdateReviewable'));
     } finally {
       setTogglingReviewable(false);
     }
@@ -1504,6 +1507,11 @@ export default function SessionReview() {
           aria-label={t('professor.sessionReview.toggleReview')}
         />
 
+        <SessionGradesVisibilityControl
+          session={session}
+          disabled={togglingReviewable}
+          onChange={(checked) => handleToggleReviewable(checked, true)}
+        />
       </Box>
       {anonymousSession ? (
         <Alert severity="info" icon={<VisibilityOffIcon fontSize="inherit" />} sx={{ mb: 2 }}>

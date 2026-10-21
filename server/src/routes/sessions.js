@@ -916,7 +916,7 @@ async function maybeAutoCloseScheduledQuiz(session, { course = null } = {}) {
 
   if (course) {
     await seedSessionGradesIfNeeded(nextSession, course, {
-      visibleToStudents: nextSession.reviewable,
+      visibleToStudents: !!(nextSession.reviewable || nextSession.gradesVisible),
     });
   }
 
@@ -3458,7 +3458,7 @@ async function seedSessionGradesIfNeeded(session, course, { visibleToStudents = 
     courseDoc: course,
     // Refresh automatic marks after restarts/extensions while retaining confirmed scores.
     preserveManualMarks: true,
-    visibleToStudents: visibleToStudents ?? session.reviewable,
+    visibleToStudents: visibleToStudents ?? !!(session.reviewable || session.gradesVisible),
   });
   return gradingResult.summary;
 }
@@ -3901,6 +3901,7 @@ export default async function sessionRoutes(app) {
       let answerableQuestionIdsBySessionId = new Map();
       if (!isInstrOrAdmin && trackedSessions.length > 0) {
         const sessionIds = trackedSessions
+          .filter((session) => !getStudentSessionReviewRestriction(session, request.user))
           .map((session) => String(session?._id || ''))
           .filter(Boolean);
 
@@ -4177,6 +4178,8 @@ export default async function sessionRoutes(app) {
       }
 
       if (!isStudentOwner && updates.status && updates.status !== 'done') updates.reviewable = false;
+      if (!isStudentOwner && updates.reviewable !== undefined) updates.gradesVisible = !!updates.reviewable && !nextAnonymous;
+      if (nextAnonymous) updates.gradesVisible = false;
 
       if (!isStudentOwner && updates.reviewable === true && !session.reviewable && !nextAnonymous) {
         const nonAutoGradeable = await getNonAutoGradeableQuestions(session);
@@ -4235,13 +4238,12 @@ export default async function sessionRoutes(app) {
       }
 
       let grading = null;
-      const makingReviewable = updates.reviewable === true && !session.reviewable;
-      const removingReviewable = updates.reviewable === false && session.reviewable;
+      const removingReviewable = updates.reviewable === false;
       const markingDone = updates.status === 'done' && session.status !== 'done';
 
       if (!isStudentOwner && (updates.reviewable === true || markingDone)) {
         grading = await seedSessionGradesIfNeeded(updated, course, {
-          visibleToStudents: makingReviewable ? true : updated.reviewable,
+          visibleToStudents: !!(updated.reviewable || updated.gradesVisible),
         });
       } else if (!isStudentOwner && removingReviewable) {
         await setSessionGradesVisibility({
@@ -4390,6 +4392,7 @@ export default async function sessionRoutes(app) {
       const updates = {
         status: 'running',
         reviewable: false,
+        gradesVisible: false,
         date: now,
         // Join period is always explicit; starting a session does not auto-open passcode entry.
         joinCodeActive: false,
@@ -4404,9 +4407,7 @@ export default async function sessionRoutes(app) {
         { returnDocument: 'after' }
       );
 
-      if (session.reviewable) {
-        await setSessionGradesVisibility({ sessionId: session._id, visibleToStudents: false });
-      }
+      await setSessionGradesVisibility({ sessionId: session._id, visibleToStudents: false });
       notifyStatusChanged(app, course, updated?._id || request.params.id, { status: 'running' });
 
       return { session: serializeInstructorSession(updated) };
@@ -4481,6 +4482,7 @@ export default async function sessionRoutes(app) {
       };
       if (request.body?.reviewable !== undefined) {
         updates.reviewable = request.body.reviewable;
+        updates.gradesVisible = !!request.body.reviewable && !session.anonymous;
       }
 
       const updated = await Session.findByIdAndUpdate(
@@ -4491,9 +4493,9 @@ export default async function sessionRoutes(app) {
 
       let grading = null;
       grading = await seedSessionGradesIfNeeded(updated, course, {
-        visibleToStudents: updated.reviewable,
+        visibleToStudents: !!(updated.reviewable || updated.gradesVisible),
       });
-      if (request.body?.reviewable === false && session.reviewable) {
+      if (request.body?.reviewable === false) {
         await setSessionGradesVisibility({
           sessionId: updated._id,
           visibleToStudents: false,
@@ -4602,7 +4604,7 @@ export default async function sessionRoutes(app) {
 
       const updated = await Session.findByIdAndUpdate(
         request.params.id,
-        { $set: { reviewable: request.body.reviewable } },
+        { $set: { reviewable: request.body.reviewable, gradesVisible: !!request.body.reviewable && !session.anonymous } },
         { returnDocument: 'after' }
       );
 
@@ -4611,7 +4613,7 @@ export default async function sessionRoutes(app) {
         grading = await seedSessionGradesIfNeeded(updated, course, {
           visibleToStudents: true,
         });
-      } else if (request.body.reviewable === false && session.reviewable) {
+      } else if (request.body.reviewable === false) {
         await setSessionGradesVisibility({
           sessionId: updated._id,
           visibleToStudents: false,
@@ -4706,14 +4708,14 @@ export default async function sessionRoutes(app) {
           _id: request.params.id,
           ...(normalizedExtensions.length > 0 ? { anonymous: { $ne: true }, activityEverShared: { $ne: true } } : {}),
         },
-        { $set: { quizExtensions: normalizedExtensions, ...(hasRemainingExtensions ? { reviewable: false } : {}) } },
+        { $set: { quizExtensions: normalizedExtensions, ...(hasRemainingExtensions ? { reviewable: false, gradesVisible: false } : {}) } },
         { returnDocument: 'after' }
       );
       if (!updated) {
         return reply.code(409).send({ error: 'Conflict', message: 'Session settings changed; reload and retry' });
       }
 
-      if (hasRemainingExtensions && session.reviewable) {
+      if (hasRemainingExtensions) {
         await setSessionGradesVisibility({ sessionId: session._id, visibleToStudents: false });
       }
 

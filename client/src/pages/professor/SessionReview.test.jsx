@@ -183,6 +183,24 @@ describe('SessionReview', () => {
     });
   });
 
+  it('updates independent grade visibility without enabling review and retains state on failure', async () => {
+    const originalGet = apiClient.get.getMockImplementation();
+    apiClient.get.mockImplementation(async (url) => url === '/sessions/session-1/results'
+      ? { data: buildResultsPayload({ reviewable: false, gradesVisible: false }) }
+      : originalGet(url));
+    apiClient.patch.mockResolvedValueOnce({ data: { session: { _id: 'session-1', gradesVisible: true, reviewable: false } } });
+    renderSessionReview();
+    const control = await screen.findByRole('switch', { name: 'Grades visible', exact: true });
+    fireEvent.click(control);
+    await waitFor(() => expect(control).toBeChecked());
+    expect(apiClient.patch).toHaveBeenCalledWith('/sessions/session-1/grades/visibility', { visibleToStudents: true });
+    expect(screen.getByRole('switch', { name: 'Toggle student review access' })).not.toBeChecked();
+    apiClient.patch.mockRejectedValueOnce(new Error('Network failure'));
+    fireEvent.click(control);
+    expect(await screen.findByText('Failed to update grade visibility.')).toBeInTheDocument();
+    expect(control).toBeChecked();
+  });
+
   it('offers a direct return to a running interactive session', async () => {
     const defaultGet = apiClient.get.getMockImplementation();
     apiClient.get.mockImplementation(async (url) => {

@@ -29,6 +29,7 @@ import AutoSaveStatus from '../../components/common/AutoSaveStatus';
 import BackLinkButton from '../../components/common/BackLinkButton';
 import DateTimePreferenceField from '../../components/common/DateTimePreferenceField';
 import SessionStatusChip from '../../components/common/SessionStatusChip';
+import SessionGradesVisibilityControl from '../../components/common/SessionGradesVisibilityControl';
 import { buildCourseTitle } from '../../utils/courseTitle';
 import { quizWouldBeLiveImmediately } from '../../utils/studentSessions';
 import {
@@ -410,8 +411,10 @@ export default function SessionEditor() {
     setSessionSaveStatus('saving');
     setSessionSaveError('');
     try {
-      const { data } = await apiClient.patch(`/sessions/${sessionId}`, updates);
-      const updatedSession = data.session || data;
+      const { data } = Object.prototype.hasOwnProperty.call(updates, 'gradesVisible')
+        ? await apiClient.patch(`/sessions/${sessionId}/grades/visibility`, { visibleToStudents: updates.gradesVisible })
+        : await apiClient.patch(`/sessions/${sessionId}`, updates);
+      const updatedSession = { ...session, ...(data.session || data) };
       setSession(updatedSession);
       setReviewable(!!updatedSession.reviewable);
       setStatus(updatedSession.status);
@@ -1642,6 +1645,12 @@ export default function SessionEditor() {
                   <span>{t('professor.sessionEditor.reviewable')}</span>
                 </Tooltip>
               )}
+            />
+            <SessionGradesVisibilityControl
+              session={session}
+              size="medium"
+              disabled={savingSession}
+              onChange={(checked) => saveSessionPatch({ gradesVisible: checked })}
             />
           </Box>
 

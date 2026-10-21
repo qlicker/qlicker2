@@ -1927,7 +1927,7 @@ describe('course grade averages', () => {
     const excluded = [];
     for (const [name, overrides] of [
       ['Draft', { status: 'hidden' }], ['Upcoming', { status: 'visible' }],
-      ['Live', { status: 'running' }], ['Not reviewable', { reviewable: false }],
+      ['Live', { status: 'running' }],
       ['Anonymous', { anonymous: true }],
       ['Quiz with extension', { quiz: true, quizExtensions: [{ userId: students[1]._id, quizEnd: new Date(Date.now() + 86400000) }] }],
       ['Another student practice', { studentCreated: true, creator: students[1]._id }],
@@ -1939,24 +1939,25 @@ describe('course grade averages', () => {
     return { ...context, first, second, missed, empty, hiddenGrade, excluded, makeSession, makeGrade };
   }
 
-  it('averages only visible grade items in ended reviewable sessions, including earned zeros', async () => {
+  it('averages only visible grade items in ended sessions, including earned zeros', async () => {
     const f = await fixture();
     const res = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades`, { token: f.studentTokens[0] });
     expect(res.statusCode).toBe(200);
     const { sessions, rows } = res.json();
-    expect(sessions.map((s) => s._id).sort()).toEqual([f.first, f.second, f.missed, f.empty, f.hiddenGrade].map((s) => s._id).sort());
+    expect(sessions.map((s) => s._id).sort()).toEqual([f.first, f.second, f.missed].map((s) => s._id).sort());
     expect(rows[0]).toMatchObject({ avgParticipation: 50, avgGrade: 40 });
     expect(rows[0].grades.find((g) => g.sessionId === f.missed._id)).toMatchObject({ hasGradeItem: true, value: 0 });
-    expect(rows[0].grades.find((g) => g.sessionId === f.hiddenGrade._id)).toMatchObject({ hasGradeItem: false });
-    expect(sessions.find((s) => s._id === f.hiddenGrade._id).hasGradeItems).toBe(false);
+    expect(rows[0].grades.find((g) => g.sessionId === f.hiddenGrade._id)).toBeUndefined();
+    expect(sessions.find((s) => s._id === f.empty._id)).toBeUndefined();
     const bypass = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${f.excluded.map((s) => s._id).join(',')}`, { token: f.studentTokens[0] });
     expect(bypass.json().sessions).toEqual([]);
     expect(bypass.json().rows[0]).toMatchObject({ avgParticipation: null, avgGrade: null });
   });
 
-  it('has no student average until sessions are reviewable, even when instructor grades exist', async () => {
+  it('has no student average until grades are released, even when instructor grades exist', async () => {
     const f = await fixture();
     await Session.updateMany({ courseId: f.course._id }, { $set: { reviewable: false } });
+    await Grade.updateMany({ courseId: f.course._id }, { $set: { visibleToStudents: false } });
     const student = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades`, { token: f.studentTokens[0] });
     expect(student.statusCode).toBe(200);
     expect(student.json().sessions).toEqual([]);
@@ -2001,5 +2002,123 @@ describe('course grade averages', () => {
     const hidden = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${f.hiddenGrade._id}`, { token: f.profToken });
     expect(hidden.json().rows[0]).toMatchObject({ avgParticipation: 100, avgGrade: 100 });
     expect(hidden.json().sessions[0].hasGradeItems).toBe(true);
+  });
+});
+
+describe('independent grade visibility', () => {
+  async function fixture(overrides = {}) {
+    const f = await setupCourseWithStudents({ prefix: 'grade-release', studentCount: 2 });
+    const session = await Session.create({
+      courseId: f.course._id, creator: f.prof._id, name: 'Grade-only release',
+      status: 'done', reviewable: false, ...overrides,
+    });
+    const question = await createMcQuestion({ courseId: f.course._id, sessionId: session._id, creatorId: f.prof._id });
+    await Session.updateOne({ _id: session._id }, { $set: { questions: [question._id] } });
+    const grade = await Grade.create({
+      courseId: f.course._id, sessionId: session._id, userId: f.students[0]._id,
+      automatic: false, value: 73, participation: 100, points: 1, outOf: 2,
+      marks: [{ questionId: question._id, points: 1, outOf: 2, automatic: false, feedback: 'Private review feedback' }],
+    });
+    const toggle = (visibleToStudents, token = f.profToken) => authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${session._id}/grades/visibility`, {
+      token, payload: { visibleToStudents },
+    });
+    const table = (token = f.studentTokens[0]) => authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades`, { token });
+    return { ...f, session, grade, question, toggle, table };
+  }
+
+  it('publishes summary grades without review access or question details, preserves scores, and seeds missing rows', async () => {
+    const f = await fixture();
+    expect((await f.table()).json().sessions).toEqual([]);
+    const release = await f.toggle(true);
+    expect(release.statusCode).toBe(200);
+    expect(release.json().session).toMatchObject({ reviewable: false, gradesVisible: true });
+    const saved = await Grade.findById(f.grade._id).lean();
+    expect(saved).toMatchObject({ value: 73, automatic: false, visibleToStudents: true });
+    expect(saved.marks[0].feedback).toBe('Private review feedback');
+    expect(await Grade.countDocuments({ sessionId: f.session._id, visibleToStudents: true })).toBe(2);
+    const table = (await f.table()).json();
+    expect(table.rows).toHaveLength(1);
+    expect(table.rows[0]).toMatchObject({ avgGrade: 73, avgParticipation: 100 });
+    expect(table.rows[0].grades[0]).not.toHaveProperty('marks');
+    expect(table.sessions[0]).toMatchObject({ _id: f.session._id, reviewable: false });
+    expect(table.sessions[0]).not.toHaveProperty('questionTypeById');
+    expect(JSON.stringify(table)).not.toContain('Private review feedback');
+    for (const path of ['review', 'results', 'grades']) {
+      const read = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${f.session._id}/${path}`, { token: f.studentTokens[0] });
+      expect(read.statusCode, path).toBe(403);
+    }
+    const other = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?studentId=${f.students[1]._id}`, { token: f.studentTokens[0] });
+    expect(other.statusCode).toBe(403);
+    expect((await f.toggle(false)).statusCode).toBe(200);
+    expect((await f.table()).json().sessions).toEqual([]);
+    expect((await Session.findById(f.session._id)).reviewable).toBe(false);
+  });
+
+  it.each(['reviewable', 'patch', 'end'])('synchronizes both visibility flags through %s and requires explicit grade-only release afterward', async (path) => {
+    const f = await fixture();
+    const publish = (reviewable) => authenticatedRequest(app, path === 'end' ? 'POST' : 'PATCH',
+      `/api/v1/sessions/${f.session._id}${path === 'patch' ? '' : `/${path}`}`, {
+        token: f.profToken, payload: { reviewable, acknowledgeNonAutoGradeable: true },
+      });
+    expect((await publish(true)).statusCode).toBe(200);
+    expect(await Session.findById(f.session._id).lean()).toMatchObject({ reviewable: true, gradesVisible: true });
+    expect((await f.toggle(false)).statusCode).toBe(409);
+    expect((await publish(false)).statusCode).toBe(200);
+    expect(await Session.findById(f.session._id).lean()).toMatchObject({ reviewable: false, gradesVisible: false });
+    expect(await Grade.countDocuments({ sessionId: f.session._id, visibleToStudents: true })).toBe(0);
+    expect((await f.table()).json().sessions).toEqual([]);
+    expect((await f.toggle(true)).statusCode).toBe(200);
+    expect((await f.table()).json().sessions).toHaveLength(1);
+  });
+
+  it('preserves grade-only release on recalculation and enrollment, and includes it with reviewable grades in averages', async () => {
+    const f = await fixture();
+    await f.toggle(true);
+    const recalc = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${f.session._id}/grades/recalculate`, { token: f.profToken, payload: {} });
+    expect(recalc.statusCode).toBe(200);
+    expect((await Grade.findById(f.grade._id)).visibleToStudents).toBe(true);
+    const newcomer = await createUser({ email: 'new-grade-release@example.com' });
+    const token = await getAuthToken(app, newcomer);
+    const enrollment = await authenticatedRequest(app, 'POST', '/api/v1/courses/enroll', { token, payload: { enrollmentCode: f.course.enrollmentCode } });
+    expect(enrollment.statusCode).toBe(200);
+    expect(await Grade.findOne({ sessionId: f.session._id, userId: newcomer._id }).lean()).toMatchObject({ visibleToStudents: true });
+    const other = await Session.create({ courseId: f.course._id, creator: f.prof._id, name: 'Reviewable grade', status: 'done', reviewable: true });
+    await Grade.create({ courseId: f.course._id, sessionId: other._id, userId: f.students[0]._id, value: 27, participation: 0, visibleToStudents: true });
+    const before = (await f.table()).json().rows[0];
+    const ownGrade = await Grade.findById(f.grade._id).lean();
+    expect(before.avgGrade).toBe(50);
+    expect(before.avgParticipation).toBe(Math.round(ownGrade.participation / 2 * 10) / 10);
+  });
+
+  it.each(['start', 'patch', 'extensions'])('revokes independent grade release when reopening through %s', async (path) => {
+    const f = await fixture(path === 'extensions' ? { quiz: true } : {});
+    await f.toggle(true);
+    const response = await authenticatedRequest(app, path === 'start' ? 'POST' : 'PATCH',
+      `/api/v1/sessions/${f.session._id}${path === 'patch' ? '' : `/${path}`}`, {
+        token: f.profToken, payload: path === 'extensions'
+          ? { extensions: [{ userId: f.students[0]._id, quizStart: new Date(Date.now() - 60000).toISOString(), quizEnd: new Date(Date.now() + 3600000).toISOString() }] }
+          : path === 'patch' ? { status: 'running' } : {},
+      });
+    expect(response.statusCode).toBe(200);
+    expect(await Session.findById(f.session._id).lean()).toMatchObject({ reviewable: false, gradesVisible: false });
+    expect(await Grade.countDocuments({ sessionId: f.session._id, visibleToStudents: true })).toBe(0);
+  });
+
+  it.each([
+    { anonymous: true }, { studentCreated: true }, { status: 'running' }, { status: 'hidden' },
+    { quiz: true, quizExtensions: [{ userId: 'extension-student', quizEnd: new Date(Date.now() + 3600000) }] },
+  ])('rejects publication for ineligible sessions: %j', async (overrides) => {
+    const f = await fixture(overrides);
+    expect((await f.toggle(true)).statusCode).toBe(409);
+    expect((await Grade.findById(f.grade._id)).visibleToStudents).toBe(false);
+  });
+
+  it('requires course instructor permission and validates the visibility payload', async () => {
+    const f = await fixture();
+    expect((await f.toggle(true, f.studentTokens[0])).statusCode).toBe(403);
+    const outsider = await createUser({ email: 'other-instructor@example.com', roles: ['professor'] });
+    expect((await f.toggle(true, await getAuthToken(app, outsider))).statusCode).toBe(403);
+    const invalid = await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${f.session._id}/grades/visibility`, { token: f.profToken, payload: {} });
+    expect(invalid.statusCode).toBe(400);
   });
 });

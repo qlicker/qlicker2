@@ -212,9 +212,9 @@ Not every detail is always released. The instructor controls reviewability and g
 
 ## 7. Read grades and feedback
 
-The **Grades** tab shows only your own results from ended, reviewable sessions. Average grade and participation are the arithmetic means of your visible grade items in those sessions. Missing or unpublished grade items are excluded; recorded zeros, including missed work, count. When no applicable grade items exist, no average is shown.
+The **Grades** tab shows your own released grades from ended sessions, including sessions that are not reviewable. Average grade and participation are the arithmetic means of your visible grade items in those sessions. Missing or unpublished grade items are excluded; recorded zeros, including missed work, count. When no applicable grade items exist, no average is shown.
 
-If none of the sessions are reviewable yet, the tab explains that grades have not been released and shows **Not applicable** for both averages. Your instructor may already see grades; they become available to you when the instructor makes the sessions reviewable.
+If no grades have been released, the tab explains this and shows **Not applicable** for both averages. Your instructor can release grades by enabling **Grades visible** or **Reviewable**. When only grades are released, scores and participation count toward your averages, but grade cells cannot be clicked and no review link appears. Question marks and feedback remain unavailable until review is enabled.
 
 - Objective items may be graded automatically.
 - Short answers usually remain incomplete until an instructor assigns points.

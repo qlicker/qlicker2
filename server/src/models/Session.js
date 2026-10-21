@@ -64,6 +64,8 @@ const SessionSchema = new mongoose.Schema(
     submittedQuiz: { type: [String], default: [] },
     tags: { type: [TagSchema], default: [] },
     reviewable: { type: Boolean, default: false },
+    // Independent summary-grade release; reviewability also releases grades.
+    gradesVisible: { type: Boolean, default: false },
     hasResponses: { type: Boolean, default: false },
     questionResponseCounts: { type: Map, of: Number, default: {} },
     // Interactive session join-code settings

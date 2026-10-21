@@ -1850,7 +1850,7 @@
       "setAutomatic": "Auf automatisch setzen",
       "questionContentNotLoaded": "Frageninhalt konnte für diesen Konflikt nicht geladen werden.",
       "toleranceLabel": "{{expected}} | Toleranz: {{tolerance}}",
-      "noReviewableSessions": "Es sind noch keine Sitzungen zur Einsicht freigegeben. Ihre Durchschnittswerte erscheinen, sobald Ihre Lehrkraft eine Sitzung zur Einsicht freigibt und damit die Noten veröffentlicht."
+      "noVisibleGrades": "Es wurden noch keine Noten veröffentlicht. Ihre Durchschnittswerte erscheinen, sobald Ihre Lehrkraft Noten sichtbar macht oder eine Sitzung zur Einsicht freigibt."
     },
     "questionPanel": {
       "selectQuestion": "Wählen Sie eine Frage aus, um mit der Bewertung zu beginnen.",
@@ -1971,6 +1971,11 @@
       "clickQuestionToEdit": "Klicken Sie auf diese Zeile, um die Rubrik zu bearbeiten",
       "guidanceMissing": "Anweisungen fehlen",
       "notEligible": "Diese Frage kann nicht von KI bewertet werden"
+    },
+    "visibility": {
+      "label": "Noten sichtbar",
+      "help": "Veröffentlichen Sie Noten, ohne die Sitzung zur Einsicht freizugeben. Die Freigabe zur Einsicht veröffentlicht auch die Noten; das Zurücknehmen der Freigabe blendet sie wieder aus. Für eine reine Notenfreigabe aktivieren Sie Noten sichtbar bei deaktivierter Sitzungseinsicht.",
+      "failed": "Die Sichtbarkeit der Noten konnte nicht geändert werden."
     }
   },
   "pageTitles": {
@@ -2298,7 +2303,8 @@
             "Fügen Sie neue Fragen hinzu, wählen Sie aus der Fragenbibliothek, importieren Sie Sitzungs-JSON oder fügen Sie Folien an beliebiger Stelle in der Sequenz ein.",
             "Folien sind reine Inhaltsseiten und eignen sich daher ideal für Anweisungen, Lösungsbeispiele oder Diskussionsanregungen zwischen benoteten Fragen.",
             "Die Sichtbarkeit von Fragen ist wichtig: Halten Sie private Inhalte privat, teilen Sie kursinterne Materialien bewusst und verwenden Sie Qlicker-weite Sichtbarkeit nur, wenn eine breite Wiederverwendung wirklich gewünscht ist.",
-            "Verwenden Sie Alle Vorschauen aufklappen oder Alle Vorschauen zuklappen über der Fragenliste oder öffnen und schließen Sie einzelne Vorschauen."
+            "Verwenden Sie Alle Vorschauen aufklappen oder Alle Vorschauen zuklappen über der Fragenliste oder öffnen und schließen Sie einzelne Vorschauen.",
+            "Verwenden Sie Noten sichtbar neben der Freigabe zur Einsicht in der Sitzungsliste, im Editor oder auf der Auswertungsseite, um nur die Ergebnisse zu veröffentlichen. Die Freigabe zur Einsicht schaltet die Notensichtbarkeit ebenfalls ein oder aus. Bei deaktivierter Sitzungseinsicht können Sie Noten ausdrücklich freigeben. Dies ist erst nach Ende der Sitzung und aller Verlängerungen möglich."
           ],
           "warning": "Sobald eine Frage Antwortdaten hat, sind einige Bearbeitungen absichtlich eingeschränkt, um die Bedeutung vergangener Ergebnisse zu schützen.",
           "screenshot": {
@@ -2475,8 +2481,8 @@
             "Öffnen Sie überprüfbare Sitzungen von der Kursseite aus, nachdem Ihr Dozent die Aktivität beendet und die Überprüfung aktiviert hat. Klicken Sie auf eine Note in der Notentabelle, um die Sitzungsnachbesprechung zu öffnen.",
             "Gehen Sie eine Frage nach der anderen durch, um Ihre Antwort, die veröffentlichte Lösung, die Erklärung und etwaiges Dozenten-Feedback zu vergleichen, ohne an Details vorbeizueilen.",
             "Achten Sie auf Feedback-Benachrichtigungen, da sie Ihnen mitteilen, wann neue Kommentare oder Benotungsaktualisierungen verfügbar sind.",
-            "Noten- und Teilnahmedurchschnitt verwenden Ihre sichtbaren Noteneinträge aus beendeten, zur Einsicht freigegebenen Sitzungen. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit.",
-            "Wenn noch keine Sitzungen zur Einsicht freigegeben sind, wird für Ihre Durchschnittswerte Nicht zutreffend angezeigt, auch wenn Ihre Lehrkraft Ihre Arbeit bereits bewertet hat."
+            "Noten- und Teilnahmedurchschnitt verwenden alle Ihre sichtbaren Noteneinträge, auch aus Sitzungen ohne Einsichtsfreigabe. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit. Eine Note öffnet die Sitzungseinsicht nur, wenn diese freigegeben ist.",
+            "Wenn noch keine Noten veröffentlicht wurden, wird für Ihre Durchschnittswerte Nicht zutreffend angezeigt, auch wenn Ihre Lehrkraft Ihre Arbeit bereits bewertet hat."
           ],
           "success": "Studierende verbessern sich oft am schnellsten, wenn sie das Feedback lesen und dann sofort eine ähnliche Frage erneut versuchen.",
           "screenshot": {

@@ -18,6 +18,7 @@ function buildGradesPayload() {
       {
         _id: 'session-1',
         name: 'Week 1',
+        reviewable: true,
         marksNeedingGrading: 5,
         autoGradeableQuestionIds: ['q-mc'],
         questionTypeById: {
@@ -126,14 +127,14 @@ describe('CourseGradesPanel', () => {
     expect(screen.queryByText(/5 ungraded/i)).not.toBeInTheDocument();
   });
 
-  it('explains unavailable student averages when no sessions are reviewable', async () => {
+  it('explains unavailable student averages when no grades are released', async () => {
     const payload = buildGradesPayload();
     payload.sessions = [];
     payload.rows[0] = { ...payload.rows[0], avgParticipation: null, avgGrade: null, grades: [] };
     apiClient.get.mockResolvedValue({ data: payload });
     render(<CourseGradesPanel courseId="course-1" instructorView={false} />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No sessions are available for review yet');
+    expect(await screen.findByRole('alert')).toHaveTextContent('No grades have been released yet');
     expect(screen.getAllByText('Not applicable')).toHaveLength(2);
     expect(screen.queryByText('0%')).not.toBeInTheDocument();
   });
@@ -145,6 +146,20 @@ describe('CourseGradesPanel', () => {
     expect(onOpenSession).toHaveBeenCalledWith('session-1');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(apiClient.get.mock.calls.every(([url]) => url === '/courses/course-1/grades')).toBe(true);
+  });
+
+  it('shows grade-only scores without clickable grades or review links', async () => {
+    const payload = buildGradesPayload();
+    payload.sessions[0].reviewable = false;
+    apiClient.get.mockResolvedValue({ data: payload });
+    const onOpenSession = vi.fn();
+    render(<CourseGradesPanel courseId="course-1" instructorView={false} onOpenSession={onOpenSession} />);
+    const grade = await screen.findByRole('button', { name: '87.5%' });
+    expect(grade).toBeDisabled();
+    fireEvent.click(grade);
+    expect(onOpenSession).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Open review' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('87.5%')).toHaveLength(2);
   });
 
   it('starts hidden for instructors and shows selected-session grades after modal confirmation', async () => {

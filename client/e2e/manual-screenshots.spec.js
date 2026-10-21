@@ -364,6 +364,9 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await gradeDialog.getByRole('button', { name: /^Show Table$/i }).click();
   await expect(professorPage.getByText(student.email)).toBeVisible();
   await capture(professorPage, 'professor-grades.png');
+  await professorPage.goto(`/prof/course/${course._id}/session/${completedQuiz._id}/review`);
+  await expect(professorPage.getByRole('switch', { name: 'Grades visible', exact: true })).toBeChecked();
+  await capture(professorPage, 'professor-session-review.png');
   await professorPage.goto(`/prof/course/${course._id}`);
   await professorPage.getByRole('tab', { name: /^AI Settings$/i }).click();
   await expect(professorPage.getByLabel(/^Default model$/i)).toBeVisible();
