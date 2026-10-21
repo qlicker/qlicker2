@@ -1038,7 +1038,11 @@
       "sessionName": "Name der Sitzung",
       "tags": "Sitzungs-Tags",
       "tagsPlaceholder": "Themen-Tag hinzufügen",
-      "tagsHelp": "Erstellen Sie Tags in den Kurseinstellungen und wählen Sie dann die Tags aus, die diese Sitzung und ihre Fragen beschreiben."
+      "tagsHelp": "Erstellen Sie Tags in den Kurseinstellungen und wählen Sie dann die Tags aus, die diese Sitzung und ihre Fragen beschreiben.",
+      "expandAllPreviews": "Alle Vorschauen aufklappen",
+      "collapseAllPreviews": "Alle Vorschauen zuklappen",
+      "expandQuestion": "Frage {{number}} aufklappen",
+      "collapseQuestion": "Frage {{number}} zuklappen"
     },
     "liveSession": {
       "currentQuestion": "Aktuelle Frage",
@@ -1845,7 +1849,8 @@
       "acceptAutoGrade": "Automatische Note übernehmen",
       "setAutomatic": "Auf automatisch setzen",
       "questionContentNotLoaded": "Frageninhalt konnte für diesen Konflikt nicht geladen werden.",
-      "toleranceLabel": "{{expected}} | Toleranz: {{tolerance}}"
+      "toleranceLabel": "{{expected}} | Toleranz: {{tolerance}}",
+      "noReviewableSessions": "Es sind noch keine Sitzungen zur Einsicht freigegeben. Ihre Durchschnittswerte erscheinen, sobald Ihre Lehrkraft eine Sitzung zur Einsicht freigibt und damit die Noten veröffentlicht."
     },
     "questionPanel": {
       "selectQuestion": "Wählen Sie eine Frage aus, um mit der Bewertung zu beginnen.",
@@ -2292,7 +2297,8 @@
             "Verwenden Sie den Sitzungseditor, um den Sitzungsnamen, die Beschreibung, Sichtbarkeit, Überprüfbarkeit, Passcode-Anforderung, Quiz-Zeitfenster, Verlängerungen und die Bewertungsmethode für Mehrfachauswahl festzulegen. Erstellen Sie Tags in den Kurseinstellungen und wählen Sie dann die Tags aus, die diese Sitzung und ihre Fragen beschreiben.",
             "Fügen Sie neue Fragen hinzu, wählen Sie aus der Fragenbibliothek, importieren Sie Sitzungs-JSON oder fügen Sie Folien an beliebiger Stelle in der Sequenz ein.",
             "Folien sind reine Inhaltsseiten und eignen sich daher ideal für Anweisungen, Lösungsbeispiele oder Diskussionsanregungen zwischen benoteten Fragen.",
-            "Die Sichtbarkeit von Fragen ist wichtig: Halten Sie private Inhalte privat, teilen Sie kursinterne Materialien bewusst und verwenden Sie Qlicker-weite Sichtbarkeit nur, wenn eine breite Wiederverwendung wirklich gewünscht ist."
+            "Die Sichtbarkeit von Fragen ist wichtig: Halten Sie private Inhalte privat, teilen Sie kursinterne Materialien bewusst und verwenden Sie Qlicker-weite Sichtbarkeit nur, wenn eine breite Wiederverwendung wirklich gewünscht ist.",
+            "Verwenden Sie Alle Vorschauen aufklappen oder Alle Vorschauen zuklappen über der Fragenliste oder öffnen und schließen Sie einzelne Vorschauen."
           ],
           "warning": "Sobald eine Frage Antwortdaten hat, sind einige Bearbeitungen absichtlich eingeschränkt, um die Bedeutung vergangener Ergebnisse zu schützen.",
           "screenshot": {
@@ -2469,7 +2475,8 @@
             "Öffnen Sie überprüfbare Sitzungen von der Kursseite aus, nachdem Ihr Dozent die Aktivität beendet und die Überprüfung aktiviert hat. Klicken Sie auf eine Note in der Notentabelle, um die Sitzungsnachbesprechung zu öffnen.",
             "Gehen Sie eine Frage nach der anderen durch, um Ihre Antwort, die veröffentlichte Lösung, die Erklärung und etwaiges Dozenten-Feedback zu vergleichen, ohne an Details vorbeizueilen.",
             "Achten Sie auf Feedback-Benachrichtigungen, da sie Ihnen mitteilen, wann neue Kommentare oder Benotungsaktualisierungen verfügbar sind.",
-            "Noten- und Teilnahmedurchschnitt verwenden Ihre sichtbaren Noteneinträge aus beendeten, zur Einsicht freigegebenen Sitzungen. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit."
+            "Noten- und Teilnahmedurchschnitt verwenden Ihre sichtbaren Noteneinträge aus beendeten, zur Einsicht freigegebenen Sitzungen. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit.",
+            "Wenn noch keine Sitzungen zur Einsicht freigegeben sind, wird für Ihre Durchschnittswerte Nicht zutreffend angezeigt, auch wenn Ihre Lehrkraft Ihre Arbeit bereits bewertet hat."
           ],
           "success": "Studierende verbessern sich oft am schnellsten, wenn sie das Feedback lesen und dann sofort eine ähnliche Frage erneut versuchen.",
           "screenshot": {

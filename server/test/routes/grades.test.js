@@ -1954,6 +1954,37 @@ describe('course grade averages', () => {
     expect(bypass.json().rows[0]).toMatchObject({ avgParticipation: null, avgGrade: null });
   });
 
+  it('has no student average until sessions are reviewable, even when instructor grades exist', async () => {
+    const f = await fixture();
+    await Session.updateMany({ courseId: f.course._id }, { $set: { reviewable: false } });
+    const student = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades`, { token: f.studentTokens[0] });
+    expect(student.statusCode).toBe(200);
+    expect(student.json().sessions).toEqual([]);
+    expect(student.json().rows).toHaveLength(1);
+    expect(student.json().rows[0]).toMatchObject({
+      student: { studentId: f.students[0]._id },
+      avgParticipation: null, avgGrade: null, grades: [],
+    });
+
+    const selectedIds = [f.first, f.second, f.missed].map((session) => session._id).join(',');
+    const instructor = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${selectedIds}&studentId=${f.students[0]._id}`, { token: f.profToken });
+    expect(instructor.statusCode).toBe(200);
+    expect(instructor.json().rows[0]).toMatchObject({ avgParticipation: 50, avgGrade: 40 });
+
+    const published = await authenticatedRequest(app, 'PATCH', `/api/v1/sessions/${f.first._id}/reviewable`, {
+      token: f.profToken, payload: { reviewable: true },
+    });
+    expect(published.statusCode).toBe(200);
+    const releasedStudent = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades`, { token: f.studentTokens[0] });
+    const releasedInstructor = await authenticatedRequest(app, 'GET', `/api/v1/courses/${f.course._id}/grades?sessionIds=${f.first._id}&studentId=${f.students[0]._id}`, { token: f.profToken });
+    expect(releasedStudent.json().sessions.map((session) => session._id)).toEqual([f.first._id]);
+    expect(releasedStudent.json().rows[0].avgGrade).not.toBeNull();
+    expect(releasedStudent.json().rows[0]).toMatchObject({
+      avgParticipation: releasedInstructor.json().rows[0].avgParticipation,
+      avgGrade: releasedInstructor.json().rows[0].avgGrade,
+    });
+  });
+
   it('uses only selected actual grade items for instructor averages and reports empty sessions', async () => {
     const f = await fixture();
     const ids = [f.first, f.second, f.missed, f.empty].map((s) => s._id).join(',');

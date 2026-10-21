@@ -1038,7 +1038,11 @@
       "sessionName": "Voyage name",
       "tags": "Voyage tags",
       "tagsPlaceholder": "Add a topic tag",
-      "tagsHelp": "Create yer tags in Course Settings, then pick the tags that describe this session and its questions."
+      "tagsHelp": "Create yer tags in Course Settings, then pick the tags that describe this session and its questions.",
+      "expandAllPreviews": "Unfurl all previews",
+      "collapseAllPreviews": "Furl all previews",
+      "expandQuestion": "Unfurl question {{number}}",
+      "collapseQuestion": "Furl question {{number}}"
     },
     "liveSession": {
       "currentQuestion": "Current riddle",
@@ -1845,7 +1849,8 @@
       "acceptAutoGrade": "Accept Auto Ledger",
       "setAutomatic": "Set Automatic",
       "questionContentNotLoaded": "Riddle content could not be loaded fer this conflict.",
-      "toleranceLabel": "{{expected}} | leeway: {{tolerance}}"
+      "toleranceLabel": "{{expected}} | leeway: {{tolerance}}",
+      "noReviewableSessions": "No sessions be open fer review yet. Yer averages will appear when yer instructor releases marks by opening a session fer review, arr!"
     },
     "questionPanel": {
       "selectQuestion": "Pick a riddle to begin reckonin'.",
@@ -2292,7 +2297,8 @@
             "Use th' voyage editor to set th' voyage moniker, blurb, visibility, reviewability, secret code requirement, reckoning window, extensions, an' multi-pick scorin' method. Create yer tags in Course Settings, then pick the tags that describe this session and its questions.",
             "Add new riddles, pick from th' riddle chest, load voyage JSON, or insert slides anywhere in th' sequence.",
             "Slides be content-only pages, so they're ideal fer instructions, worked examples, or parley prompts between reckoned riddles.",
-            "Riddle visibility matters: keep private content private, share ship-public material intentionally, an' use Qlicker-wide visibility only when broad reuse be really desired."
+            "Riddle visibility matters: keep private content private, share ship-public material intentionally, an' use Qlicker-wide visibility only when broad reuse be really desired.",
+            "Use Unfurl all previews or Furl all previews above the question manifest, or toggle each question preview on its own, arr!"
           ],
           "warning": "Once a riddle has reply data, some edits be intentionally restricted to protect th' meanin' o' past results.",
           "screenshot": {
@@ -2469,7 +2475,8 @@
             "Open recappable voyages from th' ship page after yer officer ends th' activity an' turns on recap. Click a grade in yer Grades table to open the session review.",
             "Move one riddle at a time to compare yer answer, th' released answer, th' explanation, an' any officer holler without rushin' past details.",
             "Watch fer holler bulletins because they tell ye when new remarks or gradin' updates be available.",
-            "Yer average marks and turnout use visible marks from ended sessions open fer review. Missing marks stay out; recorded zeros count."
+            "Yer average marks and turnout use visible marks from ended sessions open fer review. Missing marks stay out; recorded zeros count.",
+            "If no sessions be open fer review yet, yer averages show Not fer ye even if yer instructor has already marked yer work, arr!"
           ],
           "success": "Crew often improve fastest when they read th' holler an' then immediately try a similar riddle again.",
           "screenshot": {

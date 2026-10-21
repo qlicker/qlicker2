@@ -313,14 +313,14 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await professorPage.goto(`/prof/course/${course._id}/session/${interactive._id}`);
   await expect(professorPage.getByText('Cell Structure Check-in').first()).toBeVisible();
   await expect(professorPage.getByLabel('Enable sharing this activity outside the course')).toHaveCount(0);
-  await capture(professorPage, 'session-editor-sharing-disabled.png');
+  await capture(professorPage, 'session-editor-sharing-disabled.png', 1250);
   await apiJson(request, 'PATCH', `/courses/${course._id}`, {
     token: admin.token, payload: { allowSharedActivities: true },
   });
   await professorPage.reload();
   await professorPage.getByLabel('Enable sharing this activity outside the course').click();
   await expect(professorPage.getByTestId('activity-share-code')).toHaveText(/^S-[A-HJ-NP-Z2-9]{7}$/);
-  await capture(professorPage, 'session-editor.png');
+  await capture(professorPage, 'session-editor.png', 1250);
 
   await professorPage.goto(`/prof/course/${course._id}`);
   await professorPage.getByRole('button', { name: /Launch session Cell Structure Check-in/i }).click();

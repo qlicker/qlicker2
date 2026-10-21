@@ -5,6 +5,71 @@ import {
   expectNoCriticalAccessibilityViolations, loginViaUi, patchSessionViaApi, patchSettingsViaApi, seedUsers,
 } from './helpers.js';
 
+test('session previews toggle together and student averages appear only after review publication', async ({ page, request, browser }) => {
+  const { admin, professor, student } = await seedUsers(request);
+  const course = await createCourseViaApi(request, admin.token);
+  await addInstructorToCourseViaApi(request, admin.token, course._id, professor.user._id);
+  await enrollStudentViaApi(request, student.token, course.enrollmentCode);
+  const session = await createSessionViaApi(request, professor.token, course._id, { name: 'Review release check' });
+  for (const content of ['First preview question', 'Second preview question']) {
+    const question = await createQuestionViaApi(request, professor.token, {
+      sessionId: session._id, courseId: course._id, content,
+    });
+    await addQuestionToSessionViaApi(request, professor.token, session._id, question._id);
+  }
+  await loginViaUi(page, professor.email, professor.password, /\/prof$/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/prof/course/${course._id}/session/${session._id}`);
+  await page.getByRole('button', { name: 'Expand all previews', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Collapse question 1', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('button', { name: 'Collapse question 2', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: 'Collapse question 1', exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Expand all previews', exact: true }).click();
+  await page.getByRole('button', { name: 'Collapse all previews', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Expand question 1', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('button', { name: 'Expand question 2', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await expectNoCriticalAccessibilityViolations(page);
+
+  await patchSessionViaApi(request, professor.token, session._id, { status: 'done' });
+  const grades = await apiJson(request, 'GET', `/courses/${course._id}/grades`, { token: professor.token });
+  expect(grades.response.status()).toBe(200);
+  const grade = grades.body.rows.find((row) => row.student.studentId === student.user._id).grades[0];
+  const edit = await apiJson(request, 'PATCH', `/grades/${grade._id}/value`, {
+    token: professor.token, payload: { value: 80 },
+  });
+  expect(edit.response.status()).toBe(200);
+  await page.goto(`/prof/course/${course._id}`);
+  await page.getByRole('combobox', { name: 'View', exact: true }).click();
+  await page.getByRole('option', { name: 'Grades', exact: true }).click();
+  await page.getByRole('button', { name: 'Show Grade Table', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: /select sessions for grade table/i });
+  await picker.getByText(session.name, { exact: true }).click();
+  await picker.getByRole('button', { name: 'Show Table', exact: true }).click();
+  const professorRow = page.getByRole('row').filter({ hasText: student.email });
+  await expect(professorRow.getByRole('cell', { name: '80%', exact: true })).toHaveCount(2);
+
+  const studentContext = await browser.newContext();
+  try {
+    const studentPage = await studentContext.newPage();
+    await loginViaUi(studentPage, student.email, student.password, /\/student$/);
+    await studentPage.goto(`/student/course/${course._id}`);
+    await studentPage.getByRole('tab', { name: 'Grades', exact: true }).click();
+    await expect(studentPage.getByRole('alert')).toContainText('No sessions are available for review yet');
+    await expect(studentPage.getByText('Not applicable', { exact: true })).toHaveCount(2);
+    await expectNoCriticalAccessibilityViolations(studentPage);
+
+    await patchSessionViaApi(request, professor.token, session._id, { reviewable: true });
+    await studentPage.reload();
+    await studentPage.getByRole('tab', { name: 'Grades', exact: true }).click();
+    const studentRow = studentPage.getByRole('row').filter({ hasText: student.email });
+    await expect(studentRow.getByRole('cell', { name: '80%', exact: true })).toHaveCount(2);
+    await expect(studentPage.getByText(/No sessions are available for review yet/)).toHaveCount(0);
+  } finally {
+    await studentContext.close();
+  }
+});
+
 test('course settings retain their tab and course searches start expanded', async ({ page, request, browser }) => {
   const { admin, professor, student } = await seedUsers(request);
   const course = await createCourseViaApi(request, admin.token);

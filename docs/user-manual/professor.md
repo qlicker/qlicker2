@@ -203,6 +203,8 @@ Use filters and **Select all filtered** carefully: bulk export/copy acts on the 
 
 In the session editor you can create a new question, add from the library, insert a slide, import JSON, and move pages up/down. Questions copied into a session become session-specific copies, so later session settings do not change the original library item.
 
+Use **Expand all previews** above the question list to open every preview, then **Collapse all previews** to close them. You can still expand or collapse individual previews. If only some are open, the bulk button expands them all.
+
 ![Session editor with settings and an ordered set of biology questions](../assets/manuals/session-editor.png)
 
 For each question, review:

@@ -1038,7 +1038,11 @@
       "sessionName": "Nombre de la sesión",
       "tags": "Etiquetas de la sesión",
       "tagsPlaceholder": "Añadir una etiqueta de tema",
-      "tagsHelp": "Crea las etiquetas en la configuración del curso y luego selecciona las que describan esta sesión y sus preguntas."
+      "tagsHelp": "Crea las etiquetas en la configuración del curso y luego selecciona las que describan esta sesión y sus preguntas.",
+      "expandAllPreviews": "Expandir todas las vistas previas",
+      "collapseAllPreviews": "Contraer todas las vistas previas",
+      "expandQuestion": "Expandir la pregunta {{number}}",
+      "collapseQuestion": "Contraer la pregunta {{number}}"
     },
     "liveSession": {
       "currentQuestion": "Pregunta actual",
@@ -1845,7 +1849,8 @@
       "acceptAutoGrade": "Aceptar calificación automática",
       "setAutomatic": "Establecer automática",
       "questionContentNotLoaded": "No se pudo cargar el contenido de la pregunta para este conflicto.",
-      "toleranceLabel": "{{expected}} | tolerancia: {{tolerance}}"
+      "toleranceLabel": "{{expected}} | tolerancia: {{tolerance}}",
+      "noReviewableSessions": "Todavía no hay sesiones disponibles para revisión. Tus medias aparecerán cuando tu docente publique las calificaciones al habilitar la revisión de una sesión."
     },
     "questionPanel": {
       "selectQuestion": "Seleccione una pregunta para comenzar a calificar.",
@@ -2292,7 +2297,8 @@
             "Use el editor de sesión para establecer el nombre, la descripción, la visibilidad, la posibilidad de revisión, el requisito de código de acceso, la ventana del cuestionario, las extensiones y el método de calificación de selección múltiple. Crea las etiquetas en la configuración del curso y luego selecciona las que describan esta sesión y sus preguntas.",
             "Agregue preguntas nuevas, elija de la biblioteca de preguntas, importe JSON de sesión o inserte diapositivas en cualquier parte de la secuencia.",
             "Las diapositivas son páginas de solo contenido, así que son ideales para instrucciones, ejemplos resueltos o temas de discusión entre preguntas calificadas.",
-            "La visibilidad de la pregunta importa: mantenga privado el contenido privado, comparta el material público del curso de manera intencional y use la visibilidad en todo Qlicker solo cuando realmente se desee una reutilización amplia."
+            "La visibilidad de la pregunta importa: mantenga privado el contenido privado, comparta el material público del curso de manera intencional y use la visibilidad en todo Qlicker solo cuando realmente se desee una reutilización amplia.",
+            "Usa Expandir todas las vistas previas o Contraer todas las vistas previas encima de la lista de preguntas, o abre y cierra cada vista previa individualmente."
           ],
           "warning": "Una vez que una pregunta tiene datos de respuesta, algunas ediciones se restringen intencionalmente para proteger el significado de los resultados pasados.",
           "screenshot": {
@@ -2469,7 +2475,8 @@
             "Abra las sesiones revisables desde la página del curso después de que su instructor finalice la actividad y active la revisión. Haz clic en una nota de la tabla de calificaciones para abrir la revisión de la sesión.",
             "Avance una pregunta a la vez para comparar su respuesta, la respuesta publicada, la explicación y cualquier retroalimentación del instructor sin pasar por alto los detalles.",
             "Esté atento a las notificaciones de retroalimentación porque le avisan cuándo hay nuevos comentarios o actualizaciones de calificación disponibles.",
-            "Los promedios de calificación y participación utilizan sus registros visibles de sesiones finalizadas y disponibles para revisión. Se excluyen los registros ausentes; los ceros registrados cuentan."
+            "Los promedios de calificación y participación utilizan sus registros visibles de sesiones finalizadas y disponibles para revisión. Se excluyen los registros ausentes; los ceros registrados cuentan.",
+            "Si todavía no hay sesiones disponibles para revisión, tus medias muestran No aplica, aunque tu docente ya haya calificado tu trabajo."
           ],
           "success": "Los estudiantes suelen mejorar más rápido cuando leen la retroalimentación y luego intentan de inmediato una pregunta similar de nuevo.",
           "screenshot": {

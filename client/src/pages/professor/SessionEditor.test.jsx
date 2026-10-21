@@ -195,6 +195,49 @@ describe('SessionEditor inline close behavior', () => {
     });
   });
 
+  it('expands and collapses all previews while preserving individual toggles', async () => {
+    const originalGet = apiClientMock.get.getMockImplementation();
+    apiClientMock.get.mockImplementation(async (url) => {
+      if (url === '/sessions/session-1') {
+        const result = await originalGet(url);
+        result.data.session.questions = ['q1', 'q2'];
+        return result;
+      }
+      if (url === '/questions/q2') {
+        const result = await originalGet('/questions/q1');
+        result.data.question._id = 'q2';
+        return result;
+      }
+      return originalGet(url);
+    });
+    render(<SessionEditor />);
+
+    const expandAll = await screen.findByRole('button', { name: 'professor.sessionEditor.expandAllPreviews' });
+    expect(screen.getAllByRole('button', { name: 'professor.sessionEditor.expandQuestion', expanded: false })).toHaveLength(2);
+    fireEvent.click(expandAll);
+    expect(screen.getAllByRole('button', { name: 'professor.sessionEditor.collapseQuestion', expanded: true })).toHaveLength(2);
+
+    fireEvent.keyDown(screen.getAllByRole('button', { name: 'professor.sessionEditor.collapseQuestion' })[0], { key: 'Enter' });
+    expect(screen.getAllByRole('button', { name: 'professor.sessionEditor.expandQuestion', expanded: false })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'professor.sessionEditor.expandAllPreviews' }));
+    expect(screen.getAllByRole('button', { name: 'professor.sessionEditor.collapseQuestion', expanded: true })).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole('button', { name: 'professor.sessionEditor.collapseAllPreviews', expanded: true }));
+    expect(screen.getAllByRole('button', { name: 'professor.sessionEditor.expandQuestion', expanded: false })).toHaveLength(2);
+    expect(apiClientMock.patch).not.toHaveBeenCalled();
+  });
+
+  it('disables the bulk preview control when the session has no questions', async () => {
+    const originalGet = apiClientMock.get.getMockImplementation();
+    apiClientMock.get.mockImplementation(async (url) => {
+      const result = await originalGet(url);
+      if (url === '/sessions/session-1') result.data.session.questions = [];
+      return result;
+    });
+    render(<SessionEditor />);
+    expect(await screen.findByRole('button', { name: 'professor.sessionEditor.expandAllPreviews' })).toBeDisabled();
+  });
+
   it('routes outer close buttons through the question editor close handler', async () => {
     render(<SessionEditor />);
 

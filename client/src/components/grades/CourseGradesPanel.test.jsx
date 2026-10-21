@@ -126,6 +126,18 @@ describe('CourseGradesPanel', () => {
     expect(screen.queryByText(/5 ungraded/i)).not.toBeInTheDocument();
   });
 
+  it('explains unavailable student averages when no sessions are reviewable', async () => {
+    const payload = buildGradesPayload();
+    payload.sessions = [];
+    payload.rows[0] = { ...payload.rows[0], avgParticipation: null, avgGrade: null, grades: [] };
+    apiClient.get.mockResolvedValue({ data: payload });
+    render(<CourseGradesPanel courseId="course-1" instructorView={false} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No sessions are available for review yet');
+    expect(screen.getAllByText('Not applicable')).toHaveLength(2);
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+  });
+
   it('opens session review for student grade clicks without opening instructor dialogs', async () => {
     const onOpenSession = vi.fn();
     render(<CourseGradesPanel courseId="course-1" instructorView={false} onOpenSession={onOpenSession} />);
