@@ -1820,28 +1820,30 @@ export default function CourseDetail() {
                         <MenuItem value="running">{t('sessionStatus.live')}</MenuItem>
                         <MenuItem value="done">{t('sessionStatus.ended')}</MenuItem>
                       </TextField>
-                      <FormControlLabel
-                        sx={{ m: 0 }}
-                        control={(
-                          <Switch
-                            size="small"
-                            checked={!!s.reviewable}
-                            onChange={(event) => patchSessionFromList(s._id, { reviewable: event.target.checked })}
-                            disabled={!!sessionUpdatesInFlight[s._id] || s.status !== 'done' || s.quizHasRemainingExtensions}
-                          />
-                        )}
-                        label={(
-                          <Tooltip title={t('professor.course.reviewableHelp')} arrow>
-                            <span><Typography variant="caption">{t('professor.course.reviewable')}</Typography></span>
-                          </Tooltip>
-                        )}
-                      />
-                      <SessionGradesVisibilityControl
-                        session={s}
-                        sx={{ '& .MuiFormControlLabel-label': { typography: 'caption' } }}
-                        disabled={!!sessionUpdatesInFlight[s._id]}
-                        onChange={(checked) => patchSessionFromList(s._id, { gradesVisible: checked })}
-                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.25 }}>
+                        <FormControlLabel
+                          sx={{ m: 0 }}
+                          control={(
+                            <Switch
+                              size="small"
+                              checked={!!s.reviewable}
+                              onChange={(event) => patchSessionFromList(s._id, { reviewable: event.target.checked })}
+                              disabled={!!sessionUpdatesInFlight[s._id] || s.status !== 'done' || s.quizHasRemainingExtensions}
+                            />
+                          )}
+                          label={(
+                            <Tooltip title={t('professor.course.reviewableHelp')} arrow>
+                              <span><Typography variant="caption">{t('professor.course.reviewable')}</Typography></span>
+                            </Tooltip>
+                          )}
+                        />
+                        <SessionGradesVisibilityControl
+                          session={s}
+                          sx={{ '& .MuiFormControlLabel-label': { typography: 'caption' } }}
+                          disabled={!!sessionUpdatesInFlight[s._id]}
+                          onChange={(checked) => patchSessionFromList(s._id, { gradesVisible: checked })}
+                        />
+                      </Box>
                       <Tooltip title={t('professor.course.copySession')}>
                         <IconButton
                           size="small"
