@@ -1261,7 +1261,12 @@
       "correctColumn": "Richtig",
       "unsavedSummaryInstructionWarning": "Speichern oder verwerfen Sie Ihre Änderungen an den Anweisungen, bevor Sie die Zusammenfassung erstellen.",
       "anonymousAnswersHidden": "Antworten verborgen — weniger als {{minimum}} Antwortende.",
-      "attempt": "Versuch"
+      "attempt": "Versuch",
+      "includeResponseTimestamps": "Antwortzeitstempel einschließen",
+      "responseTimestampsHint": "Die Zeiten geben an, wann jede Antwort zuletzt gespeichert wurde (bei älteren Datensätzen gegebenenfalls erstellt), nicht wann das gesamte Quiz abgegeben wurde. Das ISO-8601-Format verwendet die Browser-Zeitzone ({{timezone}}) mit dem zum Antwortzeitpunkt geltenden Zeitversatz. Fehlende Zeitstempel bleiben leer.",
+      "anonymousTimestampsHidden": "Bei anonymen Aktivitäten werden Antwortzeitstempel zum Schutz der Anonymität verborgen.",
+      "csvTime": "F{{number}} Zeit",
+      "csvAttemptTime": "F{{number}} Versuch {{attempt}} Zeit"
     },
     "secondDesktop": {
       "joinCode": "Beitrittscode",
@@ -2375,7 +2380,9 @@
             "Wenn Gruppenstrukturen während der Aktivität relevant waren, vergleichen Sie die Überprüfungs- und Benotungsdaten mit den Kursgruppen, um ungleichmäßige Teilnahmemuster zu erkennen.",
             "Bei der Einschreibung werden fehlende Noten für abgeschlossene Kursaktivitäten erstellt, auch aus gespeicherten Gastantworten. Versäumte Aufgaben erhalten null Punkte ohne Bewertungsbedarf; schriftliche Antworten müssen eventuell bewertet werden. Vorhandene Noten und Rückmeldungen bleiben erhalten. Anonyme Aktivitäten bleiben unbenotet.",
             "Die Tabellendurchschnitte verwenden vorhandene Noteneinträge der angezeigten Sitzungen. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit. Nutzen Sie Sitzungen mit Noteneinträgen auswählen oder wählen Sie Sitzungen ohne Noteneinträge manuell aus.",
-            "Bis zum Ende dieses Quiz werden nur abgegebene Quizversuche angezeigt. Danach werden auch gespeicherte Antworten berücksichtigt, wenn Studierende nicht abgegeben haben."
+            "Bis zum Ende dieses Quiz werden nur abgegebene Quizversuche angezeigt. Danach werden auch gespeicherte Antworten berücksichtigt, wenn Studierende nicht abgegeben haben.",
+            "Unter Antwortdaten öffnet CSV exportieren einen Optionsdialog. Aktivieren Sie Antwortzeitstempel einschließen, um eine Zeitspalte je Frage und Versuch hinzuzufügen. Die Zeiten im ISO-8601-Format verwenden die Browser-Zeitzone und den zum Antwortzeitpunkt geltenden Zeitversatz einschließlich Sommerzeit. Sie zeigen das letzte Speichern der Antwort, ersatzweise deren Erstellung, nicht die endgültige Quizabgabe. Fehlende Zeitstempel älterer Datensätze bleiben leer. Anonyme Aktivitäten exportieren niemals Antwortzeiten. Suche und Sortierung der Tabelle bleiben im Export erhalten. Die CSV-Spalte für den Sitzungsbeitritt verwendet immer dasselbe Format. Die Endung -04:00 bedeutet vier Stunden hinter UTC; der Zeitversatz berücksichtigt die Sommerzeit zum gespeicherten Datum. Fehlende Beitrittszeiten bleiben leer.",
+            "Unter Ergebnisse ist der Zeitverlauf der Sitzung beim Laden eingeklappt und fasst alle Fragen und Versuche zusammen. Jeder Versuch einer Frage hat ein eigenes aufklappbares Diagramm, dessen Zeitraum nur durch die Antwortzeitstempel dieses Versuchs bestimmt wird. Mit Detailgrad ändern Sie die Intervallgröße; per Maus, Antippen oder Pfeiltasten können Sie Anzahlen ablesen. Die Diagramme umfassen alle gespeicherten Antwortzeiten einschließlich Pausen und Antworten außerhalb geplanter Quiztermine. Gepunktete Linien markieren Termine innerhalb des Diagramms; außerhalb liegende Termine stehen darunter. Bei Quizfragen zählt jede Antwort zum letzten Speicherzeitpunkt, nicht bei jeder Änderung oder der endgültigen Abgabe. Fehlende Zeitstempel werden gezählt, aber ausgeschlossen. Anonyme Aktivitäten zeigen keine Zeitverläufe."
           ],
           "success": "Professoren können das Studierenden-Handbuch über den Umschalter oben öffnen, um den Lernenden-Ablauf vor dem Unterricht in der Vorschau anzuzeigen."
         },
@@ -2853,5 +2860,26 @@
   "sessionAnonymity": {
     "chip": "Anonym",
     "studentNotice": "Diese Sitzung ist anonym. Sie melden sich weiterhin an und können jede Frage nur einmal beantworten, aber Ihre Lehrperson kann nicht sehen, welche Antworten von Ihnen stammen. Anonyme Sitzungen werden nicht bewertet."
+  },
+  "responseTimeline": {
+    "overview": "Zeitverlauf der Sitzungsantworten",
+    "question": "Antwortzeitverlauf — F{{number}}, Versuch {{attempt}}",
+    "quizHint": "Jede Antwort wird einmal zum letzten Speicherzeitpunkt gezählt, nicht bei jeder Änderung oder der endgültigen Quizabgabe. Der Zeitraum ergibt sich aus den gespeicherten Antworten.",
+    "liveHint": "Jede Antwort wird zum Absendezeitpunkt gezählt. Der Zeitraum ergibt sich aus den gespeicherten Antworten, einschließlich Pausen zwischen Live-Phasen.",
+    "missing": "Antworten ohne verwendbaren Zeitstempel: {{count}}. Diese werden im Diagramm nicht berücksichtigt.",
+    "empty": "Keine Antwortzeitstempel verfügbar.",
+    "detail": "Detailgrad",
+    "coarse": "Grob",
+    "auto": "Automatisch",
+    "fine": "Fein",
+    "interval": "Intervall: {{interval}} · Zeitzone: {{timezone}}",
+    "total": "Dargestellte Antworten: {{count}}",
+    "inspectHelp": "Zeigen oder tippen Sie auf ein Intervall. Bei fokussiertem Diagramm verwenden Sie Links/Rechts, Pos1/Ende und Escape.",
+    "responseAxis": "Antworten",
+    "bucket": "{{start}} bis {{end}} · Antworten: {{count}}",
+    "scheduledOpen": "Geplanter Beginn",
+    "scheduledClose": "Geplantes Ende",
+    "scheduleHint": "Gepunktete Linien markieren geplante Quiztermine im dargestellten Zeitraum. Sie dienen nur als Orientierung und schließen keine Antworten aus.",
+    "outsideRange": "außerhalb des Antwortzeitraums"
   }
 }

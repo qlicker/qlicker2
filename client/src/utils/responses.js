@@ -1,3 +1,31 @@
+// Use the browser's offset at the recorded date, including historical DST.
+// Missing legacy dates must stay blank rather than becoming the Unix epoch.
+export function formatCsvTimestamp(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  const offset = -date.getTimezoneOffset();
+  const pad = (part, length = 2) => String(part).padStart(length, '0');
+  const localDate = `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const localTime = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
+  const zone = `${offset >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
+  return `${localDate}T${localTime}${zone}`;
+}
+
+export function formatResponseTimestamp(response) {
+  const timestamp = getRecordedResponseTimestampMs(response);
+  return formatCsvTimestamp(timestamp === null ? null : new Date(timestamp));
+}
+
+export function getRecordedResponseTimestampMs(response) {
+  // Despite its name, submittedAt records each answer save. updatedAt also
+  // changes when quiz submission locks answers, so use it only for old data.
+  const value = response?.submittedAt || response?.updatedAt || response?.createdAt;
+  if (!value) return null;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
 export function getResponseTimestampMs(response) {
   const timestamp = new Date(response?.updatedAt || response?.createdAt || 0).getTime();
   return Number.isFinite(timestamp) ? timestamp : 0;

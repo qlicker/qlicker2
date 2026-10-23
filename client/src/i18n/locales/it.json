@@ -1261,7 +1261,12 @@
       "correctColumn": "Corretta",
       "unsavedSummaryInstructionWarning": "Salva o annulla le modifiche alle istruzioni prima di generare il riepilogo.",
       "anonymousAnswersHidden": "Risposte nascoste — meno di {{minimum}} partecipanti.",
-      "attempt": "Tentativo"
+      "attempt": "Tentativo",
+      "includeResponseTimestamps": "Includi data e ora delle risposte",
+      "responseTimestampsHint": "Gli orari indicano l’ultimo salvataggio di ogni risposta (o la creazione per i dati meno recenti), non la consegna dell’intero quiz. Il formato ISO 8601 usa il fuso orario del browser ({{timezone}}) con lo scostamento alla data della risposta. Gli orari mancanti restano vuoti.",
+      "anonymousTimestampsHidden": "Data e ora delle risposte sono nascoste nelle attività anonime per proteggere l’anonimato.",
+      "csvTime": "D{{number}} Ora",
+      "csvAttemptTime": "D{{number}} Tentativo {{attempt}} Ora"
     },
     "secondDesktop": {
       "joinCode": "Codice di accesso",
@@ -2375,7 +2380,9 @@
             "Se le strutture dei gruppi erano rilevanti durante l'attività, confronta i dati di revisione e valutazione con i gruppi del corso per individuare schemi di partecipazione irregolari.",
             "L’iscrizione crea i voti mancanti per le attività concluse del corso, anche dalle risposte salvate come ospite. Le attività non svolte ricevono zero senza richiedere correzione; le risposte scritte possono richiederla. I voti e i commenti esistenti vengono conservati. Le attività anonime restano senza voto.",
             "Le medie della tabella usano i voti registrati nelle sessioni visualizzate. I voti mancanti sono esclusi; gli zeri registrati contano. Usa Seleziona le sessioni con voti registrati oppure includi manualmente le sessioni senza voti.",
-            "Fino alla fine del quiz vengono mostrati solo i tentativi consegnati. In seguito vengono incluse anche le risposte salvate dagli studenti che non hanno consegnato."
+            "Fino alla fine del quiz vengono mostrati solo i tentativi consegnati. In seguito vengono incluse anche le risposte salvate dagli studenti che non hanno consegnato.",
+            "In Dati delle risposte, Esporta CSV apre una finestra di opzioni. Seleziona Includi data e ora delle risposte per aggiungere una colonna oraria per ogni domanda e tentativo. Gli orari usano ISO 8601 con il fuso del browser e lo scostamento alla data della risposta, inclusa l’ora legale. Indicano l’ultimo salvataggio della risposta o, in mancanza, la creazione, non la consegna finale del quiz. Gli orari mancanti nei vecchi dati restano vuoti. Le attività anonime non esportano mai gli orari delle risposte. L’esportazione conserva la ricerca e l’ordinamento della tabella. La colonna CSV dell’ingresso nella sessione usa sempre lo stesso formato. Il suffisso -04:00 indica quattro ore indietro rispetto a UTC; lo scostamento tiene conto dell’ora legale alla data registrata. Gli orari di ingresso mancanti restano vuoti.",
+            "In Risultati, la cronologia della sessione è chiusa al caricamento della pagina e riunisce tutte le domande e i tentativi. Ogni tentativo di una domanda ha un proprio grafico espandibile, il cui intervallo dipende solo dagli orari delle risposte di quel tentativo. Regola Dettaglio per cambiare la dimensione degli intervalli; usa il puntatore, il tocco o le frecce per esaminare i conteggi. I grafici coprono gli orari registrati, incluse le pause e le risposte fuori dalle date programmate. Le linee tratteggiate indicano le date interne al grafico; quelle esterne sono elencate sotto. Nei quiz ogni risposta viene conteggiata all’ultimo salvataggio, non a ogni modifica o alla consegna finale. Gli orari mancanti vengono contati ma esclusi. Le attività anonime non mostrano cronologie."
           ],
           "success": "I docenti possono aprire la guida studente dal selettore qui sopra per vedere in anteprima il flusso dello studente prima della lezione."
         },
@@ -2854,5 +2861,26 @@
   "sessionAnonymity": {
     "chip": "Anonima",
     "studentNotice": "Questa sessione è anonima. Devi comunque accedere e puoi rispondere a ogni domanda una sola volta, ma il docente non può vedere quali risposte sono tue. Le sessioni anonime non vengono valutate."
+  },
+  "responseTimeline": {
+    "overview": "Cronologia delle risposte della sessione",
+    "question": "Cronologia delle risposte — D{{number}}, tentativo {{attempt}}",
+    "quizHint": "Ogni risposta viene conteggiata una volta all’ultimo salvataggio, non a ogni modifica o alla consegna finale del quiz. L’intervallo deriva dalle risposte registrate.",
+    "liveHint": "Ogni risposta viene conteggiata al momento dell’invio. L’intervallo deriva dalle risposte registrate, incluse le pause tra i periodi dal vivo.",
+    "missing": "Risposte senza un orario utilizzabile: {{count}}. Sono escluse dal grafico.",
+    "empty": "Nessun orario di risposta disponibile.",
+    "detail": "Dettaglio",
+    "coarse": "Basso",
+    "auto": "Automatico",
+    "fine": "Alto",
+    "interval": "Intervallo: {{interval}} · Fuso orario: {{timezone}}",
+    "total": "Risposte rappresentate: {{count}}",
+    "inspectHelp": "Passa il puntatore o tocca un intervallo per esaminarlo. Con il grafico attivo, usa Sinistra/Destra, Inizio/Fine ed Esc.",
+    "responseAxis": "Risposte",
+    "bucket": "Da {{start}} a {{end}} · Risposte: {{count}}",
+    "scheduledOpen": "Apertura programmata",
+    "scheduledClose": "Chiusura programmata",
+    "scheduleHint": "Le linee tratteggiate indicano le date programmate del quiz nell’intervallo visualizzato. Sono solo riferimenti e non escludono risposte.",
+    "outsideRange": "fuori dall’intervallo delle risposte"
   }
 }

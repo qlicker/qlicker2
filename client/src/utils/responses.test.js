@@ -1,6 +1,51 @@
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
-import { applyLiveResponseAddedDelta, mergeResponsesNewestFirst } from './responses';
+import { applyLiveResponseAddedDelta, formatResponseTimestamp, mergeResponsesNewestFirst } from './responses';
+
+describe('formatResponseTimestamp', () => {
+  it.each([
+    {}, { createdAt: null }, { createdAt: '' }, { createdAt: 'invalid' },
+    { createdAt: '2026-03-15T12:00:00Z', updatedAt: 'invalid' },
+  ])('leaves missing or invalid response times blank: %j', (response) => {
+    expect(formatResponseTimestamp(response)).toBe('');
+  });
+
+  it.each(['2026-01-15T12:34:56.789Z', '2026-07-15T12:34:56.789Z'])('formats %s with local time and a parseable offset', (createdAt) => {
+    const date = new Date(createdAt);
+    const formatted = formatResponseTimestamp({ createdAt });
+    const hour = String(date.getHours()).padStart(2, '0');
+    expect(formatted).toContain(`T${hour}:`);
+    expect(formatted).toMatch(/\.789[+-]\d{2}:\d{2}$/);
+    expect(new Date(formatted).toISOString()).toBe(createdAt);
+  });
+
+  it('uses the last quiz modification instead of the first save or whole-quiz submission', () => {
+    const formatted = formatResponseTimestamp({
+      createdAt: '2026-03-15T12:00:00Z',
+      submittedAt: '2026-03-15T12:05:00Z',
+      updatedAt: '2026-03-15T12:10:00Z',
+    });
+    expect(new Date(formatted).toISOString()).toBe('2026-03-15T12:05:00.000Z');
+  });
+
+  it.each([
+    ['America/Toronto', '2026-01-15T12:34:56.789Z', '2026-01-15T07:34:56.789-05:00'],
+    ['America/Toronto', '2026-07-15T12:34:56.789Z', '2026-07-15T08:34:56.789-04:00'],
+    ['Asia/Kolkata', '2026-01-15T23:34:56.789Z', '2026-01-16T05:04:56.789+05:30'],
+    ['UTC', '2026-01-15T12:34:56.789Z', '2026-01-15T12:34:56.789+00:00'],
+  ])('uses the offset in %s on %s', (timezone, createdAt, expected) => {
+    // Isolate TZ from the test runner and other tests, including worker threads.
+    const moduleUrl = pathToFileURL(`${process.cwd()}/src/utils/responses.js`).href;
+    const script = `import { formatResponseTimestamp } from ${JSON.stringify(moduleUrl)};
+      process.stdout.write(formatResponseTimestamp({ createdAt: ${JSON.stringify(createdAt)} }));`;
+    const formatted = execFileSync(process.execPath, ['--input-type=module', '-e', script], {
+      env: { ...process.env, TZ: timezone }, encoding: 'utf8',
+    });
+    expect(formatted).toBe(expected);
+  });
+});
 
 it('merges a response received in both an anonymous HTTP snapshot and a websocket delta exactly once', () => {
   const anonymous = { answer: 'A shared response', createdAt: '2026-09-18T10:00:00.000Z' };

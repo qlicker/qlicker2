@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box, Typography, Button, Paper, Alert, CircularProgress, Chip, Collapse,
-  Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, Dialog, DialogActions, DialogContent, DialogTitle,
+  Switch, Checkbox, FormControlLabel, Table, TableBody, TableCell, TableContainer, Dialog, DialogActions, DialogContent, DialogTitle,
   TableHead, TableRow, TableSortLabel, LinearProgress, TextField, Autocomplete,
 } from '@mui/material';
 import {
@@ -40,11 +40,13 @@ import AiModelSelect, { parseAiModelValue } from '../../components/ai/AiModelSel
 import SessionChatPanel from '../../components/live/SessionChatPanel';
 import WordCloudPanel from '../../components/questions/WordCloudPanel';
 import HistogramPanel from '../../components/questions/HistogramPanel';
+import ResponseTimeline from '../../components/questions/ResponseTimeline';
 import BackLinkButton from '../../components/common/BackLinkButton';
 import StudentIdentity from '../../components/common/StudentIdentity';
 import ResponsiveTabsNavigation from '../../components/common/ResponsiveTabsNavigation';
 import { buildCourseTitle } from '../../utils/courseTitle';
-import { getLatestResponse, sortResponsesNewestFirst } from '../../utils/responses';
+import { formatCsvTimestamp, formatResponseTimestamp, getLatestResponse, sortResponsesNewestFirst } from '../../utils/responses';
+import { collectResponseTimeline } from '../../utils/responseTimeline';
 import { toggleSessionReviewable } from '../../utils/reviewableToggle';
 import SessionGradesVisibilityControl from '../../components/common/SessionGradesVisibilityControl';
 
@@ -417,6 +419,7 @@ function formatAnswerText(question, answer, t) {
 export function buildSessionResultsCsv({
   anonymous = false,
   ungraded = false,
+  includeResponseTimestamps = false,
   csvQuestionAttempts,
   gradesByStudentId,
   sessionName,
@@ -428,6 +431,7 @@ export function buildSessionResultsCsv({
     ? visibleStudents
     : studentResults;
   if (!csvQuestionAttempts.length || !orderedStudents.length) return null;
+  const includeTimes = includeResponseTimestamps && !anonymous;
 
   const studentResultsById = new Map(
     studentResults.map((student) => [String(student?.studentId || ''), student]),
@@ -457,11 +461,13 @@ export function buildSessionResultsCsv({
     if (attempts.length <= 1) {
       headers.push(t('professor.sessionReview.csvResponse', { number: questionNumber }));
       headers.push(t('professor.sessionReview.csvPoints', { number: questionNumber }));
+      if (includeTimes) headers.push(t('professor.sessionReview.csvTime', { number: questionNumber }));
       return;
     }
     attempts.forEach((attemptNumber) => {
       headers.push(t('professor.sessionReview.csvAttemptResponse', { number: questionNumber, attempt: attemptNumber }));
       headers.push(t('professor.sessionReview.csvAttemptPoints', { number: questionNumber, attempt: attemptNumber }));
+      if (includeTimes) headers.push(t('professor.sessionReview.csvAttemptTime', { number: questionNumber, attempt: attemptNumber }));
     });
   });
 
@@ -487,7 +493,7 @@ export function buildSessionResultsCsv({
         escapeCsvCell(student.inSession ? t('common.yes') : t('common.no')),
         escapeCsvCell(formatParticipation(student.participation)),
         escapeCsvCell(formatPercent(visibleStudent?.percentCorrectValue)),
-        escapeCsvCell(formatJoinedAt(student.joinedAt)),
+        escapeCsvCell(formatCsvTimestamp(student.joinedAt)),
       ];
 
     csvQuestionAttempts.forEach(({ question, attempts }) => {
@@ -501,11 +507,7 @@ export function buildSessionResultsCsv({
           responsesByAttempt.set(normalizedAttempt, response);
           return;
         }
-        const currentTime = current?.createdAt ? new Date(current.createdAt).getTime() : 0;
-        const nextTime = response?.createdAt ? new Date(response.createdAt).getTime() : 0;
-        if (nextTime >= currentTime) {
-          responsesByAttempt.set(normalizedAttempt, response);
-        }
+        responsesByAttempt.set(normalizedAttempt, getLatestResponse([current, response]));
       });
 
       attempts.forEach((attemptNumber) => {
@@ -519,6 +521,7 @@ export function buildSessionResultsCsv({
         if (!attemptResponse) {
           row.push(escapeCsvCell(''));
           row.push(escapeCsvCell(''));
+          if (includeTimes) row.push('');
           return;
         }
 
@@ -531,6 +534,7 @@ export function buildSessionResultsCsv({
 
         row.push(escapeCsvCell(answerText));
         row.push(escapeCsvCell(points ?? ''));
+        if (includeTimes) row.push(escapeCsvCell(formatResponseTimestamp(attemptResponse)));
       });
     });
 
@@ -725,6 +729,8 @@ export default function SessionReview() {
   const [quizResultsRefreshAt, setQuizResultsRefreshAt] = useState(null);
   const [chatPosts, setChatPosts] = useState([]);
   const [tab, setTab] = useState(0);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [includeResponseTimestamps, setIncludeResponseTimestamps] = useState(false);
   const [togglingReviewable, setTogglingReviewable] = useState(false);
   const [reviewableWarning, setReviewableWarning] = useState('');
   const [gradingNeedsSummary, setGradingNeedsSummary] = useState({ marks: 0, students: 0, questions: 0 });
@@ -1187,11 +1193,30 @@ export default function SessionReview() {
         minimumRespondents: release?.minimumRespondents,
         correctIndices,
         responseCount: release?.respondentCount ?? (cachedAttemptStats ? Number(cachedAttemptStats.total || 0) : attemptResponses.length),
+        timeline: !anonymousSession && !isSlideType(qType) ? collectResponseTimeline(attemptResponses) : null,
         saResponses,
         nuResponses,
       };
     });
-  }), [progressList, questions, studentNameById, studentResults, t]);
+  }), [anonymousSession, progressList, questions, studentNameById, studentResults, t]);
+
+  const sessionTimeline = useMemo(() => {
+    if (anonymousSession) return null;
+    const timestamps = [];
+    let missingCount = 0;
+    let min = Infinity;
+    let max = -Infinity;
+    for (const { timeline } of questionAttemptRows) {
+      if (!timeline) continue;
+      for (const timestamp of timeline.timestamps) timestamps.push(timestamp);
+      missingCount += timeline.missingCount;
+      if (timeline.range) {
+        min = Math.min(min, timeline.range.min);
+        max = Math.max(max, timeline.range.max);
+      }
+    }
+    return { timestamps, missingCount, range: timestamps.length ? { min, max } : null };
+  }, [anonymousSession, questionAttemptRows]);
 
   const csvQuestionAttempts = useMemo(() => questions.map((question, questionIndex) => ({
     question,
@@ -1358,6 +1383,7 @@ export default function SessionReview() {
     const csvExport = buildSessionResultsCsv({
       anonymous: anonymousSession,
       ungraded: ungradedSession,
+      includeResponseTimestamps,
       csvQuestionAttempts,
       gradesByStudentId,
       sessionName: session?.name,
@@ -1368,7 +1394,8 @@ export default function SessionReview() {
     if (!csvExport) return;
 
     downloadCsv(csvExport.filename, csvExport.csvContent);
-  }, [anonymousSession, ungradedSession, csvQuestionAttempts, gradesByStudentId, sortedStudentsTabRows, studentResults, session?.name, t]);
+    setExportDialogOpen(false);
+  }, [anonymousSession, ungradedSession, includeResponseTimestamps, csvQuestionAttempts, gradesByStudentId, sortedStudentsTabRows, studentResults, session?.name, t]);
 
   // ---- Render: loading ----
 
@@ -1599,6 +1626,10 @@ export default function SessionReview() {
           <Alert severity="info">{t('professor.sessionReview.noQuestions')}</Alert>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {sessionTimeline && <Paper variant="outlined" sx={{ p: 2.5, minWidth: 0 }}>
+              <ResponseTimeline key={sessionId} title={t('responseTimeline.overview')} data={sessionTimeline}
+                quiz={session?.quiz} quizStart={session?.quizStart} quizEnd={session?.quizEnd} />
+            </Paper>}
             {questionAttemptRows.map((row) => {
               const q = row.question;
               const qT = row.qType;
@@ -1678,6 +1709,12 @@ export default function SessionReview() {
                   <Box sx={{ mb: 2 }}>
                     <RichContent html={q.content} fallback={q.plainText} allowVideoEmbeds />
                   </Box>
+
+                  {row.timeline && <Box sx={{ mb: 2 }}>
+                    <ResponseTimeline title={t('responseTimeline.question', { number: row.questionNumber, attempt: row.attemptNumber })}
+                      data={row.timeline}
+                      quiz={session?.quiz} quizStart={session?.quizStart} quizEnd={session?.quizEnd} />
+                  </Box>}
 
                   {row.responsesWithheld && (
                     <Alert severity="info" sx={{ mb: 1 }}>
@@ -1885,7 +1922,7 @@ export default function SessionReview() {
                 variant="outlined"
                 size="small"
                 startIcon={<DownloadIcon />}
-                onClick={handleExportCsv}
+                onClick={() => setExportDialogOpen(true)}
                 disabled={!sortedStudentsTabRows.length}
                 aria-label={t('professor.sessionReview.exportResultsCSV')}
               >
@@ -2138,6 +2175,24 @@ export default function SessionReview() {
           />
         </TabPanel>
       ) : null}
+      <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} fullWidth maxWidth="sm" aria-labelledby="export-results-title" aria-describedby="export-results-description">
+        <DialogTitle id="export-results-title">{t('professor.sessionReview.exportResultsCSV')}</DialogTitle>
+        <DialogContent>
+          <FormControlLabel
+            control={<Checkbox checked={!anonymousSession && includeResponseTimestamps} disabled={anonymousSession} onChange={(event) => setIncludeResponseTimestamps(event.target.checked)} />}
+            label={t('professor.sessionReview.includeResponseTimestamps')}
+          />
+          <Typography id="export-results-description" variant="body2" color="text.secondary">
+            {anonymousSession
+              ? t('professor.sessionReview.anonymousTimestampsHidden')
+              : t('professor.sessionReview.responseTimestampsHint', { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setExportDialogOpen(false)}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={handleExportCsv} disabled={!sortedStudentsTabRows.length}>{t('professor.sessionReview.exportCSV')}</Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={!!summaryQuestion} onClose={() => setSummaryQuestion(null)} fullWidth maxWidth="sm">
         <DialogTitle>{t('professor.sessionReview.generateAiResponseSummary')}</DialogTitle>
         <DialogContent dividers>

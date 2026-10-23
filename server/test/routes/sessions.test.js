@@ -2654,6 +2654,21 @@ describe('Student quiz routes', () => {
     expect(stored.submittedIpAddress).toBe('203.0.113.61');
     expect(stored.submittedAt).toBeTruthy();
 
+    // Locking the entire quiz must preserve each question's last answer-save
+    // time, which the instructor's CSV exports instead of updatedAt.
+    const submitRes = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${session._id}/submit`, {
+      token: studentToken,
+    });
+    expect(submitRes.statusCode).toBe(200);
+    const resultsRes = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/results`, {
+      token: profToken,
+    });
+    expect(resultsRes.statusCode).toBe(200);
+    const exportedResponse = resultsRes.json().studentResults[0].questionResults[0].responses[0];
+    expect(exportedResponse.answer).toBe('1');
+    expect(exportedResponse.submittedAt).toBe(secondSaveRes.json().response.submittedAt);
+    expect(exportedResponse.createdAt).toBe(firstSaveRes.json().response.createdAt);
+
     const trackedSession = await Session.findById(session._id).lean();
     expect(trackedSession.hasResponses).toBe(true);
     expect(Number(trackedSession.questionResponseCounts?.[question._id] || 0)).toBe(1);

@@ -521,6 +521,26 @@ Open **Review** from a completed session/quiz card. A running interactive sessio
 
 The **Response Data** table displays points only for an actual question mark. Recorded zeros remain visible; anonymous respondents and guests without grade items have no point suffix. CSV points are blank when no mark exists.
 
+Select **Export CSV** in **Response Data** to open the export options. Enable **Include response timestamps** to add **Q1 Time**, **Q2 Time**, and so on beside the response and points columns. Questions with multiple attempts have a time column for each attempt. The option is off by default; exports preserve the table's current search and sort order.
+
+Quiz times represent the last saved modification of each answer; interactive-session times represent when the student submitted that response. Older records fall back to their creation time. Times use ISO 8601 with milliseconds and an explicit UTC offset, such as `2026-03-15T08:00:00.000-04:00`, in the downloading browser's timezone with the offset that applied on the response date (including daylight saving time). This does not recover the student's original timezone or the time of final quiz submission. Missing or invalid timestamps remain blank. Anonymous activities never export response timestamps.
+
+The CSV's **Joined Session** column always uses the same ISO 8601 format, whether or not response timestamps are enabled. Missing join times are blank. The suffix `-04:00` means four hours behind UTC: `2026-10-02T15:59:58.771-04:00` is October 2 at 3:59:58.771 p.m. in Toronto, equivalent to 19:59:58.771 UTC. The offset reflects daylight saving time at that date.
+
+![CSV export options with response timestamps](../assets/manuals/professor-response-export.png)
+
+### Response timelines
+
+The **Results** tab starts with a **Session response timeline**, collapsed on page load, combining recorded responses from all questions and attempts. Each question/attempt also has its own expandable **Response timeline**, using only that attempt's response timestamps to set its range. Multiple attempts appear as separate graphs, not combined into one question graph. Bars show response counts per time interval; empty intervals preserve pauses between live periods. **Detail** changes the interval size automatically for a coarse or fine view.
+
+The range is inferred from the earliest and latest available response timestamps, rounded outward to complete intervals. No session start/end times are recorded for this feature. Quiz charts count each answer once at its last saved time, rather than showing every edit or final quiz submission. Interactive-session charts count responses at submission. Missing or invalid timestamps are excluded with a visible count. Anonymous activities do not show timelines.
+
+For quizzes, dotted vertical lines mark scheduled opening and closing dates within the plotted range. The dates are also listed below, including dates outside the response range. They are reference markers only: responses before opening or after closing remain visible, including responses during extensions or manual live mode. Existing review rules still apply: an ongoing quiz exposes submitted participants only; ended quizzes include saved, unsubmitted answers too.
+
+Times use the browser's timezone. Hover or tap a chart to inspect an interval and its count. With keyboard focus on the chart, use Left/Right, Home/End, and Escape. On narrow screens, the chart scrolls horizontally within its card.
+
+![Session and question response timelines](../assets/manuals/professor-response-timeline.png)
+
 ![Anonymous review with the full question preview and respondent answers](../assets/manuals/professor-anonymous-review.png)
 
 Review tabs can include result summaries, per-question response data, students, grading, and chat history. Use them to answer different questions:
