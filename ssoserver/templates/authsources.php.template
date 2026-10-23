@@ -1,0 +1,12 @@
+<?php
+$config = [
+    'admin' => [
+        'core:AdminPassword',
+    ],
+    'example-userpass' => [
+        'exampleauth:UserPass',
+        'users' => [
+__USERS__
+        ],
+    ],
+];

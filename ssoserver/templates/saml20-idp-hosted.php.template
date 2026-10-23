@@ -1,0 +1,23 @@
+<?php
+$metadata['__IDP_ENTITY_ID__'] = [
+    'host' => '__DEFAULT__',
+    'privatekey' => '__IDP_PRIVATE_KEY_FILE__',
+    'certificate' => '__IDP_CERT_FILE__',
+    'auth' => 'example-userpass',
+    'NameIDFormat' => [
+        'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+    ],
+    'attributes.NameFormat' => 'urn:oasis:names:tc:SAML:2.0:attrname-format:basic',
+    'saml20.sign.response' => true,
+    'saml20.sign.assertion' => true,
+    'assertion.encryption' => true,
+    'sign.logout' => true,
+    'redirect.sign' => true,
+    'authproc' => [
+        20 => [
+            'class' => 'saml:AttributeNameID',
+            'identifyingAttributes' => ['mail'],
+            'Format' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+        ],
+    ],
+];

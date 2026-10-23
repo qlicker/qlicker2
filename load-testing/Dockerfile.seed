@@ -1,0 +1,16 @@
+# Dockerfile for the load-testing seed script.
+# The setup/run helpers build and run this image directly with `docker build`
+# and `docker run`, so host Node.js is not required for seeding/cleanup.
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --production
+
+COPY seed.mjs ./
+
+# Write state.json to /state (mapped to host volume)
+ENV STATE_DIR=/state
+
+ENTRYPOINT ["node", "seed.mjs"]

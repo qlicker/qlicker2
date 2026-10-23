@@ -1,0 +1,29 @@
+<?php
+$metadata['__SP_ENTITY_ID__'] = [
+    'AssertionConsumerService' => [
+        [
+            'Location' => '__SP_ACS_URL__',
+            'Binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
+        ],
+    ],
+    'SingleLogoutService' => [
+        [
+            'Location' => '__SP_LOGOUT_URL__',
+            'Binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+        ],
+        [
+            'Location' => '__SP_LOGOUT_URL__',
+            'Binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
+        ],
+    ],
+    'NameIDFormat' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+    'certificate' => '__SP_CERT_FILE__',
+    'assertion.encryption' => true,
+    'saml20.sign.response' => true,
+    'saml20.sign.assertion' => true,
+    'sign.logout' => true,
+    'redirect.validate' => true,
+    'validate.authnrequest' => true,
+    'validate.logout' => true,
+    'attributes.NameFormat' => 'urn:oasis:names:tc:SAML:2.0:attrname-format:basic',
+];

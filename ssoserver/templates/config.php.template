@@ -1,0 +1,26 @@
+<?php
+$config = [
+    'baseurlpath' => '__BASEURLPATH__',
+    'certdir' => '/var/www/simplesamlphp/cert/',
+    'cachedir' => '/tmp/simplesamlphp/cache/',
+    'tempdir' => '/tmp/simplesamlphp/temp/',
+    'logging.level' => SimpleSAML\Logger::INFO,
+    'logging.handler' => 'errorlog',
+    'debug.validatexml' => false,
+    'secretsalt' => '__SECRET_SALT__',
+    'auth.adminpassword' => '__ADMIN_PASSWORD__',
+    'admin.protectindexpage' => false,
+    'admin.protectmetadata' => false,
+    'session.cookie.secure' => false,
+    'session.cookie.samesite' => 'Lax',
+    'session.duration' => 8 * 60 * 60,
+    'session.datastore.timeout' => 8 * 60 * 60,
+    'module.enable' => [
+        'exampleauth' => true,
+        'admin' => true,
+    ],
+    'enable.saml20-idp' => true,
+    'technicalcontact_name' => 'Qlicker Dev',
+    'technicalcontact_email' => 'dev@example.com',
+    'timezone' => 'America/Toronto',
+];

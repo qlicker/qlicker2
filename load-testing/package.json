@@ -1,0 +1,19 @@
+{
+  "name": "qlicker-load-testing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "description": "Load testing suite for Qlicker – seeds test data and runs k6 scenarios",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "seed": "node seed.mjs",
+    "clean": "node seed.mjs --clean"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "mongoose": "^9.11.2"
+  }
+}

@@ -1,0 +1,17 @@
+services:
+  idp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${SSOSERVER_PORT:-4100}:80"
+    volumes:
+      - ./generated/config:/var/www/simplesamlphp/config:ro
+      - ./generated/metadata:/var/www/simplesamlphp/metadata:ro
+      - ./certs:/var/www/simplesamlphp/cert:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/simplesaml/ >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped

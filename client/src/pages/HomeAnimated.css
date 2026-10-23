@@ -1,0 +1,157 @@
+.homeHero {
+  position: relative;
+  min-height: 92vh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: clamp(20px, 4vw, 48px);
+  color: #111827;
+  background: #ffffff;
+}
+
+.homeHeroCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.homeHeroContent {
+  position: relative;
+  z-index: 2;
+  width: min(1120px, 100%);
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: clamp(18px, 4vw, 56px);
+  align-items: center;
+}
+
+.homeHeroEyebrow {
+  color: #30b0e7;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+
+.homeHeroWordmark {
+  width: min(280px, 74vw);
+  height: auto;
+  margin-bottom: 12px;
+  color: #30b0e7;
+}
+
+.homeHeroTitle {
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 1.05;
+  margin: 0 0 14px;
+  font-weight: 800;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  text-shadow: none;
+  -webkit-text-stroke: 0;
+}
+
+.homeHeroSubtitle {
+  margin: 0 0 18px;
+  font-size: 18px;
+  color: #4b5563;
+  max-width: 52ch;
+}
+
+.homeHeroCtaRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.homeHeroBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.homeHeroBtn:hover {
+  transform: translateY(-1px);
+}
+
+.homeHeroBtnPrimary {
+  background: #30b0e7;
+  color: #ffffff;
+}
+
+.homeHeroBtnPrimary:hover {
+  box-shadow: 0 10px 24px rgba(48, 176, 231, 0.28);
+}
+
+.homeHeroNote {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.homeHeroDevice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(340px, 80vw);
+}
+
+.homeHeroPhone {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 18px 40px rgba(17, 24, 39, 0.2));
+}
+
+.homeHeroScreenMask {
+  position: absolute;
+  left: 9.84%;
+  top: 13.51%;
+  width: 80.44%;
+  height: 72.54%;
+  overflow: hidden;
+  background: #fff;
+  pointer-events: none;
+}
+
+.homeHeroScreenVideo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 920px) {
+  .homeHeroContent {
+    grid-template-columns: 1fr;
+  }
+
+  .homeHeroDevice {
+    order: -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homeHeroCanvas {
+    display: none;
+  }
+
+  .homeHeroScreenVideo {
+    display: none;
+  }
+
+  .homeHero {
+    background: #ffffff;
+  }
+}

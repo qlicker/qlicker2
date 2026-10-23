@@ -1,0 +1,241 @@
+# =============================================================================
+# Qlicker — Production Docker Compose
+# =============================================================================
+# Usage:
+#   cp .env.example .env   # then edit .env
+#   docker compose up -d
+#
+# This file is SELF-CONTAINED. It pulls pre-built images from a registry.
+# No source checkout is needed beyond this production_setup/ directory.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # MongoDB
+  # ---------------------------------------------------------------------------
+  mongo:
+    image: mongo:7.0.31
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:?Set MONGO_INITDB_ROOT_USERNAME in .env}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:?Set MONGO_INITDB_ROOT_PASSWORD in .env}
+    # Not exposed to host; only reachable within the Docker network.
+    expose:
+      - "27017"
+    volumes:
+      - mongo-data:/data/db
+      - ${BACKUP_HOST_PATH:-./backups}:/backups
+    # Keep the cache conservative by default so smaller deployments survive burst load.
+    command: ["mongod", "--auth", "--wiredTigerCacheSizeGB", "${MONGO_WIREDTIGER_CACHE_SIZE_GB:-0.25}"]
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh \"mongodb://$$MONGO_INITDB_ROOT_USERNAME:$$MONGO_INITDB_ROOT_PASSWORD@localhost:27017/admin?authSource=admin\" --quiet --eval \"db.runCommand({ ping: 1 }).ok\" | grep -q 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # Backup manager — live mongodump scheduler with Mongo status updates
+  # ---------------------------------------------------------------------------
+  # Assumption: "local" backup scheduling uses the container's configured
+  # timezone. Set TZ in your deployment environment if the host timezone is not
+  # already reflected in the container runtime.
+  backup-manager:
+    image: mongo:7.0.31
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      - MONGO_URI=${MONGO_URI:?Set MONGO_URI in .env}
+      - BACKUP_DIR=/backups
+      - BACKUP_HOST_PATH=${BACKUP_HOST_PATH:-./backups}
+      - BACKUP_CHECK_INTERVAL_SECONDS=${BACKUP_CHECK_INTERVAL_SECONDS:-60}
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ${BACKUP_HOST_PATH:-./backups}:/backups
+      - ./backup.sh:/scripts/backup.sh:ro
+      - ./backup-manager.sh:/scripts/backup-manager.sh:ro
+    command: ["/bin/sh", "/scripts/backup-manager.sh"]
+
+  # ---------------------------------------------------------------------------
+  # Redis — required for multi-instance WebSocket pub/sub
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7.4.8-alpine
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+      - REDISCLI_AUTH=${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    expose:
+      - "6379"
+    # Persistence: AOF + RDB for crash recovery
+    command: ["sh", "-c", "exec redis-server --requirepass \"$REDIS_PASSWORD\" --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning ping | grep -q PONG"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Qlicker API server (Fastify)
+  # ---------------------------------------------------------------------------
+  server:
+    image: ${SERVER_IMAGE:-qlicker/qlicker-server:latest}
+    restart: unless-stopped
+    deploy:
+      replicas: ${SERVER_REPLICAS:-2}
+    environment:
+      - PORT=${API_PORT:-3001}
+      - MONGO_URI=${MONGO_URI:?Set MONGO_URI in .env}
+      - MONGO_MAX_POOL_SIZE=${MONGO_MAX_POOL_SIZE:-25}
+      - MONGO_MIN_POOL_SIZE=${MONGO_MIN_POOL_SIZE:-0}
+      - MONGO_SERVER_SELECTION_TIMEOUT_MS=${MONGO_SERVER_SELECTION_TIMEOUT_MS:-10000}
+      - MONGO_SOCKET_TIMEOUT_MS=${MONGO_SOCKET_TIMEOUT_MS:-45000}
+      - MONGO_CONNECT_RETRIES=${MONGO_CONNECT_RETRIES:-6}
+      - MONGO_CONNECT_RETRY_DELAY_MS=${MONGO_CONNECT_RETRY_DELAY_MS:-2000}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set}
+      - ANONYMOUS_SESSION_SECRET=${ANONYMOUS_SESSION_SECRET:-}
+      - ROOT_URL=${ROOT_URL:-https://localhost}
+      - ENABLE_API_DOCS=${ENABLE_API_DOCS:-false}
+      - MAIL_URL=${MAIL_URL:-}
+      - NODE_ENV=production
+      # The API is internal-only; trust forwarding metadata only from private
+      # Docker-network peers (nginx/client), never from an arbitrary public peer.
+      - TRUST_PROXY=${TRUST_PROXY:-loopback,linklocal,uniquelocal}
+      - APP_VERSION=${APP_VERSION:-latest}
+      - DISABLE_RATE_LIMITS=${DISABLE_RATE_LIMITS:-false}
+      - AI_BACKEND_ALLOW_PRIVATE_HOSTS=${AI_BACKEND_ALLOW_PRIVATE_HOSTS:-true}
+      - AI_BACKEND_ALLOWED_PRIVATE_HOSTS=${AI_BACKEND_ALLOWED_PRIVATE_HOSTS:-}
+      - AI_BACKEND_REQUEST_TIMEOUT_MS=${AI_BACKEND_REQUEST_TIMEOUT_MS:-300000}
+      - REDIS_URL=${REDIS_URL:?Set REDIS_URL in .env}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Host metrics — one collector, regardless of SERVER_REPLICAS.
+  # Only five read-only proc files; no Docker socket or privileged mode.
+  # ---------------------------------------------------------------------------
+  system-monitor:
+    image: ${SERVER_IMAGE:-qlicker/qlicker-server:latest}
+    command: ["node", "--max-old-space-size=64", "src/systemMonitor.js"]
+    restart: unless-stopped
+    environment:
+      - MONGO_URI=${MONGO_URI:?Set MONGO_URI in .env}
+      - REDIS_URL=${REDIS_URL:?Set REDIS_URL in .env}
+      - SYSTEM_MONITOR_PROC_PATH=/host/proc
+      - SYSTEM_MONITOR_COLLECTOR_ID=host
+      - SYSTEM_MONITOR_SAMPLE_INTERVAL_SECONDS=${SYSTEM_MONITOR_SAMPLE_INTERVAL_SECONDS:-60}
+      - SYSTEM_MONITOR_ACTIVE_WINDOW_MINUTES=${SYSTEM_MONITOR_ACTIVE_WINDOW_MINUTES:-15}
+      - SYSTEM_MONITOR_NETWORK_INTERFACES=${SYSTEM_MONITOR_NETWORK_INTERFACES:-}
+    volumes:
+      - /proc/stat:/host/proc/stat:ro
+      - /proc/meminfo:/host/proc/meminfo:ro
+      - /proc/loadavg:/host/proc/loadavg:ro
+      # PID 1 selects the host network namespace; /proc/net follows the reader.
+      - /proc/1/net/dev:/host/proc/net/dev:ro
+      - /proc/1/net/route:/host/proc/net/route:ro
+    user: node
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.10
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 32
+    logging:
+      driver: local
+      options:
+        max-size: "5m"
+        max-file: "2"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Qlicker Client (React SPA served by internal Nginx)
+  # ---------------------------------------------------------------------------
+  client:
+    image: ${CLIENT_IMAGE:-qlicker/qlicker-client:latest}
+    restart: unless-stopped
+    environment:
+      - API_PORT=${API_PORT:-3001}
+    depends_on:
+      - server
+
+  # ---------------------------------------------------------------------------
+  # Nginx — TLS termination & reverse proxy (the only service exposed to host)
+  # ---------------------------------------------------------------------------
+  # TLS certificates: nginx/tls-certs.sh runs at container start and links the
+  # best available certificate into /etc/nginx/ssl — Let's Encrypt certs from
+  # the shared certbot volume (when CERTBOT_AUTORENEW=true), else the
+  # operator-provided TLS_CERT_PATH/TLS_KEY_PATH files, else a self-signed
+  # placeholder. A background watcher then reloads nginx whenever the
+  # certificate changes, so certbot renewals are picked up automatically.
+  nginx:
+    image: nginx:1.29.7-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - CERTBOT_AUTORENEW=${CERTBOT_AUTORENEW:-false}
+      - TLS_RELOAD_CHECK_SECONDS=${TLS_RELOAD_CHECK_SECONDS:-60}
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/tls-certs.sh:/docker-entrypoint.d/40-tls-certs.sh:ro
+      - ${TLS_CERT_PATH:-./certs/fullchain.pem}:/etc/nginx/provided-certs/fullchain.pem:ro
+      - ${TLS_KEY_PATH:-./certs/privkey.pem}:/etc/nginx/provided-certs/privkey.pem:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
+    depends_on:
+      - server
+      - client
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/healthz | grep -q '^ok$'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Certbot — automatic Let's Encrypt certificate renewal (optional)
+  # ---------------------------------------------------------------------------
+  # On first run, use setup.sh --init-certs to obtain the initial certificate.
+  # Renewal behavior is controlled by CERTBOT_AUTORENEW in .env.
+  # Renewed certificates land in the shared certbot-conf volume, which nginx
+  # reads directly (see the nginx service above) — no copy step is needed.
+  certbot:
+    image: certbot/certbot:v5.4.0
+    restart: unless-stopped
+    environment:
+      - CERTBOT_AUTORENEW=${CERTBOT_AUTORENEW:-false}
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    # Check every 12h; certbot renew is a no-op when not due.
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do if [ "$${CERTBOT_AUTORENEW:-false}" = "true" ]; then certbot renew --webroot -w /var/www/certbot --quiet; fi; sleep 43200 & wait $${!}; done'
+    depends_on:
+      - nginx
+
+volumes:
+  mongo-data:
+    driver: local
+  redis-data:
+    driver: local
+  uploads:
+    driver: local
+  certbot-conf:
+    driver: local
+  certbot-webroot:
+    driver: local
