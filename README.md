@@ -1,4 +1,4 @@
-# Qlicker
+# Qlicker 2.0
 
 **Bring everyone into the conversation.**
 
