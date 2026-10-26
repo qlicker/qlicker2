@@ -311,7 +311,11 @@
     "language": "Idioma",
     "languageHelp": "Elija su idioma preferido. Seleccione \"Usar el predeterminado de la aplicación\" para seguir la configuración general definida por su administrador.",
     "useAppDefault": "Usar el predeterminado de la aplicación",
-    "failedChangePassword": "No se pudo cambiar la contraseña"
+    "failedChangePassword": "No se pudo cambiar la contraseña",
+    "appearance": "Apariencia",
+    "appearanceHelp": "Elige Claro u Oscuro. Tu elección se guarda en tu cuenta y se aplica cada vez que inicias sesión.",
+    "lightMode": "Claro",
+    "darkMode": "Oscuro"
   },
   "admin": {
     "title": "Panel de administración",
@@ -2192,7 +2196,8 @@
             "Los dominios de correo permitidos son una lista separada por comas; el vencimiento del inicio de sesión/sesión es un número entero de minutos para las sesiones de acceso y renovación recién emitidas; el idioma, el formato de fecha y el formato de hora se convierten en valores predeterminados globales.",
             "Los valores de SSO son campos de texto simple para URL, ID de entidad y nombres de atributos. Los certificados y claves deben pegarse exactamente como los proporciona su proveedor de identidad.",
             "Los formularios de almacenamiento esperan los campos específicos del proveedor que se muestran en la interfaz, y siempre debe confirmar la configuración subiendo una imagen después.",
-            "Use la pestaña Copia de seguridad para confirmar la hora programada de la copia de seguridad, los valores predeterminados de retención de 7 diarias / 4 semanales / 12 mensuales, y el estado de la última ejecución antes de confiar en el sistema para la recuperación."
+            "Use la pestaña Copia de seguridad para confirmar la hora programada de la copia de seguridad, los valores predeterminados de retención de 7 diarias / 4 semanales / 12 mensuales, y el estado de la última ejecución antes de confiar en el sistema para la recuperación.",
+            "En Perfil, elige Claro u Oscuro en Apariencia. La configuración se guarda automáticamente y se mantiene en tu cuenta entre sesiones y dispositivos."
           ],
           "note": "Cuando alguien reporte un problema visible para el usuario, compare esta guía con la guía del profesor o del estudiante para que la respuesta de soporte coincida con el flujo de trabajo actual.",
           "screenshot": {
@@ -2421,7 +2426,8 @@
           "bullets": [
             "Subir una foto de perfil abre un diálogo de recorte y rotación para que pueda elegir la miniatura cuadrada del avatar antes de guardar.",
             "Cuando el SSO institucional está habilitado, sus campos de nombre y contraseña permanecen bloqueados a menos que un administrador haya otorgado la excepción de permitir inicio de sesión por correo para su cuenta.",
-            "El correo de restablecimiento de contraseña sigue la misma regla, así que use la vía SSO o contacte a un administrador si la página de perfil indica que el inicio de sesión local por correo está deshabilitado."
+            "El correo de restablecimiento de contraseña sigue la misma regla, así que use la vía SSO o contacte a un administrador si la página de perfil indica que el inicio de sesión local por correo está deshabilitado.",
+            "En Perfil, elige Claro u Oscuro en Apariencia. La configuración se guarda automáticamente y se mantiene en tu cuenta entre sesiones y dispositivos."
           ]
         }
       ]
@@ -2543,7 +2549,8 @@
           "bullets": [
             "Subir una foto de perfil abre un diálogo de recorte y rotación para que pueda posicionar el círculo del avatar antes de guardar.",
             "Si el SSO institucional está habilitado y su cuenta no ha recibido acceso de inicio de sesión por correo, sus campos de nombre y contraseña permanecen bloqueados intencionalmente.",
-            "En ese mismo caso gestionado por SSO, el correo de restablecimiento de contraseña no está disponible hasta que un administrador otorgue la excepción de permitir inicio de sesión por correo para su cuenta."
+            "En ese mismo caso gestionado por SSO, el correo de restablecimiento de contraseña no está disponible hasta que un administrador otorgue la excepción de permitir inicio de sesión por correo para su cuenta.",
+            "En Perfil, elige Claro u Oscuro en Apariencia. La configuración se guarda automáticamente y se mantiene en tu cuenta entre sesiones y dispositivos."
           ]
         }
       ]

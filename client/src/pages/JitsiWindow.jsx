@@ -249,7 +249,7 @@ export default function JitsiWindow() {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 1.5,
-        bgcolor: '#e8e8e8',
+        bgcolor: 'background.default',
         flexWrap: 'wrap',
       }}>
         {directLink && (

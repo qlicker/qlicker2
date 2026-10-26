@@ -311,7 +311,11 @@
     "language": "Language",
     "languageHelp": "Choose your preferred language. Select \"Use app default\" to follow the system-wide setting configured by your administrator.",
     "useAppDefault": "Use app default",
-    "failedChangePassword": "Failed to change password"
+    "failedChangePassword": "Failed to change password",
+    "appearance": "Appearance",
+    "appearanceHelp": "Choose Light or Dark. Your choice is saved to your account and used whenever you sign in.",
+    "lightMode": "Light",
+    "darkMode": "Dark"
   },
   "admin": {
     "title": "Admin Dashboard",
@@ -2239,7 +2243,8 @@
             "Allowed email domains are a comma-separated list; login/session expiry is a whole number of minutes for newly issued access and refresh sessions; locale, date format, and time format become global defaults.",
             "SSO values are plain text fields for URLs, entity IDs, and attribute names. Certificates and keys should be pasted exactly as your identity provider supplies them.",
             "Storage forms expect the provider-specific fields shown in the UI, and you should always confirm the setup by uploading an image afterward.",
-            "Use the Backup tab to confirm the scheduled backup time, the 7 daily / 4 weekly / 12 monthly retention defaults, and the latest run status before relying on the system for recovery."
+            "Use the Backup tab to confirm the scheduled backup time, the 7 daily / 4 weekly / 12 monthly retention defaults, and the latest run status before relying on the system for recovery.",
+            "In Profile, choose Light or Dark under Appearance. The setting saves automatically and follows your account across sessions and devices."
           ],
           "note": "When someone reports a user-facing issue, compare this guide with the professor or student guide so the support answer matches the current workflow.",
           "screenshot": {
@@ -2468,7 +2473,8 @@
           "bullets": [
             "Uploading a profile picture opens a crop-and-rotate dialog so you can choose the square avatar thumbnail before saving.",
             "When institution-wide SSO is enabled, your name and password fields remain locked unless an administrator has granted the allow-email-login exception for your account.",
-            "Password-reset email follows the same rule, so use the SSO route or contact an administrator if the profile page says local email login is disabled."
+            "Password-reset email follows the same rule, so use the SSO route or contact an administrator if the profile page says local email login is disabled.",
+            "In Profile, choose Light or Dark under Appearance. The setting saves automatically and follows your account across sessions and devices."
           ]
         }
       ]
@@ -2590,7 +2596,8 @@
           "bullets": [
             "Uploading a profile picture opens a crop-and-rotate dialog so you can position the avatar circle before saving.",
             "If institution-wide SSO is enabled and your account has not been granted email-login access, your name and password fields stay locked on purpose.",
-            "In that same SSO-managed case, password-reset email is unavailable until an administrator grants the allow-email-login exception for your account."
+            "In that same SSO-managed case, password-reset email is unavailable until an administrator grants the allow-email-login exception for your account.",
+            "In Profile, choose Light or Dark under Appearance. The setting saves automatically and follows your account across sessions and devices."
           ]
         }
       ]

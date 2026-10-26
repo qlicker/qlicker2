@@ -311,7 +311,11 @@
     "language": "Tongue",
     "languageHelp": "Pick yer preferred tongue. Pick \"Use app default\" to follow th' system-wide rig configured by yer administrator.",
     "useAppDefault": "Use th' ship's default",
-    "failedChangePassword": "Couldn't change secret word, arr."
+    "failedChangePassword": "Couldn't change secret word, arr.",
+    "appearance": "Ship’s Colours",
+    "appearanceHelp": "Choose Daylight or Night Watch. Yer choice be stowed with yer account fer every sign-in.",
+    "lightMode": "Daylight",
+    "darkMode": "Night Watch"
   },
   "admin": {
     "title": "Admin Quarterdeck",
@@ -2192,7 +2196,8 @@
             "Allowed missive domains be a comma-separated list; login/voyage expiry be a whole number o' minutes fer newly issued access an' freshen voyages; locale, date format, an' time format become global defaults.",
             "SSO values be plain text fields fer URLs, entity IDs, an' attribute monikers. Certificates an' keys should be pasted exactly as yer identity provider supplies them.",
             "Cargo hold forms expect th' provider-specific fields revealed in th' UI, an' ye should always confirm th' setup by uploadin' an image afterward.",
-            "Use th' Stash tab to confirm th' scheduled stash time, th' 7 daily / 4 weekly / 12 monthly retention defaults, an' th' latest run standing afore relyin' on th' system fer salvage."
+            "Use th' Stash tab to confirm th' scheduled stash time, th' 7 daily / 4 weekly / 12 monthly retention defaults, an' th' latest run standing afore relyin' on th' system fer salvage.",
+            "In Profile, choose Daylight or Night Watch under Ship’s Colours. Yer choice saves itself and sails with yer account across voyages and devices."
           ],
           "note": "When someone reports a hand-facin' issue, compare this guide with th' professor or crew member guide so th' support answer matches th' current workflow.",
           "screenshot": {
@@ -2421,7 +2426,8 @@
           "bullets": [
             "Uploadin' a dossier picture opens a crop-an'-rotate dialog so ye can pick th' square avatar thumbnail afore savin'.",
             "When institution-wide SSO be hoisted, yer moniker an' secret word fields stay locked unless an administrator has granted th' allow-missive-login exception fer yer account.",
-            "Secret word-reset missive follows th' same rule, so use th' SSO route or contact an administrator if th' dossier page says local missive login be struck."
+            "Secret word-reset missive follows th' same rule, so use th' SSO route or contact an administrator if th' dossier page says local missive login be struck.",
+            "In Profile, choose Daylight or Night Watch under Ship’s Colours. Yer choice saves itself and sails with yer account across voyages and devices."
           ]
         }
       ]
@@ -2543,7 +2549,8 @@
           "bullets": [
             "Uploadin' a dossier picture opens a crop-an'-rotate dialog so ye can position th' avatar circle afore savin'.",
             "If institution-wide SSO be hoisted an' yer account hasn't been granted missive-login access, yer moniker an' secret word fields stay locked on purpose.",
-            "In that same SSO-managed case, secret word-reset missive be out o' reach until an administrator grants th' allow-missive-login exception fer yer account."
+            "In that same SSO-managed case, secret word-reset missive be out o' reach until an administrator grants th' allow-missive-login exception fer yer account.",
+            "In Profile, choose Daylight or Night Watch under Ship’s Colours. Yer choice saves itself and sails with yer account across voyages and devices."
           ]
         }
       ]

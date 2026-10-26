@@ -135,6 +135,8 @@ const UserSchema = new mongoose.Schema(
     // Per-user locale preference (overrides app default from Settings).
     // Empty string or missing means "use app default".
     locale: { type: String, default: '' },
+    // Additive preference: legacy accounts without this field use light mode.
+    themeMode: { type: String, enum: ['light', 'dark'], default: 'light' },
   },
   {
     collection: 'users',

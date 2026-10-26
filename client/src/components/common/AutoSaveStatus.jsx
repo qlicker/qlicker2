@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Alert, Snackbar, useMediaQuery, useTheme,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, darken } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 
 const DEFAULT_SAVE_ERROR_KEY = 'autoSave.errorNotSaved';
@@ -65,13 +65,13 @@ export default function AutoSaveStatus({ status = 'idle', errorText = '' }) {
         onClose={closeNotice}
         sx={(activeTheme) => ({
           width: '100%',
-          color: notice.severity === 'success' ? activeTheme.palette.success.dark : activeTheme.palette.error.dark,
+          color: activeTheme.palette[notice.severity][activeTheme.palette.mode === 'dark' ? 'light' : 'dark'],
           borderColor: notice.severity === 'success'
             ? alpha(activeTheme.palette.success.main, 0.35)
             : alpha(activeTheme.palette.error.main, 0.35),
-          backgroundColor: notice.severity === 'success'
-            ? alpha(activeTheme.palette.success.main, 0.12)
-            : alpha(activeTheme.palette.error.main, 0.12),
+          backgroundColor: activeTheme.palette.mode === 'dark'
+            ? darken(activeTheme.palette[notice.severity].main, 0.85)
+            : alpha(activeTheme.palette[notice.severity].main, 0.12),
           '& .MuiAlert-icon': {
             color: 'inherit',
           },

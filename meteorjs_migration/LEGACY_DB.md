@@ -98,6 +98,7 @@ Legacy installations use `users`, `courses`, `sessions`, `questions`, `responses
   },
   lastLogin: Date,                // New field; optional for legacy users
   locale: String,                 // New field; defaults to '' (app default)
+  themeMode: String,              // New optional 'light'|'dark'; absent means light, no migration
   createdAt: Date
 }
 ```

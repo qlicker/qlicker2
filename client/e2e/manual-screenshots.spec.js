@@ -40,6 +40,21 @@ async function capture(page, filename, height = 1000) {
   await fs.copyFile(docsPath, path.join(publicOutputDir, filename));
 }
 
+test('capture profile appearance screenshot', async ({ page, request }) => {
+  test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Run with QCLICKER_CAPTURE_MANUALS=1.');
+  const { student } = await seedUsers(request, { admin: false, professor: false });
+  await fs.mkdir(docsOutputDir, { recursive: true });
+  await fs.mkdir(publicOutputDir, { recursive: true });
+  await loginViaUi(page, student.email, student.password, /\/student$/);
+  await page.goto('/profile');
+  await page.getByRole('combobox', { name: 'Appearance' }).click();
+  await page.getByRole('option', { name: 'Dark', exact: true }).click();
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+  await expect(page.getByRole('alert')).toBeHidden();
+  await capture(page, 'profile-dark-mode.png', 1100);
+  await apiJson(request, 'PATCH', '/users/me', { token: student.token, payload: { themeMode: 'light' } });
+});
+
 test('capture current user-manual screenshots', async ({ browser, request }) => {
   test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Run with QCLICKER_CAPTURE_MANUALS=1.');
   test.setTimeout(360_000);

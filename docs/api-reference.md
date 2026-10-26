@@ -205,3 +205,7 @@ without marks, feedback, question metadata, or class grading summaries. Reviewab
 sessions retain their normal review navigation; grade-only cells and headers must
 not link to review. Review, results, session-grade detail, feedback, and student AI
 review endpoints still enforce reviewability.
+
+## Account appearance
+
+The authenticated `PATCH /api/v1/users/me` endpoint accepts `themeMode: "light" | "dark"` and returns the updated sanitized user. This account preference is also returned by login and `GET /api/v1/users/me`. Missing legacy values mean light mode. Invalid modes receive `400`; the endpoint updates only the authenticated user, and SSO-managed accounts can change appearance without unlocking their name or password.

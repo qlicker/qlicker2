@@ -262,6 +262,7 @@ function getScreenshotPresets(screenshot, t, context = {}) {
         { imageSrc: '/manuals/professor-ai-settings.png', titleKey: 'professor.course.aiSettings' },
         { imageSrc: '/manuals/professor-ai-chat.png', titleKey: 'ai.chat.title' },
       ],
+      10: [{ imageSrc: '/manuals/profile-dark-mode.png', titleKey: 'profile.appearance' }],
     },
     student: {
       1: '/manuals/student-live-session.png',
@@ -271,6 +272,7 @@ function getScreenshotPresets(screenshot, t, context = {}) {
         { imageSrc: '/manuals/student-session-chat.png', titleKey: 'sessionChat.chat' },
       ],
       6: [{ imageSrc: '/manuals/student-ai-chat.png', titleKey: 'ai.chat.title' }],
+      7: [{ imageSrc: '/manuals/profile-dark-mode.png', titleKey: 'profile.appearance' }],
     },
   };
   const configuredImages = supplementalImages[context.manualRole]?.[context.index];

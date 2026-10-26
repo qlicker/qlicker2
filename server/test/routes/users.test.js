@@ -26,6 +26,65 @@ afterEach(async () => {
   }
 });
 
+describe('account appearance preference', () => {
+  it('persists both modes only for the authenticated account and returns the preference on login', async () => {
+    const user = await createTestUser({ email: 'appearance@example.com' });
+    const other = await createTestUser({ email: 'other-appearance@example.com' });
+    const token = await getAuthToken(app, user);
+    for (const themeMode of ['dark', 'light', 'dark']) {
+      const res = await authenticatedRequest(app, 'PATCH', '/api/v1/users/me', {
+        token, payload: { themeMode },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().themeMode).toBe(themeMode);
+      expect((await User.findById(user._id).lean()).themeMode).toBe(themeMode);
+      const me = await authenticatedRequest(app, 'GET', '/api/v1/users/me', { token });
+      expect(me.json().user.themeMode).toBe(themeMode);
+    }
+    expect((await User.findById(other._id).lean()).themeMode).toBe('light');
+    const login = await app.inject({
+      method: 'POST', url: '/api/v1/auth/login', headers: csrfHeaders,
+      payload: { email: 'appearance@example.com', password: 'password123' },
+    });
+    expect(login.statusCode).toBe(200);
+    expect(login.json().user.themeMode).toBe('dark');
+  });
+
+  it.each(['system', '', 'DARK', null, {}, 123])('rejects invalid appearance %j', async (themeMode) => {
+    const user = await createTestUser();
+    const token = await getAuthToken(app, user);
+    const res = await authenticatedRequest(app, 'PATCH', '/api/v1/users/me', { token, payload: { themeMode } });
+    expect(res.statusCode).toBe(400);
+    expect((await User.findById(user._id).lean()).themeMode).toBe('light');
+  });
+
+  it('requires authentication', async () => {
+    const res = await app.inject({
+      method: 'PATCH', url: '/api/v1/users/me', headers: csrfHeaders, payload: { themeMode: 'dark' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('supports legacy SSO accounts without unlocking managed names', async () => {
+    await Settings.create({ _id: 'settings', SSO_enabled: true });
+    const user = await createTestUser({ email: 'appearance-sso@example.com' });
+    await User.collection.updateOne({ _id: user._id }, {
+      $unset: { themeMode: '' },
+      $set: { 'services.sso.id': 'appearance-sso', ssoCreated: true, allowEmailLogin: false },
+    });
+    const token = await getAuthToken(app, user);
+    const legacy = await authenticatedRequest(app, 'GET', '/api/v1/users/me', { token });
+    expect(legacy.statusCode).toBe(200);
+    expect(legacy.json().user.themeMode ?? 'light').toBe('light');
+    const res = await authenticatedRequest(app, 'PATCH', '/api/v1/users/me', {
+      token, payload: { themeMode: 'dark', firstname: 'Changed' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().themeMode).toBe('dark');
+    expect(res.json().profile.firstname).toBe(user.profile.firstname);
+  });
+});
+
 // ---------- GET /api/v1/users/me ----------
 describe('GET /api/v1/users/me', () => {
   it('returns current user profile', async (ctx) => {

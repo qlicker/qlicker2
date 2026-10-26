@@ -5,8 +5,8 @@
   display: grid;
   place-items: center;
   padding: clamp(20px, 4vw, 48px);
-  color: #111827;
-  background: #ffffff;
+  color: var(--hero-text, #111827);
+  background: var(--hero-background, #ffffff);
 }
 
 .homeHeroCanvas {
@@ -27,7 +27,7 @@
 }
 
 .homeHeroEyebrow {
-  color: #30b0e7;
+  color: var(--hero-primary, #30b0e7);
   font-weight: 700;
   letter-spacing: 0.02em;
   margin-bottom: 10px;
@@ -37,7 +37,7 @@
   width: min(280px, 74vw);
   height: auto;
   margin-bottom: 12px;
-  color: #30b0e7;
+  color: var(--hero-primary, #30b0e7);
 }
 
 .homeHeroTitle {
@@ -55,7 +55,7 @@
 .homeHeroSubtitle {
   margin: 0 0 18px;
   font-size: 18px;
-  color: #4b5563;
+  color: var(--hero-secondary, #4b5563);
   max-width: 52ch;
 }
 
@@ -86,8 +86,8 @@
 }
 
 .homeHeroBtnPrimary {
-  background: #30b0e7;
-  color: #ffffff;
+  background: var(--hero-primary, #30b0e7);
+  color: var(--hero-contrast, #ffffff);
 }
 
 .homeHeroBtnPrimary:hover {
@@ -97,7 +97,7 @@
 .homeHeroNote {
   margin-top: 14px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--hero-secondary, #6b7280);
 }
 
 .homeHeroDevice {
@@ -152,6 +152,6 @@
   }
 
   .homeHero {
-    background: #ffffff;
+    background: var(--hero-background, #ffffff);
   }
 }

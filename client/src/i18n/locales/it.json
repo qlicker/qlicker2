@@ -311,7 +311,11 @@
     "language": "Lingua",
     "languageHelp": "Scegli la tua lingua preferita. Seleziona \"Usa il valore predefinito dell'app\" per seguire l'impostazione globale configurata dal tuo amministratore.",
     "useAppDefault": "Usa il valore predefinito dell'app",
-    "failedChangePassword": "Impossibile cambiare la password"
+    "failedChangePassword": "Impossibile cambiare la password",
+    "appearance": "Aspetto",
+    "appearanceHelp": "Scegli Chiaro o Scuro. La scelta viene salvata nel tuo account e applicata a ogni accesso.",
+    "lightMode": "Chiaro",
+    "darkMode": "Scuro"
   },
   "admin": {
     "title": "Pannello amministratore",
@@ -2192,7 +2196,8 @@
             "I domini email consentiti sono un elenco separato da virgole; la scadenza di accesso/sessione è un numero intero di minuti per le nuove sessioni di accesso e aggiornamento emesse; lingua, formato data e formato ora diventano valori predefiniti globali.",
             "I valori SSO sono campi di testo semplice per URL, ID entità e nomi degli attributi. I certificati e le chiavi vanno incollati esattamente come forniti dal tuo identity provider.",
             "I moduli di archiviazione richiedono i campi specifici del provider mostrati nell'interfaccia, e dovresti sempre confermare la configurazione caricando un'immagine di prova.",
-            "Usa la scheda Backup per confermare l'orario di backup pianificato, i valori predefiniti di conservazione (7 giornalieri / 4 settimanali / 12 mensili) e lo stato dell'ultima esecuzione prima di fare affidamento sul sistema per il ripristino."
+            "Usa la scheda Backup per confermare l'orario di backup pianificato, i valori predefiniti di conservazione (7 giornalieri / 4 settimanali / 12 mensili) e lo stato dell'ultima esecuzione prima di fare affidamento sul sistema per il ripristino.",
+            "In Profilo, scegli Chiaro o Scuro sotto Aspetto. La preferenza viene salvata automaticamente e rimane associata al tuo account tra sessioni e dispositivi."
           ],
           "note": "Quando qualcuno segnala un problema visibile agli utenti, confronta questa guida con quella del docente o dello studente in modo che la risposta di supporto corrisponda al flusso attuale.",
           "screenshot": {
@@ -2421,7 +2426,8 @@
           "bullets": [
             "Caricare una foto del profilo apre una finestra di ritaglio e rotazione così puoi scegliere la miniatura quadrata dell'avatar prima di salvare.",
             "Quando il SSO istituzionale è attivo, i campi nome e password restano bloccati a meno che un amministratore non abbia concesso l'eccezione di accesso via email per il tuo account.",
-            "L'email di reimpostazione della password segue la stessa regola, quindi usa il percorso SSO oppure contatta un amministratore se la pagina del profilo indica che l'accesso locale via email è disattivato."
+            "L'email di reimpostazione della password segue la stessa regola, quindi usa il percorso SSO oppure contatta un amministratore se la pagina del profilo indica che l'accesso locale via email è disattivato.",
+            "In Profilo, scegli Chiaro o Scuro sotto Aspetto. La preferenza viene salvata automaticamente e rimane associata al tuo account tra sessioni e dispositivi."
           ]
         }
       ]
@@ -2543,7 +2549,8 @@
           "bullets": [
             "Caricare una foto del profilo apre una finestra di ritaglio e rotazione così puoi posizionare il cerchio dell'avatar prima di salvare.",
             "Se il SSO istituzionale è attivo e al tuo account non è stato concesso l'accesso via email, i campi nome e password restano bloccati intenzionalmente.",
-            "In quello stesso caso gestito dal SSO, l'email di reimpostazione della password resta non disponibile finché un amministratore non concede l'eccezione di accesso via email."
+            "In quello stesso caso gestito dal SSO, l'email di reimpostazione della password resta non disponibile finché un amministratore non concede l'eccezione di accesso via email.",
+            "In Profilo, scegli Chiaro o Scuro sotto Aspetto. La preferenza viene salvata automaticamente e rimane associata al tuo account tra sessioni e dispositivi."
           ]
         }
       ]

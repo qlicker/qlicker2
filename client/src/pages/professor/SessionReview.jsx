@@ -649,7 +649,7 @@ function DistributionBars({
               sx={{
                 height: 8,
                 borderRadius: 1,
-                bgcolor: 'grey.200',
+                bgcolor: 'action.selected',
                 '& .MuiLinearProgress-bar': { bgcolor: barColor, borderRadius: 1 },
               }}
             />

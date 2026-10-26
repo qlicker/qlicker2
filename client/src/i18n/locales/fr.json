@@ -311,7 +311,11 @@
     "language": "Langue",
     "languageHelp": "Choisissez votre langue préférée. Sélectionnez « Utiliser la langue par défaut » pour suivre le réglage défini par votre administrateur.",
     "useAppDefault": "Utiliser la langue par défaut",
-    "failedChangePassword": "Échec du changement de mot de passe"
+    "failedChangePassword": "Échec du changement de mot de passe",
+    "appearance": "Apparence",
+    "appearanceHelp": "Choisissez le mode clair ou sombre. Votre choix est enregistré dans votre compte et appliqué à chaque connexion.",
+    "lightMode": "Clair",
+    "darkMode": "Sombre"
   },
   "admin": {
     "title": "Tableau de bord administrateur",
@@ -2192,7 +2196,8 @@
             "Les domaines e-mail autorisés forment une liste séparée par des virgules; l'expiration connexion/session est un nombre entier de minutes pour les nouvelles sessions d'accès et de rafraîchissement; la langue, la date et l'heure deviennent des valeurs par défaut globales.",
             "Les valeurs SSO sont des champs de texte brut pour les URL, les identifiants d'entité et les noms d'attributs. Les certificats et les clés doivent être collés exactement comme le fournisseur les donne.",
             "Les formulaires de stockage attendent les champs propres au fournisseur affichés dans l'interface; confirmez toujours la configuration par l'envoi d'une image.",
-            "Utilisez l'onglet Sauvegarde pour confirmer l'heure planifiée, les valeurs par défaut de rétention 7 quotidiennes / 4 hebdomadaires / 12 mensuelles et l'état de la dernière exécution avant de compter sur le système pour la récupération."
+            "Utilisez l'onglet Sauvegarde pour confirmer l'heure planifiée, les valeurs par défaut de rétention 7 quotidiennes / 4 hebdomadaires / 12 mensuelles et l'état de la dernière exécution avant de compter sur le système pour la récupération.",
+            "Dans Profil, choisissez Clair ou Sombre sous Apparence. Le réglage est enregistré automatiquement et suit votre compte entre les sessions et les appareils."
           ],
           "note": "Lorsqu'une personne signale un problème d'interface, comparez ce guide avec le guide professeur ou étudiant afin que votre réponse corresponde au flux actuel.",
           "screenshot": {
@@ -2421,7 +2426,8 @@
           "bullets": [
             "L'envoi d'une photo de profil ouvre une boîte de dialogue de recadrage et de rotation afin de choisir la vignette carrée avant l'enregistrement.",
             "Lorsque le SSO institutionnel est activé, vos champs de nom et de mot de passe restent verrouillés sauf si un administrateur a accordé l'exception de connexion par e-mail à votre compte.",
-            "L'e-mail de réinitialisation du mot de passe suit la même règle; utilisez donc le parcours SSO ou contactez un administrateur si la page de profil indique que la connexion locale par e-mail est désactivée."
+            "L'e-mail de réinitialisation du mot de passe suit la même règle; utilisez donc le parcours SSO ou contactez un administrateur si la page de profil indique que la connexion locale par e-mail est désactivée.",
+            "Dans Profil, choisissez Clair ou Sombre sous Apparence. Le réglage est enregistré automatiquement et suit votre compte entre les sessions et les appareils."
           ]
         }
       ]
@@ -2543,7 +2549,8 @@
           "bullets": [
             "L'envoi d'une photo de profil ouvre une boîte de dialogue de recadrage et de rotation afin de placer le cercle d'avatar avant l'enregistrement.",
             "Si le SSO institutionnel est activé et que votre compte n'a pas reçu l'accès par e-mail, vos champs de nom et de mot de passe restent verrouillés volontairement.",
-            "Dans ce même cas géré par SSO, l'e-mail de réinitialisation du mot de passe reste indisponible tant qu'un administrateur n'accorde pas l'exception de connexion par e-mail."
+            "Dans ce même cas géré par SSO, l'e-mail de réinitialisation du mot de passe reste indisponible tant qu'un administrateur n'accorde pas l'exception de connexion par e-mail.",
+            "Dans Profil, choisissez Clair ou Sombre sous Apparence. Le réglage est enregistré automatiquement et suit votre compte entre les sessions et les appareils."
           ]
         }
       ]

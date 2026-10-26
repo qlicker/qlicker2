@@ -245,6 +245,7 @@ const updateProfileSchema = {
       lastname: { type: 'string', minLength: 1 },
       studentNumber: { type: 'string' },
       locale: { type: 'string' },
+      themeMode: { type: 'string', enum: ['light', 'dark'], description: 'Saved interface appearance. Missing legacy values use light mode.' },
     },
     additionalProperties: false,
   },
@@ -431,6 +432,9 @@ export default async function userRoutes(app) {
     // Per-user locale preference
     if (request.body?.locale !== undefined) {
       updates.locale = request.body.locale;
+    }
+    if (request.body?.themeMode !== undefined) {
+      updates.themeMode = request.body.themeMode;
     }
 
     const updated = await User.findByIdAndUpdate(

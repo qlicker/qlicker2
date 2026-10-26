@@ -23,6 +23,7 @@ Key concerns:
 - refresh token versioning
 - failed-login counters and temporary lockout state
 - per-user locale and profile image data
+- `themeMode`: optional `light` / `dark` interface preference, default `light`. Missing legacy values render in light mode; no backfill or migration is required. Only the authenticated account can change its preference through `PATCH /users/me`.
 - disabled state, login activity, notification dismissals, and course memberships
 
 ## Course

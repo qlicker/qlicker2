@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ConnectionStatus from '../components/common/ConnectionStatus';
@@ -23,6 +24,7 @@ function rand(min, max) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { t } = useTranslation();
   const heroRef = useRef(null);
   const canvasRef = useRef(null);
@@ -213,7 +215,13 @@ export default function Home() {
   return (
     <>
       <ConnectionStatus />
-      <main className="homeHero" id="hero" ref={heroRef}>
+      <main className="homeHero" id="hero" ref={heroRef} style={theme.palette.mode === 'dark' ? {
+        '--hero-text': theme.palette.text.primary,
+        '--hero-background': theme.palette.background.default,
+        '--hero-secondary': theme.palette.text.secondary,
+        '--hero-primary': theme.palette.primary.main,
+        '--hero-contrast': theme.palette.primary.contrastText,
+      } : undefined}>
         <canvas className="homeHeroCanvas" id="bgCanvas" ref={canvasRef} aria-hidden="true" />
 
         <div className="homeHeroContent">

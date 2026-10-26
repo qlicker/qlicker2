@@ -365,6 +365,8 @@ The avatar badge signals active system or course notices and new feedback. Open 
 
 From the avatar menu, open **Profile** to change language and allowed account fields. Local name/password editing and reset email can be locked for SSO-managed accounts. Profile image uploads open a crop/rotate editor before saving the avatar.
 
+Under **Appearance**, choose **Light** or **Dark**. The choice saves automatically to your account and applies across sessions and devices, including SSO sign-ins. Light is the default for accounts without a saved preference.
+
 ## 12. Common study scenarios
 
 ### Prepare for an upcoming quiz

@@ -1,3 +1,4 @@
+import { alpha } from '@mui/material/styles';
 import { Box, ButtonBase, Paper, Typography } from '@mui/material';
 
 export default function SessionListCard({
@@ -44,12 +45,12 @@ export default function SessionListCard({
       sx={{
         overflow: 'hidden',
         borderColor: highlighted ? 'success.light' : 'divider',
-        bgcolor: highlighted ? 'success.50' : 'background.paper',
+        bgcolor: highlighted ? (theme) => alpha(theme.palette.success.main, 0.12) : 'background.paper',
         boxShadow: highlighted ? '0 0 0 1px rgba(46, 125, 50, 0.1)' : 'none',
         transition: 'box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease',
         ...(clickable ? {
           '&:hover': {
-            bgcolor: highlighted ? 'rgba(232, 245, 233, 0.95)' : 'action.hover',
+            bgcolor: highlighted ? (theme) => alpha(theme.palette.success.main, 0.2) : 'action.hover',
           },
         } : {}),
         ...sx,

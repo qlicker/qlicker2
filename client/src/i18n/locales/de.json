@@ -311,7 +311,11 @@
     "language": "Sprache",
     "languageHelp": "Wählen Sie Ihre bevorzugte Sprache. Wählen Sie „App-Standard verwenden“, um der systemweiten Einstellung Ihres Administrators zu folgen.",
     "useAppDefault": "App-Standard verwenden",
-    "failedChangePassword": "Passwort konnte nicht geändert werden"
+    "failedChangePassword": "Passwort konnte nicht geändert werden",
+    "appearance": "Erscheinungsbild",
+    "appearanceHelp": "Wählen Sie Hell oder Dunkel. Ihre Auswahl wird in Ihrem Konto gespeichert und bei jeder Anmeldung verwendet.",
+    "lightMode": "Hell",
+    "darkMode": "Dunkel"
   },
   "admin": {
     "title": "Admin-Dashboard",
@@ -2192,7 +2196,8 @@
             "Erlaubte E-Mail-Domänen sind eine kommagetrennte Liste; Login-/Sitzungsablauf ist eine ganze Zahl in Minuten für neu ausgestellte Zugangs- und Aktualisierungssitzungen; Sprache, Datumsformat und Zeitformat werden zu globalen Standardwerten.",
             "SSO-Werte sind Klartextfelder für URLs, Entity-IDs und Attributnamen. Zertifikate und Schlüssel sollten genau so eingefügt werden, wie Ihr Identitätsanbieter sie bereitstellt.",
             "Speicherformulare erwarten die anbieterspezifischen Felder, die in der Oberfläche angezeigt werden, und Sie sollten die Einrichtung immer durch das Hochladen eines Bildes bestätigen.",
-            "Verwenden Sie den Tab „Backup“, um die geplante Sicherungszeit, die Standardaufbewahrung von 7 täglichen / 4 wöchentlichen / 12 monatlichen Sicherungen und den letzten Ausführungsstatus zu bestätigen, bevor Sie sich für die Wiederherstellung auf das System verlassen."
+            "Verwenden Sie den Tab „Backup“, um die geplante Sicherungszeit, die Standardaufbewahrung von 7 täglichen / 4 wöchentlichen / 12 monatlichen Sicherungen und den letzten Ausführungsstatus zu bestätigen, bevor Sie sich für die Wiederherstellung auf das System verlassen.",
+            "Wählen Sie im Profil unter Erscheinungsbild die Option Hell oder Dunkel. Die Einstellung wird automatisch gespeichert und gilt für Ihr Konto über Sitzungen und Geräte hinweg."
           ],
           "note": "Wenn jemand ein benutzerseitiges Problem meldet, vergleichen Sie dieses Handbuch mit dem Professoren- oder Studierenden-Handbuch, damit die Support-Antwort dem aktuellen Ablauf entspricht.",
           "screenshot": {
@@ -2421,7 +2426,8 @@
           "bullets": [
             "Das Hochladen eines Profilbildes öffnet einen Zuschnitt-und-Drehen-Dialog, in dem Sie das quadratische Avatar-Thumbnail vor dem Speichern auswählen können.",
             "Wenn institutionsweites SSO aktiviert ist, bleiben Ihre Namens- und Passwortfelder gesperrt, es sei denn, ein Administrator hat die Ausnahme „E-Mail-Login erlauben“ für Ihr Konto gewährt.",
-            "Die Passwort-Zurücksetzungs-E-Mail folgt derselben Regel. Verwenden Sie daher den SSO-Weg oder kontaktieren Sie einen Administrator, wenn die Profilseite anzeigt, dass die lokale E-Mail-Anmeldung deaktiviert ist."
+            "Die Passwort-Zurücksetzungs-E-Mail folgt derselben Regel. Verwenden Sie daher den SSO-Weg oder kontaktieren Sie einen Administrator, wenn die Profilseite anzeigt, dass die lokale E-Mail-Anmeldung deaktiviert ist.",
+            "Wählen Sie im Profil unter Erscheinungsbild die Option Hell oder Dunkel. Die Einstellung wird automatisch gespeichert und gilt für Ihr Konto über Sitzungen und Geräte hinweg."
           ]
         }
       ]
@@ -2543,7 +2549,8 @@
           "bullets": [
             "Das Hochladen eines Profilbildes öffnet einen Zuschnitt-und-Drehen-Dialog, in dem Sie den Avatar-Kreis vor dem Speichern positionieren können.",
             "Wenn institutionsweites SSO aktiviert ist und Ihrem Konto kein E-Mail-Login-Zugang gewährt wurde, bleiben Ihre Namens- und Passwortfelder absichtlich gesperrt.",
-            "Im selben SSO-verwalteten Fall ist die Passwort-Zurücksetzungs-E-Mail nicht verfügbar, bis ein Administrator die Ausnahme „E-Mail-Login erlauben“ für Ihr Konto gewährt."
+            "Im selben SSO-verwalteten Fall ist die Passwort-Zurücksetzungs-E-Mail nicht verfügbar, bis ein Administrator die Ausnahme „E-Mail-Login erlauben“ für Ihr Konto gewährt.",
+            "Wählen Sie im Profil unter Erscheinungsbild die Option Hell oder Dunkel. Die Einstellung wird automatisch gespeichert und gilt für Ihr Konto über Sitzungen und Geräte hinweg."
           ]
         }
       ]

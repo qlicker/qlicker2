@@ -3,8 +3,7 @@ import {
   BrowserRouter, Routes, Route, Navigate, useLocation,
 } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme/index';
+import AppThemeProvider from './theme/AppThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
 import RequireAuth from './components/common/RequireAuth';
 import RequireRole from './components/common/RequireRole';
@@ -91,10 +90,9 @@ function RouteAccessibility() {
 
 export default function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <BrowserRouter>
-        <AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppThemeProvider>
           <RouteAccessibility />
           <Suspense fallback={<PageLoadFallback />}>
             <Routes>
@@ -133,8 +131,8 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
+        </AppThemeProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

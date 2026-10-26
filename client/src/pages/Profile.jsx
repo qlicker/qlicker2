@@ -250,7 +250,7 @@ function ProfileImageEditorDialog({
               position: 'relative',
               overflow: 'hidden',
               borderRadius: 3,
-              bgcolor: 'grey.100',
+              bgcolor: 'action.hover',
               border: '1px solid',
               borderColor: 'divider',
               cursor: busy ? 'default' : 'grab',
@@ -332,6 +332,8 @@ export default function Profile() {
   const [changingPw, setChangingPw] = useState(false);
   const [imageBusy, setImageBusy] = useState(false);
   const [userLocale, setUserLocale] = useState('');
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeSaveStatus, setThemeSaveStatus] = useState('idle');
   const [publicSettings, setPublicSettings] = useState({
     SSO_enabled: false,
     maxImageWidth: getDefaultMaxImageWidth(),
@@ -727,6 +729,23 @@ export default function Profile() {
     }
   };
 
+  const handleThemeChange = async (event) => {
+    const themeMode = event.target.value;
+    setThemeSaving(true);
+    setThemeSaveStatus('saving');
+    try {
+      const { data } = await apiClient.patch('/users/me', { themeMode });
+      setCurrentUser((current) => current && current._id === user._id
+        ? { ...current, themeMode: data.themeMode }
+        : current);
+      setThemeSaveStatus('success');
+    } catch {
+      setThemeSaveStatus('error');
+    } finally {
+      setThemeSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ p: 3 }}>
@@ -827,6 +846,27 @@ export default function Profile() {
             ))}
           </Select>
         </FormControl>
+      </Paper>
+
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>{t('profile.appearance')}</Typography>
+        <Typography id="profile-theme-help" variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+          {t('profile.appearanceHelp')}
+        </Typography>
+        <FormControl fullWidth disabled={themeSaving}>
+          <InputLabel id="profile-theme-label">{t('profile.appearance')}</InputLabel>
+          <Select
+            labelId="profile-theme-label"
+            label={t('profile.appearance')}
+            value={user?.themeMode === 'dark' ? 'dark' : 'light'}
+            onChange={handleThemeChange}
+            inputProps={{ 'aria-describedby': 'profile-theme-help' }}
+          >
+            <MenuItem value="light">{t('profile.lightMode')}</MenuItem>
+            <MenuItem value="dark">{t('profile.darkMode')}</MenuItem>
+          </Select>
+        </FormControl>
+        <AutoSaveStatus status={themeSaveStatus} />
       </Paper>
 
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
