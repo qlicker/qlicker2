@@ -161,6 +161,8 @@ An instructor can allow more than one attempt and weight attempts differently. T
 
 ## 5. Take and submit a quiz
 
+If your instructor enables optional 0-point questions, questions labelled **Optional (0 points)** may be left unanswered. **Submit Quiz** appears once all required questions have answers, even if optional ones are blank. Skipping them does not reduce your score or participation. Submission still locks the quiz, including unanswered questions.
+
 Quizzes are student-paced within a scheduled window. An instructor may give you an individual extension, so your end time can differ from the main class.
 
 An extension still works after the instructor ends the quiz for the class. Only the assigned students can enter during their individual window; your course card shows your own deadline. An upcoming extension opens at its start time. Extensions do not unlock an already-submitted normal quiz. Review remains unavailable while anyone has an active or upcoming extension.

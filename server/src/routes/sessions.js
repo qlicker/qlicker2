@@ -81,6 +81,7 @@ const createSessionSchema = {
       description: { type: 'string' },
       quiz: { type: 'boolean' },
       practiceQuiz: { type: 'boolean' },
+      allowSkippingZeroPointQuestions: { type: 'boolean', description: 'Allow normal quiz submission with unanswered questions explicitly worth 0 points; defaults to false.' },
       anonymous: { type: 'boolean' },
       quizStart: { type: 'string', format: 'date-time' },
       quizEnd: { type: 'string', format: 'date-time' },
@@ -111,6 +112,7 @@ const updateSessionSchema = {
       description: { type: 'string' },
       quiz: { type: 'boolean' },
       practiceQuiz: { type: 'boolean' },
+      allowSkippingZeroPointQuestions: { type: 'boolean', description: 'Allow normal quiz submission with unanswered questions explicitly worth 0 points; defaults to false.' },
       anonymous: { type: 'boolean' },
       quizStart: { type: 'string', format: 'date-time' },
       quizEnd: { type: 'string', format: 'date-time' },
@@ -220,6 +222,7 @@ const importSessionSchema = {
           description: { type: 'string' },
           quiz: { type: 'boolean' },
           practiceQuiz: { type: 'boolean' },
+          allowSkippingZeroPointQuestions: { type: 'boolean', description: 'Allow normal quiz submission with unanswered questions explicitly worth 0 points; defaults to false.' },
           anonymous: { type: 'boolean' },
           reviewable: { type: 'boolean' },
           joinCodeEnabled: { type: 'boolean' },
@@ -414,6 +417,7 @@ function sanitizeExportedSession(session, orderedQuestions = []) {
       description: session?.description || '',
       quiz: !!session?.quiz,
       practiceQuiz: !!session?.practiceQuiz,
+      allowSkippingZeroPointQuestions: !!session?.allowSkippingZeroPointQuestions,
       anonymous: !!session?.anonymous && !session?.practiceQuiz,
       reviewable: !!session?.reviewable,
       joinCodeEnabled: !!session?.joinCodeEnabled,
@@ -450,6 +454,7 @@ function buildImportedSessionPayload(sourceSession = {}, courseId = '') {
     status: 'hidden',
     quiz: isQuiz,
     practiceQuiz: isPracticeQuiz,
+    allowSkippingZeroPointQuestions: !!sourceSession?.allowSkippingZeroPointQuestions,
     anonymous: !!sourceSession?.anonymous && !isPracticeQuiz && !sourceSession?.studentCreated,
     reviewable: !!sourceSession?.reviewable,
     hasResponses: false,
@@ -3491,6 +3496,7 @@ export default async function sessionRoutes(app) {
         description,
         quiz,
         practiceQuiz,
+        allowSkippingZeroPointQuestions,
         quizStart,
         quizEnd,
         date,
@@ -3533,6 +3539,7 @@ export default async function sessionRoutes(app) {
         status: isStudentPracticeCreation ? 'running' : 'hidden',
         quiz: isQuiz,
         practiceQuiz: isPracticeQuiz,
+        allowSkippingZeroPointQuestions: isInstructor && !!allowSkippingZeroPointQuestions,
         anonymous: isAnonymous,
         quizStart: quizStart ? new Date(quizStart) : undefined,
         quizEnd: quizEnd ? new Date(quizEnd) : undefined,
@@ -4096,7 +4103,7 @@ export default async function sessionRoutes(app) {
 
       const allowed = isStudentOwner
         ? ['name', 'description']
-        : ['name', 'description', 'quiz', 'practiceQuiz', 'anonymous', 'quizStart', 'quizEnd', 'reviewable', 'status', 'date', 'joinCodeEnabled', 'chatEnabled', 'richTextChatEnabled', 'joinCodeInterval', 'msScoringMethod', 'tags'];
+        : ['name', 'description', 'quiz', 'practiceQuiz', 'allowSkippingZeroPointQuestions', 'anonymous', 'quizStart', 'quizEnd', 'reviewable', 'status', 'date', 'joinCodeEnabled', 'chatEnabled', 'richTextChatEnabled', 'joinCodeInterval', 'msScoringMethod', 'tags'];
       const updates = {};
       for (const key of allowed) {
         if (request.body[key] !== undefined) {
@@ -5528,7 +5535,11 @@ export default async function sessionRoutes(app) {
         : [];
 
       const answeredQuestionIds = new Set(responses.map((response) => String(response.questionId)));
-      const hasAllAnswers = answerableQuestionIds.every((questionId) => answeredQuestionIds.has(String(questionId)));
+      const hasAllAnswers = orderedQuestions.every((question) => (
+        !isQuestionResponseCollectionEnabled(question)
+        || (normalizedSession.allowSkippingZeroPointQuestions === true && question.sessionOptions?.points === 0)
+        || answeredQuestionIds.has(String(question._id))
+      ));
       if (!hasAllAnswers) {
         return reply.code(400).send({ error: 'Bad Request', message: 'Must answer all questions to submit quiz' });
       }

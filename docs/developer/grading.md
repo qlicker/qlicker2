@@ -140,3 +140,7 @@ Frontend validation:
 npm run build --prefix client
 npm test --prefix client -- --passWithNoTests
 ```
+
+## Optional zero-point quiz submission
+
+`allowSkippingZeroPointQuestions` changes normal quiz submission eligibility only. Scoring and participation formulas are unchanged: zero-point questions contribute neither earned/possible points nor the participation numerator/denominator. Raw `numAnsweredTotal` and `numQuestionsTotal` still describe actual answers and all questions. A skipped zero-point question has no response and retains the existing automatic 0/0 mark without a manual-grading requirement. An entirely zero-point quiz uses the existing zero-denominator behavior, including 100% participation for joined participants. Guest and anonymous grade exclusions, manual overrides, and publication rules remain unchanged.

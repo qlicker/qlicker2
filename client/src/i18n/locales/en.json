@@ -1046,7 +1046,8 @@
       "expandAllPreviews": "Expand all previews",
       "collapseAllPreviews": "Collapse all previews",
       "expandQuestion": "Expand question {{number}}",
-      "collapseQuestion": "Collapse question {{number}}"
+      "collapseQuestion": "Collapse question {{number}}",
+      "allowSkippingZeroPointQuestions": "Allow quiz submission with unanswered 0-point questions"
     },
     "liveSession": {
       "currentQuestion": "Current question",
@@ -1492,7 +1493,9 @@
       "submittingQuestion": "Submitting...",
       "submitting": "Submitting...",
       "submitPracticeQuiz": "Submit Practice Quiz",
-      "submitQuiz": "Submit Quiz"
+      "submitQuiz": "Submit Quiz",
+      "answerRequiredToSubmit": "Answer every required question to unlock submit. Questions marked optional may be skipped.",
+      "optionalZeroPoints": "Optional (0 points)"
     },
     "sessionReview": {
       "pageProgress": "Page {{current}} of {{total}}",
@@ -2402,7 +2405,8 @@
             "Responses and attendance are stored without student identities. This session will not be graded. Anonymity cannot be changed after students have joined or responded. Anonymous live statistics and unlinked answer lists update after at least four new people respond to the question and attempt. Names and answer times are hidden. After the activity ends, answers are released separately for each question and attempt with at least four respondents, linked across eligible questions. Smaller groups show their actual response count with an answers-hidden notice; overall percentages remain hidden while any answers are withheld. Unique answers may still identify someone. An information banner in the live Controls explains the four-person minimum while statistics are hidden, then shows the released response count and batching rule.",
             "The session editor shows sharing controls only when the course allows activity sharing. Use the session switch to turn sharing on or off; the active code remains visible after a refresh and can be regenerated. First enable activity-code sharing in Course settings; it is off by default. Turning it off revokes existing codes and outside access. Remove individual quiz extensions before sharing; they remain unavailable after sharing. To invite signed-in people outside the course, create a quiz or live session in the course and generate an S- activity code in its editor. Copy it when shown; regenerating stops new use of the old code, and disabling revokes outside access. Turning sharing back on reuses the same code; only Regenerate code replaces it. In a named activity, enrolled students can receive grades; guests have tracked responses but no grade items. Turn on anonymity for a survey with no grade items for anyone. Choose named or anonymous responses before anyone redeems the code. After the activity ends, answers are released separately for each question and attempt with at least four respondents, linked across eligible questions. Smaller groups show their actual response count with an answers-hidden notice; overall percentages remain hidden while any answers are withheld. Unique answers may still reveal someone. The rotating live join code still applies when enabled. Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity. Activity codes use S- followed by seven letters or digits. The active code also appears in the instructor’s live session controls.",
             "If an instructor changes a live session to Upcoming, participants see a waiting screen until it returns to Live. Draft sends enrolled students back to the course and guests back to their dashboard. Saved answers are preserved.",
-            "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period."
+            "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period.",
+            "For normal quizzes, enable “Allow quiz submission with unanswered 0-point questions” in the session editor to make questions explicitly worth 0 points optional. The setting is off by default and applies to enrolled students, guests, and anonymous participants. Skipped questions do not affect scores or participation; practice quizzes are unchanged."
           ]
         },
         {
@@ -2521,7 +2525,8 @@
             "Scrolling over a numerical answer leaves its value unchanged and moves focus out of the input so the page can scroll. Click or tab back into the input to continue editing.",
             "An Anonymous label means your instructor sees your answers without your name. You still sign in and can answer each question only once, you can review your own answers later, and the session is not graded.",
             "If an instructor changes a live session to Upcoming, participants see a waiting screen until it returns to Live. Draft sends enrolled students back to the course and guests back to their dashboard. Saved answers are preserved.",
-            "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period."
+            "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period.",
+            "When your instructor permits it, questions marked “Optional (0 points)” may be left unanswered. Submit becomes available after you answer all required questions, even if optional questions are blank. Skipping them does not reduce your score or participation. Submitting still locks the quiz."
           ]
         },
         {

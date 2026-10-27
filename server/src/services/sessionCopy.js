@@ -13,6 +13,7 @@ function buildSessionCopyPayload(sourceSession = {}, targetCourseId, userId) {
     status: 'hidden',
     quiz: !!sourceSession.quiz,
     practiceQuiz: !!sourceSession.practiceQuiz,
+    allowSkippingZeroPointQuestions: !!sourceSession.allowSkippingZeroPointQuestions,
     anonymous: !!sourceSession.anonymous && !sourceSession.practiceQuiz,
     msScoringMethod: sourceSession.msScoringMethod,
     tags: Array.isArray(sourceSession.tags) ? sourceSession.tags : [],

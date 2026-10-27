@@ -214,3 +214,7 @@ Schema defaults do not automatically rewrite older documents. Readers must toler
 ### Independent grade visibility
 
 Sessions have an additive `gradesVisible` Boolean (default false). It records an explicit release of summary grades independently of `reviewable`, while existing `Grade.visibleToStudents` flags determine which student rows are returned. Reviewable transitions set both visibility states together; review off hides grades until explicitly released again. Recalculation and enrollment respect `reviewable || gradesVisible`. Restarts and remaining extensions revoke release. Existing reviewable sessions and legacy grade rows remain compatible without a migration. See [grading](grading.md#independent-grade-release).
+
+## Optional zero-point quiz questions
+
+`Session.allowSkippingZeroPointQuestions` is an additive Boolean, default `false`. Missing legacy values are disabled; no migration is required. Session create/update, copy, and JSON export/import preserve it. Only normal quiz submission uses it: response-enabled questions with an explicit numeric `sessionOptions.points === 0` may be unanswered. Missing point settings are not treated as zero. Saved responses are still locked at final submission; skipped questions create no response documents.

@@ -195,6 +195,31 @@ describe('SessionEditor inline close behavior', () => {
     });
   });
 
+  it.each([
+    { quiz: true, practiceQuiz: false, visible: true },
+    { quiz: true, practiceQuiz: true, visible: false },
+    { quiz: false, practiceQuiz: false, visible: false },
+  ])('offers optional zero-point questions only for normal quizzes: %j', async ({ quiz, practiceQuiz, visible }) => {
+    const get = apiClientMock.get.getMockImplementation();
+    apiClientMock.get.mockImplementation(async (url) => {
+      const result = await get(url);
+      if (url === '/sessions/session-1') Object.assign(result.data.session, { quiz, practiceQuiz });
+      return result;
+    });
+    apiClientMock.patch.mockResolvedValue({ data: { session: { status: 'hidden', quiz, practiceQuiz, allowSkippingZeroPointQuestions: true } } });
+    render(<SessionEditor />);
+    await screen.findByDisplayValue('Draft Session');
+    const toggle = screen.queryByRole('switch', { name: 'professor.sessionEditor.allowSkippingZeroPointQuestions' });
+    if (visible) {
+      expect(toggle).not.toBeChecked();
+      fireEvent.click(toggle);
+      await waitFor(() => expect(apiClientMock.patch).toHaveBeenCalledWith('/sessions/session-1', { allowSkippingZeroPointQuestions: true }));
+      await waitFor(() => expect(toggle).toBeChecked());
+    } else {
+      expect(toggle).not.toBeInTheDocument();
+    }
+  });
+
   it('expands and collapses all previews while preserving individual toggles', async () => {
     const originalGet = apiClientMock.get.getMockImplementation();
     apiClientMock.get.mockImplementation(async (url) => {
