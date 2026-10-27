@@ -492,19 +492,21 @@ export default function QuizSession() {
     }, 0);
   }, [answerableQuestions, draftByQuestion, responsesByQuestion]);
 
+  const allowSkippingZeroPointQuestions = !practiceQuiz && session?.allowSkippingZeroPointQuestions === true;
   const canSubmitQuiz = useMemo(() => {
     if (practiceQuiz || submittingQuiz) return false;
     return answerableQuestions.every((question) => {
+      if (allowSkippingZeroPointQuestions && question.sessionOptions?.points === 0) return true;
       const qId = String(question._id);
       const response = responsesByQuestion[qId];
       const draft = draftByQuestion[qId] || getDraftForQuestion(question, response);
       return hasAnswerForDraft(question, draft);
     });
-  }, [answerableQuestions, draftByQuestion, practiceQuiz, responsesByQuestion, submittingQuiz]);
+  }, [allowSkippingZeroPointQuestions, answerableQuestions, draftByQuestion, practiceQuiz, responsesByQuestion, submittingQuiz]);
   const allQuestionsAnswered = useMemo(() => (
     answerableQuestionCount === 0 || answeredCount === answerableQuestionCount
   ), [answerableQuestionCount, answeredCount]);
-  const showSubmitButton = !submittingQuiz && allQuestionsAnswered;
+  const showSubmitButton = !submittingQuiz && (practiceQuiz ? allQuestionsAnswered : canSubmitQuiz);
 
   const questionsToRender = useMemo(() => {
     if (!singleQuestionMode) return questions;
@@ -678,6 +680,9 @@ export default function QuizSession() {
                 color={TYPE_COLORS[qType] || 'default'}
                 size="small"
               />
+              {!isSlide && allowSkippingZeroPointQuestions && question.sessionOptions?.points === 0 && (
+                <Chip label={t('student.quiz.optionalZeroPoints')} size="small" variant="outlined" />
+              )}
               {!isSlide && locked && <Chip label={t('student.quiz.submitted')} color="success" size="small" variant="outlined" />}
               {!isSlide && !locked && autosaveState === 'saving' && <Chip label={t('student.quiz.saving')} size="small" variant="outlined" />}
               {!isSlide && !locked && autosaveState === 'saved' && <Chip label={t('student.quiz.saved')} size="small" variant="outlined" />}
@@ -933,7 +938,7 @@ export default function QuizSession() {
             display: 'block',
             textAlign: 'center'
           }}>
-          {t('student.quiz.answerAllToSubmit')}
+          {t(allowSkippingZeroPointQuestions ? 'student.quiz.answerRequiredToSubmit' : 'student.quiz.answerAllToSubmit')}
         </Typography>
       )}
     </Box>

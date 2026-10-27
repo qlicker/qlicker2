@@ -1046,7 +1046,8 @@
       "expandAllPreviews": "Unfurl all previews",
       "collapseAllPreviews": "Furl all previews",
       "expandQuestion": "Unfurl question {{number}}",
-      "collapseQuestion": "Furl question {{number}}"
+      "collapseQuestion": "Furl question {{number}}",
+      "allowSkippingZeroPointQuestions": "Allow reckonin’ hand-in with unanswered 0-point riddles"
     },
     "liveSession": {
       "currentQuestion": "Current riddle",
@@ -1492,7 +1493,9 @@
       "submittingQuestion": "Turnin' in...",
       "submitting": "Turnin' in...",
       "submitPracticeQuiz": "Turn in Drill Reckoning",
-      "submitQuiz": "Turn in Reckoning"
+      "submitQuiz": "Turn in Reckoning",
+      "answerRequiredToSubmit": "Answer every required riddle to unlock hand-in. Optional riddles may be skipped, matey.",
+      "optionalZeroPoints": "Optional (0 points)"
     },
     "sessionReview": {
       "pageProgress": "Page {{current}} o' {{total}}",
@@ -2355,7 +2358,8 @@
             "Replies an' musters be stowed without the crew's names. This voyage won't be scored. The mask can't be changed once crew have boarded or replied. Masked live reckonings and untied answer lists update after at least four new mateys answer the riddle and attempt. Names and answer times stay hidden. After the voyage ends, replies be released for each riddle and attempt with at least four mateys, tied across eligible riddles. Smaller crews show their true reply count with a hidden-replies notice; overall percentages stay hidden while any replies be withheld. A rare reply may still reveal someone. An info banner in live Controls explains the four-crewmate minimum while stats be hidden, then shows the released answer count and batchin’ rule.",
             "The session editor shows sharin’ controls only when the course allows activity sharin’. Use the voyage switch to open or close sharing; the live code stays in sight after a refresh and can be forged anew. First enable code sharing in course settings, matey; it starts off. Turnin’ it off scuttles old codes and outside access. Clear individual quiz extensions afore sharing; they stay gone thereafter. To invite signed-in mateys outside yer ship, make a quiz or live voyage in the course and forge an S- activity code in the editor. Copy it at once; a new code bars new use of the old one, and disabling it revokes outside entry. Turnin’ sharing back on uses the same code; only forgin’ a new one replaces it. In a named voyage, enrolled mateys may earn marks; guest replies be tracked without marks. Turn on masking fer a survey with no marks fer any matey. Choose named or masked replies before the first code use. After the voyage ends, replies be released for each riddle and attempt with at least four mateys, tied across eligible riddles. Smaller crews show their true reply count with a hidden-replies notice; overall percentages stay hidden while any replies be withheld. A rare answer may still reveal a matey. The rotating live boarding code still applies when enabled. Activity codes won't work while the activity be a Draft, even fer past crewmates. The same code works once the captain publishes the activity. Activity codes be S- followed by seven letters or digits. The active code also appears in the captain’s live session controls.",
             "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
-            "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period."
+            "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period.",
+            "Fer normal reckonings, enable “Allow reckonin’ hand-in with unanswered 0-point riddles” in th’ voyage editor to make riddles explicitly worth 0 points optional. This be off by default an’ applies to enrolled crew, guests, an’ anonymous sailors. Skipped riddles change neither marks nor participation; drill reckonings stay as they be."
           ]
         },
         {
@@ -2474,7 +2478,8 @@
             "Scroll o’er a numerical answer and its value stays put, matey. The input loses focus so the page can sail along. Click or tab back into the field to keep editing.",
             "A Masked label means yer captain sees yer replies without yer name. Ye still sign aboard an' can answer each question but once, ye can review yer own replies later, an' the voyage earns no plunder.",
             "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
-            "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period."
+            "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period.",
+            "When yer captain allows it, riddles marked “Optional (0 points)” may stay unanswered. Hand-in unlocks after ye answer all required riddles, even with optional ones blank. Skippin’ them lowers neither yer marks nor participation. Handin’ in still locks th’ reckonin’."
           ]
         },
         {

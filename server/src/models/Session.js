@@ -39,6 +39,7 @@ const SessionSchema = new mongoose.Schema(
     status: { type: String, required: true, enum: ['hidden', 'visible', 'running', 'done'] },
     quiz: { type: Boolean, default: false },
     practiceQuiz: { type: Boolean, default: false },
+    allowSkippingZeroPointQuestions: { type: Boolean, default: false },
     // Anonymous sessions store responses and attendance under per-session
     // pseudonyms and never create grades. Absent on legacy documents (false).
     anonymous: { type: Boolean, default: false },

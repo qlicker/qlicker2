@@ -1046,7 +1046,8 @@
       "expandAllPreviews": "Espandi tutte le anteprime",
       "collapseAllPreviews": "Comprimi tutte le anteprime",
       "expandQuestion": "Espandi la domanda {{number}}",
-      "collapseQuestion": "Comprimi la domanda {{number}}"
+      "collapseQuestion": "Comprimi la domanda {{number}}",
+      "allowSkippingZeroPointQuestions": "Consenti la consegna del quiz con domande da 0 punti senza risposta"
     },
     "liveSession": {
       "currentQuestion": "Domanda attuale",
@@ -1492,7 +1493,9 @@
       "submittingQuestion": "Invio...",
       "submitting": "Invio...",
       "submitPracticeQuiz": "Invia quiz di pratica",
-      "submitQuiz": "Invia quiz"
+      "submitQuiz": "Invia quiz",
+      "answerRequiredToSubmit": "Rispondi a tutte le domande obbligatorie per abilitare la consegna. Puoi saltare le domande facoltative.",
+      "optionalZeroPoints": "Facoltativa (0 punti)"
     },
     "sessionReview": {
       "pageProgress": "Pagina {{current}} di {{total}}",
@@ -2355,7 +2358,8 @@
             "Risposte e presenze vengono salvate senza l'identità degli studenti. Questa sessione non sarà valutata. L'anonimato non può essere modificato dopo che gli studenti si sono uniti o hanno risposto. Le statistiche anonime in diretta e gli elenchi di risposte non collegate si aggiornano quando almeno quattro nuove persone rispondono alla domanda nel tentativo. Nomi e orari delle risposte sono nascosti. Al termine dell’attività, le risposte vengono pubblicate separatamente per ogni domanda e tentativo con almeno quattro partecipanti, collegate tra le domande ammesse. I gruppi più piccoli mostrano il conteggio effettivo e un avviso di risposte nascoste; le percentuali complessive restano nascoste finché alcune risposte non sono pubblicate. Una risposta particolare può comunque identificare qualcuno. Un avviso informativo nei controlli dal vivo spiega il minimo di quattro persone mentre le statistiche sono nascoste; poi mostra il numero di risposte pubblicate e la regola degli aggiornamenti per gruppi.",
             "L’editor della sessione mostra i controlli di condivisione solo quando il corso consente di condividere le attività. Usa l’interruttore della sessione per attivare o disattivare la condivisione; il codice attivo resta visibile dopo il ricaricamento e può essere rigenerato. Attiva prima la condivisione tramite codice nelle impostazioni del corso; è disattivata per impostazione predefinita. Disattivarla revoca i codici esistenti e l’accesso esterno. Rimuovi le proroghe individuali prima della condivisione; resteranno non disponibili anche dopo. Per invitare persone con account esterne al corso, crea un quiz o una sessione dal vivo nel corso e genera un codice attività S- nell’editor. Copialo subito; rigenerarlo impedisce nuovi accessi col vecchio codice e disattivarlo revoca l’accesso esterno. Riattivando la condivisione si usa lo stesso codice; solo la rigenerazione lo sostituisce. Nelle attività con nome, gli studenti iscritti possono ricevere voti; le risposte degli ospiti vengono registrate senza voti. Attiva l’anonimato per un sondaggio senza voti per nessuno. Scegli risposte nominate o anonime prima del primo accesso. Al termine dell’attività, le risposte vengono pubblicate separatamente per ogni domanda e tentativo con almeno quattro partecipanti, collegate tra le domande ammesse. I gruppi più piccoli mostrano il conteggio effettivo e un avviso di risposte nascoste; le percentuali complessive restano nascoste finché alcune risposte non sono pubblicate. Una risposta particolare può comunque identificare qualcuno. Il codice rotante della sessione dal vivo resta necessario se attivato. I codici attività non funzionano mentre l’attività è in Bozza, nemmeno per chi ha già partecipato. Lo stesso codice diventa utilizzabile quando il docente pubblica l’attività. I codici attività iniziano con S- seguito da sette lettere o cifre. Il codice attivo appare anche nei controlli della sessione dal vivo del docente.",
             "Se il docente imposta una sessione dal vivo come In programma, i partecipanti vedono una schermata di attesa fino alla ripresa. Bozza riporta gli iscritti al corso e gli ospiti al pannello. Le risposte salvate vengono conservate.",
-            "Per una sessione interattiva in programma, gli studenti possono selezionare Apri pagina di attesa; gli ospiti possono inserire il codice attività S-. L’attesa non registra la presenza. Il docente può ancora modificare la sessione e richiedere un codice di accesso alla sessione dal vivo. Quando la sessione inizia, i partecipanti attendono una domanda oppure inseriscono il codice dopo che il docente ha aperto il periodo di accesso."
+            "Per una sessione interattiva in programma, gli studenti possono selezionare Apri pagina di attesa; gli ospiti possono inserire il codice attività S-. L’attesa non registra la presenza. Il docente può ancora modificare la sessione e richiedere un codice di accesso alla sessione dal vivo. Quando la sessione inizia, i partecipanti attendono una domanda oppure inseriscono il codice dopo che il docente ha aperto il periodo di accesso.",
+            "Per i quiz normali, attiva «Consenti la consegna del quiz con domande da 0 punti senza risposta» nell’editor della sessione per rendere facoltative le domande che valgono esplicitamente 0 punti. L’opzione è disattivata per impostazione predefinita e si applica a studenti iscritti, ospiti e partecipanti anonimi. Le domande saltate non influiscono sul voto né sulla partecipazione; i quiz di esercitazione restano invariati."
           ]
         },
         {
@@ -2474,7 +2478,8 @@
             "Scorrendo sopra una risposta numerica, il valore rimane invariato e il campo perde il focus per consentire lo scorrimento della pagina. Fai clic nel campo o torna al campo con il tasto Tab per continuare a modificare la risposta.",
             "L'etichetta Anonima significa che il docente vede le tue risposte senza il tuo nome. Devi comunque accedere e puoi rispondere a ogni domanda una sola volta, puoi rivedere le tue risposte in seguito, e la sessione non viene valutata.",
             "Se il docente imposta una sessione dal vivo come In programma, i partecipanti vedono una schermata di attesa fino alla ripresa. Bozza riporta gli iscritti al corso e gli ospiti al pannello. Le risposte salvate vengono conservate.",
-            "Per una sessione interattiva in programma, gli studenti possono selezionare Apri pagina di attesa; gli ospiti possono inserire il codice attività S-. L’attesa non registra la presenza. Il docente può ancora modificare la sessione e richiedere un codice di accesso alla sessione dal vivo. Quando la sessione inizia, i partecipanti attendono una domanda oppure inseriscono il codice dopo che il docente ha aperto il periodo di accesso."
+            "Per una sessione interattiva in programma, gli studenti possono selezionare Apri pagina di attesa; gli ospiti possono inserire il codice attività S-. L’attesa non registra la presenza. Il docente può ancora modificare la sessione e richiedere un codice di accesso alla sessione dal vivo. Quando la sessione inizia, i partecipanti attendono una domanda oppure inseriscono il codice dopo che il docente ha aperto il periodo di accesso.",
+            "Se il docente lo consente, puoi lasciare senza risposta le domande contrassegnate «Facoltativa (0 punti)». La consegna diventa disponibile dopo aver risposto a tutte le domande obbligatorie, anche se quelle facoltative sono vuote. Saltarle non riduce il voto né la partecipazione. La consegna blocca comunque il quiz."
           ]
         },
         {

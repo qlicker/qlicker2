@@ -69,6 +69,59 @@ describe('Student QuizSession', () => {
     });
   });
 
+  it.each([
+    { enabled: true, points: 0, requiredAnswered: true, practiceQuiz: false, canSubmit: true },
+    { enabled: false, points: 0, requiredAnswered: true, practiceQuiz: false, canSubmit: false },
+    { enabled: undefined, points: 0, requiredAnswered: true, practiceQuiz: false, canSubmit: false },
+    { enabled: true, points: 1, requiredAnswered: true, practiceQuiz: false, canSubmit: false },
+    { enabled: true, points: undefined, requiredAnswered: true, practiceQuiz: false, canSubmit: false },
+    { enabled: true, points: 0, requiredAnswered: false, practiceQuiz: false, canSubmit: false },
+    { enabled: true, points: 0, requiredAnswered: true, practiceQuiz: true, canSubmit: false },
+  ])('shows submit only when required answers are complete: %j', async ({ enabled, points, requiredAnswered, practiceQuiz, canSubmit }) => {
+    apiClient.get.mockResolvedValueOnce({ data: {
+      session: { _id: 'session-1', name: 'Optional quiz', quiz: true, practiceQuiz, allowSkippingZeroPointQuestions: enabled },
+      questions: [
+        { _id: 'required', type: QUESTION_TYPES.NUMERICAL, content: 'Required number', sessionOptions: { points: 2 } },
+        { _id: 'optional', type: QUESTION_TYPES.NUMERICAL, content: 'Another number', sessionOptions: { points } },
+      ],
+      responses: requiredAnswered ? { required: { answer: '2', editable: true } } : {},
+    } });
+    apiClient.post.mockResolvedValue({ data: { success: true } });
+    render(
+      <MemoryRouter initialEntries={['/student/course/course-1/session/session-1/quiz']}>
+        <Routes>
+          <Route path="/student/course/:courseId/session/:sessionId/quiz" element={<QuizSession />} />
+          <Route path="/student/course/:courseId" element={<div>Returned to course</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await screen.findByText('Optional quiz');
+    const submit = screen.queryByRole('button', { name: /Submit Quiz/i });
+    if (canSubmit) {
+      expect(submit).toBeEnabled();
+      expect(screen.getByText('Optional (0 points)')).toBeInTheDocument();
+      fireEvent.click(submit);
+      await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/sessions/session-1/submit'));
+      expect(apiClient.patch).not.toHaveBeenCalled();
+    } else {
+      expect(submit).not.toBeInTheDocument();
+    }
+  });
+
+  it('allows submission without answers when every question is optional', async () => {
+    apiClient.get.mockResolvedValueOnce({ data: {
+      session: { _id: 'session-1', name: 'Optional survey', quiz: true, allowSkippingZeroPointQuestions: true },
+      questions: [{ _id: 'optional', type: QUESTION_TYPES.NUMERICAL, content: 'Optional number', sessionOptions: { points: 0 } }],
+      responses: {},
+    } });
+    render(
+      <MemoryRouter initialEntries={['/student/course/course-1/session/session-1/quiz']}>
+        <Routes><Route path="/student/course/:courseId/session/:sessionId/quiz" element={<QuizSession />} /></Routes>
+      </MemoryRouter>
+    );
+    expect(await screen.findByRole('button', { name: /Submit Quiz/i })).toBeEnabled();
+  });
+
   it('renders math from option plain-text fallbacks for quiz MC options', async () => {
     const view = (
       <MemoryRouter initialEntries={['/student/course/course-1/session/session-1/quiz']}>

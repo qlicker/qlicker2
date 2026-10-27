@@ -1046,7 +1046,8 @@
       "expandAllPreviews": "Expandir todas las vistas previas",
       "collapseAllPreviews": "Contraer todas las vistas previas",
       "expandQuestion": "Expandir la pregunta {{number}}",
-      "collapseQuestion": "Contraer la pregunta {{number}}"
+      "collapseQuestion": "Contraer la pregunta {{number}}",
+      "allowSkippingZeroPointQuestions": "Permitir entregar el cuestionario con preguntas de 0 puntos sin responder"
     },
     "liveSession": {
       "currentQuestion": "Pregunta actual",
@@ -1492,7 +1493,9 @@
       "submittingQuestion": "Enviando...",
       "submitting": "Enviando...",
       "submitPracticeQuiz": "Enviar cuestionario de práctica",
-      "submitQuiz": "Enviar cuestionario"
+      "submitQuiz": "Enviar cuestionario",
+      "answerRequiredToSubmit": "Responda todas las preguntas obligatorias para habilitar la entrega. Puede omitir las preguntas opcionales.",
+      "optionalZeroPoints": "Opcional (0 puntos)"
     },
     "sessionReview": {
       "pageProgress": "Página {{current}} de {{total}}",
@@ -2355,7 +2358,8 @@
             "Las respuestas y la asistencia se guardan sin la identidad de los estudiantes. Esta sesión no se calificará. El anonimato no se puede cambiar después de que los estudiantes se hayan unido o hayan respondido. Las estadísticas anónimas en directo y las listas de respuestas sin vincular se actualizan cuando al menos cuatro personas nuevas responden a la pregunta en ese intento. Se ocultan los nombres y las horas de respuesta. Al finalizar la actividad, se muestran por separado las respuestas de cada pregunta e intento con al menos cuatro participantes, vinculadas entre las preguntas que cumplen el mínimo. Los grupos menores muestran el recuento real y un aviso de respuestas ocultas; los porcentajes globales permanecen ocultos mientras haya respuestas retenidas. Una respuesta singular aún puede identificar a alguien. Un aviso informativo en los controles en vivo explica el mínimo de cuatro personas mientras las estadísticas están ocultas; después muestra el número de respuestas publicadas y la regla de actualización por grupos.",
             "El editor de sesiones solo muestra los controles para compartir cuando el curso permite compartir actividades. Usa el interruptor de la sesión para activar o desactivar el acceso; el código activo sigue visible tras recargar y se puede regenerar. Activa primero el uso compartido por código en la configuración del curso; está desactivado de forma predeterminada. Desactivarlo revoca los códigos existentes y el acceso externo. Elimina las ampliaciones individuales antes de compartir; después seguirán sin estar disponibles. Para invitar a personas con cuenta ajenas al curso, crea un cuestionario o sesión en directo dentro del curso y genera un código de actividad S- en el editor. Cópialo al aparecer; regenerarlo impide nuevos accesos con el código anterior y desactivarlo revoca el acceso externo. Al volver a activar el acceso se reutiliza el mismo código; solo regenerarlo lo sustituye. En una actividad identificada, los estudiantes inscritos pueden recibir calificaciones; las respuestas de invitados se registran sin generar notas. Activa el anonimato para una encuesta sin calificaciones para nadie. Elige respuestas identificadas o anónimas antes de que alguien use el código. Al finalizar la actividad, se muestran por separado las respuestas de cada pregunta e intento con al menos cuatro participantes, vinculadas entre las preguntas que cumplen el mínimo. Los grupos menores muestran el recuento real y un aviso de respuestas ocultas; los porcentajes globales permanecen ocultos mientras haya respuestas retenidas. Una respuesta singular aún puede identificar a alguien. El código rotativo de la sesión sigue siendo necesario si está activado. Los códigos de actividad no funcionan mientras la actividad está en Borrador, ni siquiera para quienes ya participaron. El mismo código vuelve a estar disponible cuando el docente publica la actividad. Los códigos de actividad empiezan por S- seguido de siete letras o dígitos. El código activo también aparece en los controles de la sesión en directo del docente.",
             "Si el instructor cambia una sesión en directo a Próxima, los participantes ven una pantalla de espera hasta que vuelva a estar en directo. Borrador devuelve a los estudiantes inscritos al curso y a los invitados a su panel. Las respuestas guardadas se conservan.",
-            "En una sesión interactiva próxima, los estudiantes pueden seleccionar Abrir página de espera; los invitados pueden introducir su código de actividad S-. La espera no registra asistencia. El docente aún puede editar la sesión y exigir un código de acceso en directo. Cuando la sesión pasa a estar en directo, los participantes esperan una pregunta o introducen el código cuando el docente abre el período de acceso."
+            "En una sesión interactiva próxima, los estudiantes pueden seleccionar Abrir página de espera; los invitados pueden introducir su código de actividad S-. La espera no registra asistencia. El docente aún puede editar la sesión y exigir un código de acceso en directo. Cuando la sesión pasa a estar en directo, los participantes esperan una pregunta o introducen el código cuando el docente abre el período de acceso.",
+            "En los cuestionarios normales, active «Permitir entregar el cuestionario con preguntas de 0 puntos sin responder» en el editor de sesiones para hacer opcionales las preguntas que valgan explícitamente 0 puntos. La opción está desactivada por defecto y se aplica a estudiantes inscritos, invitados y participantes anónimos. Omitir estas preguntas no afecta la nota ni la participación; los cuestionarios de práctica no cambian."
           ]
         },
         {
@@ -2474,7 +2478,8 @@
             "Al desplazarte sobre una respuesta numérica, su valor no cambia y el campo pierde el foco para que la página pueda desplazarse. Haz clic en el campo o vuelve a él con la tecla Tab para seguir editando.",
             "La etiqueta Anónima significa que tu docente ve tus respuestas sin tu nombre. Sigues iniciando sesión y solo puedes responder cada pregunta una vez, puedes revisar tus propias respuestas más adelante, y la sesión no se califica.",
             "Si el instructor cambia una sesión en directo a Próxima, los participantes ven una pantalla de espera hasta que vuelva a estar en directo. Borrador devuelve a los estudiantes inscritos al curso y a los invitados a su panel. Las respuestas guardadas se conservan.",
-            "En una sesión interactiva próxima, los estudiantes pueden seleccionar Abrir página de espera; los invitados pueden introducir su código de actividad S-. La espera no registra asistencia. El docente aún puede editar la sesión y exigir un código de acceso en directo. Cuando la sesión pasa a estar en directo, los participantes esperan una pregunta o introducen el código cuando el docente abre el período de acceso."
+            "En una sesión interactiva próxima, los estudiantes pueden seleccionar Abrir página de espera; los invitados pueden introducir su código de actividad S-. La espera no registra asistencia. El docente aún puede editar la sesión y exigir un código de acceso en directo. Cuando la sesión pasa a estar en directo, los participantes esperan una pregunta o introducen el código cuando el docente abre el período de acceso.",
+            "Si el docente lo permite, puede dejar sin responder las preguntas marcadas «Opcional (0 puntos)». La entrega se habilita al responder todas las preguntas obligatorias, aunque las opcionales estén vacías. Omitirlas no reduce su nota ni su participación. La entrega sigue bloqueando el cuestionario."
           ]
         },
         {

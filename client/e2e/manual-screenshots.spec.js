@@ -263,7 +263,7 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
 
   const activeQuiz = await createSessionViaApi(request, admin.token, course._id, {
     name: 'Unit 1 Quiz',
-    description: 'Complete all questions before submitting.',
+    description: 'Answer required questions before submitting. Zero-point questions are optional.',
     quiz: true,
     status: 'visible',
     quizStart: new Date(Date.now() - ONE_MINUTE_MS).toISOString(),
@@ -287,6 +287,16 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
     ],
   });
   await addQuestionToSessionViaApi(request, admin.token, activeQuiz._id, activeQuizQuestion._id);
+
+  const optionalQuizQuestion = await createQuestionViaApi(request, admin.token, {
+    courseId: course._id,
+    type: 4,
+    content: '<p>How confident do you feel about this topic (1–5)?</p>',
+    plainText: 'How confident do you feel about this topic (1–5)?',
+    options: [],
+    sessionOptions: { points: 0 },
+  });
+  await addQuestionToSessionViaApi(request, admin.token, activeQuiz._id, optionalQuizQuestion._id);
 
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
@@ -342,6 +352,13 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await professorPage.getByLabel('Enable sharing this activity outside the course').click();
   await expect(professorPage.getByTestId('activity-share-code')).toHaveText(/^S-[A-HJ-NP-Z2-9]{7}$/);
   await capture(professorPage, 'session-editor.png', 1250);
+  await professorPage.goto(`/prof/course/${course._id}/session/${activeQuiz._id}`);
+  const optionalToggle = professorPage.getByRole('switch', { name: 'Allow quiz submission with unanswered 0-point questions' });
+  await optionalToggle.click();
+  await expect(optionalToggle).toBeChecked();
+  await professorPage.mouse.move(0, 0);
+  await expect(professorPage.getByRole('tooltip')).toHaveCount(0);
+  await capture(professorPage, 'quiz-editor.png', 1250);
 
   await professorPage.goto(`/prof/course/${course._id}`);
   await professorPage.getByRole('button', { name: /Launch session Cell Structure Check-in/i }).click();
@@ -434,6 +451,8 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await capture(studentPage, 'student-session-chat.png');
   await studentPage.goto(`/student/course/${course._id}/session/${activeQuiz._id}/quiz`);
   await expect(studentPage.getByText(/Which molecule carries genetic information/i)).toBeVisible();
+  await studentPage.getByRole('radio').nth(1).check();
+  await expect(studentPage.getByRole('button', { name: 'Submit Quiz', exact: true })).toBeEnabled();
   await capture(studentPage, 'student-quiz.png');
   await studentPage.goto(`/student/course/${course._id}/session/${completedQuiz._id}/review`);
   await expect(studentPage.getByText(/Which structure controls what enters and leaves the cell/i)).toBeVisible();
