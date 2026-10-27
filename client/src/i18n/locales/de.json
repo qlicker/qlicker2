@@ -311,7 +311,11 @@
     "language": "Sprache",
     "languageHelp": "Wählen Sie Ihre bevorzugte Sprache. Wählen Sie „App-Standard verwenden“, um der systemweiten Einstellung Ihres Administrators zu folgen.",
     "useAppDefault": "App-Standard verwenden",
-    "failedChangePassword": "Passwort konnte nicht geändert werden"
+    "failedChangePassword": "Passwort konnte nicht geändert werden",
+    "appearance": "Erscheinungsbild",
+    "appearanceHelp": "Wählen Sie Hell oder Dunkel. Ihre Auswahl wird in Ihrem Konto gespeichert und bei jeder Anmeldung verwendet.",
+    "lightMode": "Hell",
+    "darkMode": "Dunkel"
   },
   "admin": {
     "title": "Admin-Dashboard",
@@ -1261,7 +1265,12 @@
       "correctColumn": "Richtig",
       "unsavedSummaryInstructionWarning": "Speichern oder verwerfen Sie Ihre Änderungen an den Anweisungen, bevor Sie die Zusammenfassung erstellen.",
       "anonymousAnswersHidden": "Antworten verborgen — weniger als {{minimum}} Antwortende.",
-      "attempt": "Versuch"
+      "attempt": "Versuch",
+      "includeResponseTimestamps": "Antwortzeitstempel einschließen",
+      "responseTimestampsHint": "Die Zeiten geben an, wann jede Antwort zuletzt gespeichert wurde (bei älteren Datensätzen gegebenenfalls erstellt), nicht wann das gesamte Quiz abgegeben wurde. Das ISO-8601-Format verwendet die Browser-Zeitzone ({{timezone}}) mit dem zum Antwortzeitpunkt geltenden Zeitversatz. Fehlende Zeitstempel bleiben leer.",
+      "anonymousTimestampsHidden": "Bei anonymen Aktivitäten werden Antwortzeitstempel zum Schutz der Anonymität verborgen.",
+      "csvTime": "F{{number}} Zeit",
+      "csvAttemptTime": "F{{number}} Versuch {{attempt}} Zeit"
     },
     "secondDesktop": {
       "joinCode": "Beitrittscode",
@@ -2187,7 +2196,8 @@
             "Erlaubte E-Mail-Domänen sind eine kommagetrennte Liste; Login-/Sitzungsablauf ist eine ganze Zahl in Minuten für neu ausgestellte Zugangs- und Aktualisierungssitzungen; Sprache, Datumsformat und Zeitformat werden zu globalen Standardwerten.",
             "SSO-Werte sind Klartextfelder für URLs, Entity-IDs und Attributnamen. Zertifikate und Schlüssel sollten genau so eingefügt werden, wie Ihr Identitätsanbieter sie bereitstellt.",
             "Speicherformulare erwarten die anbieterspezifischen Felder, die in der Oberfläche angezeigt werden, und Sie sollten die Einrichtung immer durch das Hochladen eines Bildes bestätigen.",
-            "Verwenden Sie den Tab „Backup“, um die geplante Sicherungszeit, die Standardaufbewahrung von 7 täglichen / 4 wöchentlichen / 12 monatlichen Sicherungen und den letzten Ausführungsstatus zu bestätigen, bevor Sie sich für die Wiederherstellung auf das System verlassen."
+            "Verwenden Sie den Tab „Backup“, um die geplante Sicherungszeit, die Standardaufbewahrung von 7 täglichen / 4 wöchentlichen / 12 monatlichen Sicherungen und den letzten Ausführungsstatus zu bestätigen, bevor Sie sich für die Wiederherstellung auf das System verlassen.",
+            "Wählen Sie im Profil unter Erscheinungsbild die Option Hell oder Dunkel. Die Einstellung wird automatisch gespeichert und gilt für Ihr Konto über Sitzungen und Geräte hinweg."
           ],
           "note": "Wenn jemand ein benutzerseitiges Problem meldet, vergleichen Sie dieses Handbuch mit dem Professoren- oder Studierenden-Handbuch, damit die Support-Antwort dem aktuellen Ablauf entspricht.",
           "screenshot": {
@@ -2375,7 +2385,9 @@
             "Wenn Gruppenstrukturen während der Aktivität relevant waren, vergleichen Sie die Überprüfungs- und Benotungsdaten mit den Kursgruppen, um ungleichmäßige Teilnahmemuster zu erkennen.",
             "Bei der Einschreibung werden fehlende Noten für abgeschlossene Kursaktivitäten erstellt, auch aus gespeicherten Gastantworten. Versäumte Aufgaben erhalten null Punkte ohne Bewertungsbedarf; schriftliche Antworten müssen eventuell bewertet werden. Vorhandene Noten und Rückmeldungen bleiben erhalten. Anonyme Aktivitäten bleiben unbenotet.",
             "Die Tabellendurchschnitte verwenden vorhandene Noteneinträge der angezeigten Sitzungen. Fehlende Einträge werden ausgeschlossen; eingetragene Nullen zählen mit. Nutzen Sie Sitzungen mit Noteneinträgen auswählen oder wählen Sie Sitzungen ohne Noteneinträge manuell aus.",
-            "Bis zum Ende dieses Quiz werden nur abgegebene Quizversuche angezeigt. Danach werden auch gespeicherte Antworten berücksichtigt, wenn Studierende nicht abgegeben haben."
+            "Bis zum Ende dieses Quiz werden nur abgegebene Quizversuche angezeigt. Danach werden auch gespeicherte Antworten berücksichtigt, wenn Studierende nicht abgegeben haben.",
+            "Unter Antwortdaten öffnet CSV exportieren einen Optionsdialog. Aktivieren Sie Antwortzeitstempel einschließen, um eine Zeitspalte je Frage und Versuch hinzuzufügen. Die Zeiten im ISO-8601-Format verwenden die Browser-Zeitzone und den zum Antwortzeitpunkt geltenden Zeitversatz einschließlich Sommerzeit. Sie zeigen das letzte Speichern der Antwort, ersatzweise deren Erstellung, nicht die endgültige Quizabgabe. Fehlende Zeitstempel älterer Datensätze bleiben leer. Anonyme Aktivitäten exportieren niemals Antwortzeiten. Suche und Sortierung der Tabelle bleiben im Export erhalten. Die CSV-Spalte für den Sitzungsbeitritt verwendet immer dasselbe Format. Die Endung -04:00 bedeutet vier Stunden hinter UTC; der Zeitversatz berücksichtigt die Sommerzeit zum gespeicherten Datum. Fehlende Beitrittszeiten bleiben leer.",
+            "Unter Ergebnisse ist der Zeitverlauf der Sitzung beim Laden eingeklappt und fasst alle Fragen und Versuche zusammen. Jeder Versuch einer Frage hat ein eigenes aufklappbares Diagramm, dessen Zeitraum nur durch die Antwortzeitstempel dieses Versuchs bestimmt wird. Mit Detailgrad ändern Sie die Intervallgröße; per Maus, Antippen oder Pfeiltasten können Sie Anzahlen ablesen. Die Diagramme umfassen alle gespeicherten Antwortzeiten einschließlich Pausen und Antworten außerhalb geplanter Quiztermine. Gepunktete Linien markieren Termine innerhalb des Diagramms; außerhalb liegende Termine stehen darunter. Bei Quizfragen zählt jede Antwort zum letzten Speicherzeitpunkt, nicht bei jeder Änderung oder der endgültigen Abgabe. Fehlende Zeitstempel werden gezählt, aber ausgeschlossen. Anonyme Aktivitäten zeigen keine Zeitverläufe."
           ],
           "success": "Professoren können das Studierenden-Handbuch über den Umschalter oben öffnen, um den Lernenden-Ablauf vor dem Unterricht in der Vorschau anzuzeigen."
         },
@@ -2414,7 +2426,8 @@
           "bullets": [
             "Das Hochladen eines Profilbildes öffnet einen Zuschnitt-und-Drehen-Dialog, in dem Sie das quadratische Avatar-Thumbnail vor dem Speichern auswählen können.",
             "Wenn institutionsweites SSO aktiviert ist, bleiben Ihre Namens- und Passwortfelder gesperrt, es sei denn, ein Administrator hat die Ausnahme „E-Mail-Login erlauben“ für Ihr Konto gewährt.",
-            "Die Passwort-Zurücksetzungs-E-Mail folgt derselben Regel. Verwenden Sie daher den SSO-Weg oder kontaktieren Sie einen Administrator, wenn die Profilseite anzeigt, dass die lokale E-Mail-Anmeldung deaktiviert ist."
+            "Die Passwort-Zurücksetzungs-E-Mail folgt derselben Regel. Verwenden Sie daher den SSO-Weg oder kontaktieren Sie einen Administrator, wenn die Profilseite anzeigt, dass die lokale E-Mail-Anmeldung deaktiviert ist.",
+            "Wählen Sie im Profil unter Erscheinungsbild die Option Hell oder Dunkel. Die Einstellung wird automatisch gespeichert und gilt für Ihr Konto über Sitzungen und Geräte hinweg."
           ]
         }
       ]
@@ -2536,7 +2549,8 @@
           "bullets": [
             "Das Hochladen eines Profilbildes öffnet einen Zuschnitt-und-Drehen-Dialog, in dem Sie den Avatar-Kreis vor dem Speichern positionieren können.",
             "Wenn institutionsweites SSO aktiviert ist und Ihrem Konto kein E-Mail-Login-Zugang gewährt wurde, bleiben Ihre Namens- und Passwortfelder absichtlich gesperrt.",
-            "Im selben SSO-verwalteten Fall ist die Passwort-Zurücksetzungs-E-Mail nicht verfügbar, bis ein Administrator die Ausnahme „E-Mail-Login erlauben“ für Ihr Konto gewährt."
+            "Im selben SSO-verwalteten Fall ist die Passwort-Zurücksetzungs-E-Mail nicht verfügbar, bis ein Administrator die Ausnahme „E-Mail-Login erlauben“ für Ihr Konto gewährt.",
+            "Wählen Sie im Profil unter Erscheinungsbild die Option Hell oder Dunkel. Die Einstellung wird automatisch gespeichert und gilt für Ihr Konto über Sitzungen und Geräte hinweg."
           ]
         }
       ]
@@ -2853,5 +2867,26 @@
   "sessionAnonymity": {
     "chip": "Anonym",
     "studentNotice": "Diese Sitzung ist anonym. Sie melden sich weiterhin an und können jede Frage nur einmal beantworten, aber Ihre Lehrperson kann nicht sehen, welche Antworten von Ihnen stammen. Anonyme Sitzungen werden nicht bewertet."
+  },
+  "responseTimeline": {
+    "overview": "Zeitverlauf der Sitzungsantworten",
+    "question": "Antwortzeitverlauf — F{{number}}, Versuch {{attempt}}",
+    "quizHint": "Jede Antwort wird einmal zum letzten Speicherzeitpunkt gezählt, nicht bei jeder Änderung oder der endgültigen Quizabgabe. Der Zeitraum ergibt sich aus den gespeicherten Antworten.",
+    "liveHint": "Jede Antwort wird zum Absendezeitpunkt gezählt. Der Zeitraum ergibt sich aus den gespeicherten Antworten, einschließlich Pausen zwischen Live-Phasen.",
+    "missing": "Antworten ohne verwendbaren Zeitstempel: {{count}}. Diese werden im Diagramm nicht berücksichtigt.",
+    "empty": "Keine Antwortzeitstempel verfügbar.",
+    "detail": "Detailgrad",
+    "coarse": "Grob",
+    "auto": "Automatisch",
+    "fine": "Fein",
+    "interval": "Intervall: {{interval}} · Zeitzone: {{timezone}}",
+    "total": "Dargestellte Antworten: {{count}}",
+    "inspectHelp": "Zeigen oder tippen Sie auf ein Intervall. Bei fokussiertem Diagramm verwenden Sie Links/Rechts, Pos1/Ende und Escape.",
+    "responseAxis": "Antworten",
+    "bucket": "{{start}} bis {{end}} · Antworten: {{count}}",
+    "scheduledOpen": "Geplanter Beginn",
+    "scheduledClose": "Geplantes Ende",
+    "scheduleHint": "Gepunktete Linien markieren geplante Quiztermine im dargestellten Zeitraum. Sie dienen nur als Orientierung und schließen keine Antworten aus.",
+    "outsideRange": "außerhalb des Antwortzeitraums"
   }
 }

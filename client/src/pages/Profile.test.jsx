@@ -35,6 +35,9 @@ vi.mock('react-i18next', () => ({
       'profile.firstName': 'First Name',
       'profile.lastName': 'Last Name',
       'profile.language': 'Language',
+      'profile.appearance': 'Appearance',
+      'profile.lightMode': 'Light',
+      'profile.darkMode': 'Dark',
       'profile.personalInfo': 'Personal Information',
       'profile.currentPassword': 'Current Password',
       'profile.newPassword': 'New Password',
@@ -94,6 +97,39 @@ vi.mock('../components/common/AutoSaveStatus', () => ({
 }));
 
 describe('Profile', () => {
+  it('saves appearance for an SSO-managed account before updating the active user', async () => {
+    let finishSave;
+    apiClientMock.patch.mockImplementationOnce(() => new Promise((resolve) => { finishSave = resolve; }));
+    render(<Profile />);
+    const appearance = await screen.findByRole('combobox', { name: 'Appearance' });
+    expect(appearance).toHaveTextContent('Light');
+    fireEvent.mouseDown(appearance);
+    fireEvent.click(screen.getByRole('option', { name: 'Dark' }));
+    expect(apiClientMock.patch).toHaveBeenCalledWith('/users/me', { themeMode: 'dark' });
+    expect(appearance).toHaveAttribute('aria-disabled', 'true');
+    expect(setCurrentUserMock).not.toHaveBeenCalled();
+    finishSave({ data: { themeMode: 'dark' } });
+    await waitFor(() => expect(setCurrentUserMock).toHaveBeenCalled());
+    const applyPreference = setCurrentUserMock.mock.calls[0][0];
+    expect(applyPreference(authState.user)).toEqual({ ...authState.user, themeMode: 'dark' });
+    expect(applyPreference(null)).toBeNull();
+    const anotherAccount = { _id: 'another-account', themeMode: 'light' };
+    expect(applyPreference(anotherAccount)).toBe(anotherAccount);
+  });
+
+  it('keeps the saved appearance after a failed save and allows retrying', async () => {
+    authState.user.themeMode = 'dark';
+    apiClientMock.patch.mockRejectedValueOnce(new Error('offline'));
+    render(<Profile />);
+    const appearance = await screen.findByRole('combobox', { name: 'Appearance' });
+    expect(appearance).toHaveTextContent('Dark');
+    fireEvent.mouseDown(appearance);
+    fireEvent.click(screen.getByRole('option', { name: 'Light' }));
+    await waitFor(() => expect(appearance).not.toHaveAttribute('aria-disabled', 'true'));
+    expect(appearance).toHaveTextContent('Dark');
+    expect(setCurrentUserMock).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     apiClientMock.get.mockReset();
     apiClientMock.patch.mockReset();

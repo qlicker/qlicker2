@@ -220,7 +220,7 @@ export function MathPreview({ html, debounceMs = 140, showLabel = true }) {
       sx={{
         p: 1.5,
         mt: 1,
-        bgcolor: 'grey.50',
+        bgcolor: 'action.hover',
         '& p': { my: 0.5 },
         '& img': { maxWidth: '100%' },
       }}

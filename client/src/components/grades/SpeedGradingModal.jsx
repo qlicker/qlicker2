@@ -305,7 +305,7 @@ export default memo(function SpeedGradingModal({
                 border: 1,
                 borderColor: 'divider',
                 borderRadius: 1,
-                bgcolor: 'grey.50',
+                bgcolor: 'action.hover',
                 minHeight: 60,
               }}
             >

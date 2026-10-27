@@ -311,7 +311,11 @@
     "language": "Langue",
     "languageHelp": "Choisissez votre langue préférée. Sélectionnez « Utiliser la langue par défaut » pour suivre le réglage défini par votre administrateur.",
     "useAppDefault": "Utiliser la langue par défaut",
-    "failedChangePassword": "Échec du changement de mot de passe"
+    "failedChangePassword": "Échec du changement de mot de passe",
+    "appearance": "Apparence",
+    "appearanceHelp": "Choisissez le mode clair ou sombre. Votre choix est enregistré dans votre compte et appliqué à chaque connexion.",
+    "lightMode": "Clair",
+    "darkMode": "Sombre"
   },
   "admin": {
     "title": "Tableau de bord administrateur",
@@ -1261,7 +1265,12 @@
       "correctColumn": "Correcte",
       "unsavedSummaryInstructionWarning": "Enregistrez ou annulez vos modifications aux consignes avant de générer le résumé.",
       "anonymousAnswersHidden": "Réponses masquées — moins de {{minimum}} répondants.",
-      "attempt": "Tentative"
+      "attempt": "Tentative",
+      "includeResponseTimestamps": "Inclure les horodatages des réponses",
+      "responseTimestampsHint": "Les heures indiquent le dernier enregistrement de chaque réponse (ou sa création pour les anciens enregistrements), et non la remise du quiz entier. Le format ISO 8601 utilise le fuseau horaire de votre navigateur ({{timezone}}) avec le décalage à la date de la réponse. Les horodatages manquants restent vides.",
+      "anonymousTimestampsHidden": "Les horodatages des réponses sont masqués pour préserver l’anonymat des activités anonymes.",
+      "csvTime": "Q{{number}} Heure",
+      "csvAttemptTime": "Q{{number}} Tentative {{attempt}} Heure"
     },
     "secondDesktop": {
       "joinCode": "Code d'inscription",
@@ -2187,7 +2196,8 @@
             "Les domaines e-mail autorisés forment une liste séparée par des virgules; l'expiration connexion/session est un nombre entier de minutes pour les nouvelles sessions d'accès et de rafraîchissement; la langue, la date et l'heure deviennent des valeurs par défaut globales.",
             "Les valeurs SSO sont des champs de texte brut pour les URL, les identifiants d'entité et les noms d'attributs. Les certificats et les clés doivent être collés exactement comme le fournisseur les donne.",
             "Les formulaires de stockage attendent les champs propres au fournisseur affichés dans l'interface; confirmez toujours la configuration par l'envoi d'une image.",
-            "Utilisez l'onglet Sauvegarde pour confirmer l'heure planifiée, les valeurs par défaut de rétention 7 quotidiennes / 4 hebdomadaires / 12 mensuelles et l'état de la dernière exécution avant de compter sur le système pour la récupération."
+            "Utilisez l'onglet Sauvegarde pour confirmer l'heure planifiée, les valeurs par défaut de rétention 7 quotidiennes / 4 hebdomadaires / 12 mensuelles et l'état de la dernière exécution avant de compter sur le système pour la récupération.",
+            "Dans Profil, choisissez Clair ou Sombre sous Apparence. Le réglage est enregistré automatiquement et suit votre compte entre les sessions et les appareils."
           ],
           "note": "Lorsqu'une personne signale un problème d'interface, comparez ce guide avec le guide professeur ou étudiant afin que votre réponse corresponde au flux actuel.",
           "screenshot": {
@@ -2375,7 +2385,9 @@
             "Si la structure des groupes a compté pendant l'activité, comparez les données de révision et de notation avec les groupes du cours afin de repérer une participation inégale.",
             "L’inscription crée les notes manquantes pour les activités terminées du cours, y compris à partir des réponses enregistrées comme invité. Le travail manqué reçoit zéro sans correction requise ; les réponses écrites peuvent nécessiter une correction. Les notes et commentaires existants sont conservés. Les activités anonymes restent sans notes.",
             "Les moyennes du tableau utilisent les éléments de note existants des séances affichées. Les éléments manquants sont exclus ; les zéros enregistrés comptent. Utilisez Sélectionner les séances avec des éléments de note, ou ajoutez manuellement les séances sans élément de note.",
-            "Seuls les questionnaires soumis sont affichés jusqu’à la fin de ce quiz. Ensuite, les réponses enregistrées sont incluses même si l’étudiant n’a pas soumis son questionnaire."
+            "Seuls les questionnaires soumis sont affichés jusqu’à la fin de ce quiz. Ensuite, les réponses enregistrées sont incluses même si l’étudiant n’a pas soumis son questionnaire.",
+            "Dans Données des réponses, Exporter CSV ouvre une boîte de dialogue. Cochez Inclure les horodatages des réponses pour ajouter une colonne d’heure par question et tentative. Les heures au format ISO 8601 utilisent le fuseau du navigateur et le décalage à la date de la réponse, y compris l’heure d’été. Elles indiquent le dernier enregistrement de la réponse, ou sa création à défaut, et non la remise finale du quiz. Les horodatages anciens manquants restent vides. Les activités anonymes n’exportent jamais les heures des réponses. L’export conserve la recherche et le tri du tableau. La colonne de date d’entrée dans la session du CSV utilise toujours le même format. Le suffixe -04:00 signifie quatre heures de moins que l’UTC ; le décalage tient compte de l’heure d’été à la date enregistrée. Les heures d’entrée manquantes restent vides.",
+            "Dans Résultats, la chronologie de la session est repliée au chargement et regroupe toutes les questions et tentatives. Chaque tentative dispose de son propre graphique dépliable, dont la plage dépend uniquement des horodatages de ses réponses. Réglez Détail pour modifier la taille des intervalles ; survolez, touchez ou utilisez les flèches pour examiner les effectifs. Les graphiques couvrent les heures des réponses enregistrées, y compris les pauses et les réponses hors des dates prévues du quiz. Les pointillés indiquent les dates prévues dans le graphique ; les dates extérieures sont affichées dessous. Pour les quiz, chaque réponse est comptée à son dernier enregistrement, et non à chaque modification ou à la remise finale. Les horodatages manquants sont dénombrés mais exclus, et les activités anonymes n’affichent pas de chronologie."
           ],
           "success": "Les professeurs peuvent ouvrir le guide étudiant depuis le sélecteur ci-dessus afin de prévisualiser le flux de l'apprenant avant un cours."
         },
@@ -2414,7 +2426,8 @@
           "bullets": [
             "L'envoi d'une photo de profil ouvre une boîte de dialogue de recadrage et de rotation afin de choisir la vignette carrée avant l'enregistrement.",
             "Lorsque le SSO institutionnel est activé, vos champs de nom et de mot de passe restent verrouillés sauf si un administrateur a accordé l'exception de connexion par e-mail à votre compte.",
-            "L'e-mail de réinitialisation du mot de passe suit la même règle; utilisez donc le parcours SSO ou contactez un administrateur si la page de profil indique que la connexion locale par e-mail est désactivée."
+            "L'e-mail de réinitialisation du mot de passe suit la même règle; utilisez donc le parcours SSO ou contactez un administrateur si la page de profil indique que la connexion locale par e-mail est désactivée.",
+            "Dans Profil, choisissez Clair ou Sombre sous Apparence. Le réglage est enregistré automatiquement et suit votre compte entre les sessions et les appareils."
           ]
         }
       ]
@@ -2536,7 +2549,8 @@
           "bullets": [
             "L'envoi d'une photo de profil ouvre une boîte de dialogue de recadrage et de rotation afin de placer le cercle d'avatar avant l'enregistrement.",
             "Si le SSO institutionnel est activé et que votre compte n'a pas reçu l'accès par e-mail, vos champs de nom et de mot de passe restent verrouillés volontairement.",
-            "Dans ce même cas géré par SSO, l'e-mail de réinitialisation du mot de passe reste indisponible tant qu'un administrateur n'accorde pas l'exception de connexion par e-mail."
+            "Dans ce même cas géré par SSO, l'e-mail de réinitialisation du mot de passe reste indisponible tant qu'un administrateur n'accorde pas l'exception de connexion par e-mail.",
+            "Dans Profil, choisissez Clair ou Sombre sous Apparence. Le réglage est enregistré automatiquement et suit votre compte entre les sessions et les appareils."
           ]
         }
       ]
@@ -2784,5 +2798,26 @@
   "sessionAnonymity": {
     "chip": "Anonyme",
     "studentNotice": "Cette session est anonyme. Vous devez toujours vous connecter et ne pouvez répondre qu'une fois à chaque question, mais votre enseignant ne peut pas voir quelles réponses sont les vôtres. Les sessions anonymes ne sont pas notées."
+  },
+  "responseTimeline": {
+    "overview": "Chronologie des réponses de la session",
+    "question": "Chronologie des réponses — Q{{number}}, tentative {{attempt}}",
+    "quizHint": "Chaque réponse est comptée une fois à son dernier enregistrement, et non à chaque modification ou à la remise finale du quiz. La plage provient des réponses enregistrées.",
+    "liveHint": "Chaque réponse est comptée à son envoi. La plage provient des réponses enregistrées, y compris les pauses entre les périodes en direct.",
+    "missing": "Réponses sans horodatage exploitable : {{count}}. Elles sont exclues du graphique.",
+    "empty": "Aucun horodatage de réponse disponible.",
+    "detail": "Détail",
+    "coarse": "Grossier",
+    "auto": "Automatique",
+    "fine": "Fin",
+    "interval": "Intervalle : {{interval}} · Fuseau horaire : {{timezone}}",
+    "total": "Réponses représentées : {{count}}",
+    "inspectHelp": "Survolez ou touchez un intervalle pour l’examiner. Lorsque le graphique a le focus, utilisez Gauche/Droite, Début/Fin et Échap.",
+    "responseAxis": "Réponses",
+    "bucket": "De {{start}} à {{end}} · Réponses : {{count}}",
+    "scheduledOpen": "Ouverture prévue",
+    "scheduledClose": "Fermeture prévue",
+    "scheduleHint": "Les pointillés indiquent les dates prévues du quiz dans la plage affichée. Ces dates sont des repères et n’excluent aucune réponse.",
+    "outsideRange": "hors de la plage des réponses"
   }
 }

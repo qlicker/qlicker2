@@ -701,7 +701,7 @@ describe('shared activity safeguards', () => {
     expect((await redeem(code, newcomerToken)).statusCode).toBe(404);
   });
 
-  it('releases correlated anonymous rows only after four people answer each question', async () => {
+  it('releases anonymous shared-activity answers per question while withholding sparse answers', async () => {
     const { professor, professorToken, outsider, course, session } = await fixture({ anonymous: true });
     const users = [outsider];
     for (let index = 1; index < 4; index += 1) {
@@ -724,8 +724,10 @@ describe('shared activity safeguards', () => {
       const token = await getAuthToken(app, user);
       expect((await redeem(code, token)).statusCode).toBe(200);
       const participantId = getSessionParticipantId(session, user._id);
-      await Response.create({ questionId: questions[0]._id, studentUserId: participantId, attempt: 1, answer: `first-${index}` });
-      if (index < 3) await Response.create({ questionId: questions[1]._id, studentUserId: participantId, attempt: 1, answer: `second-${index}` });
+      if (index < 3) {
+        await Response.create({ questionId: questions[0]._id, studentUserId: participantId, attempt: 1, answer: `first-${index}` });
+        await Response.create({ questionId: questions[1]._id, studentUserId: participantId, attempt: 1, answer: `second-${index}` });
+      }
     }
     const resultsUrl = `/api/v1/sessions/${session._id}/results`;
     const withheld = await authenticatedRequest(app, 'GET', resultsUrl, { token: professorToken });
@@ -733,11 +735,44 @@ describe('shared activity safeguards', () => {
     expect(withheld.json().studentResults).toEqual([]);
     expect(withheld.json().anonymousSummary.responsesWithheld).toBe(true);
     await Response.create({
+      questionId: questions[0]._id, studentUserId: getSessionParticipantId(session, users[3]._id),
+      attempt: 1, answer: 'first-3',
+    });
+    const partialResponse = await authenticatedRequest(app, 'GET', resultsUrl, { token: professorToken });
+    expect(partialResponse.statusCode).toBe(200);
+    const partial = partialResponse.json();
+    expect(partial.anonymousSummary).toMatchObject({ respondentCount: 4, responsesWithheld: true, minimumRespondents: 4 });
+    expect(partial.questions.map((question) => question.anonymousResponseAttempts)).toEqual([
+      [{ attempt: 1, respondentCount: 4, responsesWithheld: false, minimumRespondents: 4 }],
+      [{ attempt: 1, respondentCount: 3, responsesWithheld: true, minimumRespondents: 4 }],
+    ]);
+    expect(partial.studentResults).toHaveLength(4);
+    expect(partial.studentResults.map((row) => row.questionResults[0].responses[0].answer).sort())
+      .toEqual(['first-0', 'first-1', 'first-2', 'first-3']);
+    for (const row of partial.studentResults) {
+      expect(row.studentId).toMatch(/^respondent-[1-4]$/);
+      expect(row.participation).toBeNull();
+      expect(row.questionResults).toHaveLength(2);
+      expect(row.questionResults[0].responses).toHaveLength(1);
+      expect(row.questionResults[1]).toEqual({ questionId: questions[1]._id, responses: [] });
+    }
+    const partialSerialized = JSON.stringify(partial);
+    expect(partialSerialized).not.toContain('second-');
+    for (const user of users) {
+      expect(partialSerialized).not.toContain(user._id);
+      expect(partialSerialized).not.toContain(getSessionParticipantId(session, user._id));
+    }
+    await Response.create({
       questionId: questions[1]._id, studentUserId: getSessionParticipantId(session, users[3]._id),
       attempt: 1, answer: 'second-3',
     });
     const released = await authenticatedRequest(app, 'GET', resultsUrl, { token: professorToken });
     expect(released.statusCode).toBe(200);
+    expect(released.json().anonymousSummary.responsesWithheld).toBe(false);
+    expect(released.json().questions.map((question) => question.anonymousResponseAttempts)).toEqual([
+      [{ attempt: 1, respondentCount: 4, responsesWithheld: false, minimumRespondents: 4 }],
+      [{ attempt: 1, respondentCount: 4, responsesWithheld: false, minimumRespondents: 4 }],
+    ]);
     expect(released.json().studentResults).toHaveLength(4);
     for (const row of released.json().studentResults) {
       expect(row.studentId).toMatch(/^respondent-[1-4]$/);
@@ -746,6 +781,10 @@ describe('shared activity safeguards', () => {
       expect(row).not.toHaveProperty('guest');
       expect(row.questionResults).toHaveLength(2);
       expect(row.questionResults.every((entry) => entry.responses.length === 1)).toBe(true);
+      const firstAnswer = row.questionResults[0].responses[0].answer;
+      expect(row.questionResults[1].responses[0].answer).toBe(firstAnswer.replace('first-', 'second-'));
+      expect(partial.studentResults.find((entry) => entry.studentId === row.studentId).questionResults[0].responses[0].answer)
+        .toBe(firstAnswer);
     }
     const serialized = JSON.stringify(released.json());
     for (const user of users) expect(serialized).not.toContain(user._id);

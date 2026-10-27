@@ -40,6 +40,10 @@ Open **Profile** from the avatar menu to change the settings your account permit
 
 Uploading an image opens a crop-and-rotate editor. Position the square crop, rotate if necessary, preview the avatar, and save. Use an image you are comfortable showing to instructors and classmates wherever avatars appear.
 
+In **Profile → Appearance**, choose **Light** or **Dark**. The change saves automatically and applies after saving, including when you sign in on another device. Existing accounts start in Light mode. If saving fails, the previous appearance stays active; retry when your connection is restored.
+
+![Profile appearance set to Dark](../assets/manuals/profile-dark-mode.png)
+
 ## Browser and accessibility tips
 
 - Use a current version of Chrome, Firefox, Edge, or Safari.

@@ -23,6 +23,7 @@ Key concerns:
 - refresh token versioning
 - failed-login counters and temporary lockout state
 - per-user locale and profile image data
+- `themeMode`: optional `light` / `dark` interface preference, default `light`. Missing legacy values render in light mode; no backfill or migration is required. Only the authenticated account can change its preference through `PATCH /users/me`.
 - disabled state, login activity, notification dismissals, and course memberships
 
 ## Course
@@ -116,6 +117,14 @@ Key concerns:
 - answer data structure by question type
 - attempt handling
 - quiz save vs live-response workflows
+
+Response timing uses existing optional fields: `createdAt` is the initial save/submission, and `submittedAt` is refreshed on each quiz answer save or set when a live response is submitted. Despite its name, `submittedAt` is not the whole-quiz submission time. `updatedAt` also changes when quiz submission locks answers, so it must not override `submittedAt` when reporting the last answer modification.
+
+Instructor results already include these fields for named activities. The optional session-review CSV time columns use `submittedAt`, then legacy `updatedAt`, then `createdAt`, and leave unavailable or invalid dates blank. Legacy data may not distinguish answer edits from locking when only `updatedAt` survives. Formatting uses the downloading browser's timezone with the offset at the response date. Anonymous results strip all response timestamps and the CSV never includes anonymous time columns. No schema change or backfill is required.
+
+The CSV's `Joined Session` column uses the same formatter for `joinedAt`, regardless of the response timestamp option, with blank cells for missing or invalid dates. The on-screen join-time display remains localized.
+
+Session-review response timelines use the same response timestamp precedence as CSV exports. They aggregate the existing results payload locally per question/attempt and across the session, retaining the API's submitted-quiz and anonymity filters. All timelines start collapsed. Each question attempt has a separate graph with its own response range. Missing timestamps are counted but excluded. Histogram domains come from response extrema, rounded outward to complete intervals; scheduled quiz dates are annotations, never response filters. No live-period tracking, additional requests, or edit-history collection is introduced. Coarse/automatic/fine detail bounds the chart to at most 81 bins, including long gaps and outlying dates. Anonymous sessions never build timeline data.
 
 ## Grade
 

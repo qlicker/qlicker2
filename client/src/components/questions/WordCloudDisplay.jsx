@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 /* ---------- colour palette for word cloud text ---------- */
@@ -19,6 +19,10 @@ const PALETTE = [
  */
 export default function WordCloudDisplay({ wordFrequencies = [], width = 600, height = 300 }) {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const palette = theme.palette.mode === 'dark'
+    ? ['#90caf9', '#a5d6a7', '#ef9a9a', '#ce93d8', '#ffcc80', '#81d4fa', '#f48fb1', '#80cbc4', '#bcaaa4', '#b0bec5']
+    : PALETTE;
   const svgRef = useRef(null);
   const [words, setWords] = useState([]);
   const [layoutReady, setLayoutReady] = useState(false);
@@ -132,7 +136,7 @@ export default function WordCloudDisplay({ wordFrequencies = [], width = 600, he
                 style={{
                   fontSize: `${w.size}px`,
                   fontFamily: w.font || 'Arial, Helvetica, sans-serif',
-                  fill: PALETTE[i % PALETTE.length],
+                  fill: palette[i % palette.length],
                   fontWeight: w.size > 30 ? 700 : 400,
                   cursor: 'default',
                 }}

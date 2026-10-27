@@ -311,7 +311,11 @@
     "language": "Language",
     "languageHelp": "Choose your preferred language. Select \"Use app default\" to follow the system-wide setting configured by your administrator.",
     "useAppDefault": "Use app default",
-    "failedChangePassword": "Failed to change password"
+    "failedChangePassword": "Failed to change password",
+    "appearance": "Appearance",
+    "appearanceHelp": "Choose Light or Dark. Your choice is saved to your account and used whenever you sign in.",
+    "lightMode": "Light",
+    "darkMode": "Dark"
   },
   "admin": {
     "title": "Admin Dashboard",
@@ -1261,7 +1265,12 @@
       "correctColumn": "Correct",
       "unsavedSummaryInstructionWarning": "Save or cancel your instruction edits before generating the summary.",
       "anonymousAnswersHidden": "Answers hidden — fewer than {{minimum}} respondents.",
-      "attempt": "Attempt"
+      "attempt": "Attempt",
+      "includeResponseTimestamps": "Include response timestamps",
+      "responseTimestampsHint": "Times show when each answer was last saved (or created for older records), not when the whole quiz was submitted. ISO 8601 format uses your browser timezone ({{timezone}}) with the offset at the response date. Missing timestamps are left blank.",
+      "anonymousTimestampsHidden": "Response timestamps are hidden for anonymous activities to protect anonymity.",
+      "csvTime": "Q{{number}} Time",
+      "csvAttemptTime": "Q{{number}} Attempt {{attempt}} Time"
     },
     "secondDesktop": {
       "joinCode": "Join Code",
@@ -2234,7 +2243,8 @@
             "Allowed email domains are a comma-separated list; login/session expiry is a whole number of minutes for newly issued access and refresh sessions; locale, date format, and time format become global defaults.",
             "SSO values are plain text fields for URLs, entity IDs, and attribute names. Certificates and keys should be pasted exactly as your identity provider supplies them.",
             "Storage forms expect the provider-specific fields shown in the UI, and you should always confirm the setup by uploading an image afterward.",
-            "Use the Backup tab to confirm the scheduled backup time, the 7 daily / 4 weekly / 12 monthly retention defaults, and the latest run status before relying on the system for recovery."
+            "Use the Backup tab to confirm the scheduled backup time, the 7 daily / 4 weekly / 12 monthly retention defaults, and the latest run status before relying on the system for recovery.",
+            "In Profile, choose Light or Dark under Appearance. The setting saves automatically and follows your account across sessions and devices."
           ],
           "note": "When someone reports a user-facing issue, compare this guide with the professor or student guide so the support answer matches the current workflow.",
           "screenshot": {
@@ -2422,7 +2432,9 @@
             "If group structures mattered during the activity, compare the review and grading data with the course groups so you can spot uneven participation patterns.",
             "Enrollment creates missing grades for completed course activities, including saved guest responses. Missed work receives zero without needing grading; written answers may need grading. Existing grades and feedback are preserved. Anonymous activities remain ungraded.",
             "Grade-table averages use actual grade items in the displayed sessions. Missing items are excluded; recorded zeros count. Use Select sessions with grade items, or include sessions labelled No grade items manually.",
-            "Only submitted quizzes are shown until this quiz ends. After it ends, saved answers are included even if the student did not submit."
+            "Only submitted quizzes are shown until this quiz ends. After it ends, saved answers are included even if the student did not submit.",
+            "In Response Data, Export CSV opens an options dialog. Select Include response timestamps to add a time column for each question and attempt. Times use ISO 8601 with the browser timezone and the offset at the response date, including daylight saving time. They indicate the last answer save, falling back to creation time, not final quiz submission. Missing legacy timestamps remain blank. Anonymous activities never export response times. The export keeps the table’s current search and sort order. The Joined Session CSV column always uses the same format. The suffix -04:00 means four hours behind UTC; the offset accounts for daylight saving time at the recorded date. Missing join times are blank.",
+            "In Results, the session response timeline is collapsed on page load and combines all questions and attempts. Each question attempt has its own expandable graph, using only that attempt’s response timestamps to set the range. Adjust Detail to change the interval size; hover, tap, or use the arrow keys to inspect counts. Charts span the recorded response times, including gaps and responses outside scheduled quiz dates. Dotted lines mark scheduled quiz dates within the plot; dates outside it are listed below. Quiz charts count each answer at its last saved time, not every edit or final quiz submission. Missing timestamps are counted but excluded, and anonymous activities do not show timelines."
           ],
           "success": "Professors can open the student manual from the switcher above to preview the learner workflow before class."
         },
@@ -2461,7 +2473,8 @@
           "bullets": [
             "Uploading a profile picture opens a crop-and-rotate dialog so you can choose the square avatar thumbnail before saving.",
             "When institution-wide SSO is enabled, your name and password fields remain locked unless an administrator has granted the allow-email-login exception for your account.",
-            "Password-reset email follows the same rule, so use the SSO route or contact an administrator if the profile page says local email login is disabled."
+            "Password-reset email follows the same rule, so use the SSO route or contact an administrator if the profile page says local email login is disabled.",
+            "In Profile, choose Light or Dark under Appearance. The setting saves automatically and follows your account across sessions and devices."
           ]
         }
       ]
@@ -2583,7 +2596,8 @@
           "bullets": [
             "Uploading a profile picture opens a crop-and-rotate dialog so you can position the avatar circle before saving.",
             "If institution-wide SSO is enabled and your account has not been granted email-login access, your name and password fields stay locked on purpose.",
-            "In that same SSO-managed case, password-reset email is unavailable until an administrator grants the allow-email-login exception for your account."
+            "In that same SSO-managed case, password-reset email is unavailable until an administrator grants the allow-email-login exception for your account.",
+            "In Profile, choose Light or Dark under Appearance. The setting saves automatically and follows your account across sessions and devices."
           ]
         }
       ]
@@ -2799,5 +2813,26 @@
   "sessionAnonymity": {
     "chip": "Anonymous",
     "studentNotice": "This session is anonymous. You still sign in and can answer each question only once, but your instructor cannot see which responses are yours. Anonymous sessions are not graded."
+  },
+  "responseTimeline": {
+    "overview": "Session response timeline",
+    "question": "Response timeline — Q{{number}}, attempt {{attempt}}",
+    "quizHint": "Each answer is counted once at its last saved time, not at every edit or final quiz submission. The range comes from recorded responses.",
+    "liveHint": "Each response is counted at its submission time. The range comes from recorded responses, including gaps between live periods.",
+    "missing": "Responses without a usable timestamp: {{count}}. These are excluded from the chart.",
+    "empty": "No response timestamps are available.",
+    "detail": "Detail",
+    "coarse": "Coarse",
+    "auto": "Automatic",
+    "fine": "Fine",
+    "interval": "Interval: {{interval}} · Timezone: {{timezone}}",
+    "total": "Responses plotted: {{count}}",
+    "inspectHelp": "Hover or tap to inspect an interval. With the chart focused, use Left/Right, Home/End, and Escape.",
+    "responseAxis": "Responses",
+    "bucket": "{{start}} to {{end}} · Responses: {{count}}",
+    "scheduledOpen": "Scheduled opening",
+    "scheduledClose": "Scheduled closing",
+    "scheduleHint": "Dotted lines mark scheduled quiz dates within the plotted range. Dates are references only; they do not exclude responses.",
+    "outsideRange": "outside response range"
   }
 }

@@ -1,18 +1,22 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import {
   addInstructorToCourseViaApi,
   addQuestionToSessionViaApi,
   apiJson,
+  buildUser,
   createCourseViaApi,
   createQuestionViaApi,
   createSessionViaApi,
   enrollStudentViaApi,
+  expectNoCriticalAccessibilityViolations,
   loginViaUi,
   patchSessionViaApi,
   patchSettingsViaApi,
+  readE2eState,
   seedUsers,
 } from './helpers.js';
 
@@ -22,6 +26,8 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, '../..');
 const docsOutputDir = path.join(repoRoot, 'docs/assets/manuals');
 const publicOutputDir = path.join(repoRoot, 'client/public/manuals');
+const require = createRequire(path.join(repoRoot, 'server/package.json'));
+const { MongoClient } = require('mongodb');
 
 async function capture(page, filename, height = 1000) {
   const selectedImages = process.env.QCLICKER_MANUAL_IMAGES?.split(',');
@@ -33,6 +39,21 @@ async function capture(page, filename, height = 1000) {
   await page.screenshot({ path: docsPath, fullPage: false });
   await fs.copyFile(docsPath, path.join(publicOutputDir, filename));
 }
+
+test('capture profile appearance screenshot', async ({ page, request }) => {
+  test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Run with QCLICKER_CAPTURE_MANUALS=1.');
+  const { student } = await seedUsers(request, { admin: false, professor: false });
+  await fs.mkdir(docsOutputDir, { recursive: true });
+  await fs.mkdir(publicOutputDir, { recursive: true });
+  await loginViaUi(page, student.email, student.password, /\/student$/);
+  await page.goto('/profile');
+  await page.getByRole('combobox', { name: 'Appearance' }).click();
+  await page.getByRole('option', { name: 'Dark', exact: true }).click();
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+  await expect(page.getByRole('alert')).toBeHidden();
+  await capture(page, 'profile-dark-mode.png', 1100);
+  await apiJson(request, 'PATCH', '/users/me', { token: student.token, payload: { themeMode: 'light' } });
+});
 
 test('capture current user-manual screenshots', async ({ browser, request }) => {
   test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Run with QCLICKER_CAPTURE_MANUALS=1.');
@@ -366,7 +387,21 @@ test('capture current user-manual screenshots', async ({ browser, request }) => 
   await capture(professorPage, 'professor-grades.png');
   await professorPage.goto(`/prof/course/${course._id}/session/${completedQuiz._id}/review`);
   await expect(professorPage.getByRole('switch', { name: 'Grades visible', exact: true })).toBeChecked();
+  await expect(professorPage.getByRole('button', { name: 'Session response timeline', exact: true })).toHaveAttribute('aria-expanded', 'false');
   await capture(professorPage, 'professor-session-review.png');
+  await professorPage.getByRole('tab', { name: /^Response Data$/i }).click();
+  await professorPage.getByRole('button', { name: /^Export results to CSV$/i }).click();
+  const exportDialog = professorPage.getByRole('dialog', { name: /^Export results to CSV$/i });
+  await expect(exportDialog.getByRole('checkbox', { name: /include response timestamps/i })).not.toBeChecked();
+  await exportDialog.getByRole('checkbox', { name: /include response timestamps/i }).check();
+  await expectNoCriticalAccessibilityViolations(professorPage);
+  await capture(professorPage, 'professor-response-export.png');
+  const downloadPromise = professorPage.waitForEvent('download');
+  await exportDialog.getByRole('button', { name: /^Export CSV$/i }).click();
+  const download = await downloadPromise;
+  const csv = await fs.readFile(await download.path(), 'utf8');
+  expect(csv).toContain('Q1 Time');
+  expect(csv).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}/);
   await professorPage.goto(`/prof/course/${course._id}`);
   await professorPage.getByRole('tab', { name: /^AI Settings$/i }).click();
   await expect(professorPage.getByLabel(/^Default model$/i)).toBeVisible();
@@ -520,4 +555,86 @@ test('capture anonymous statistics privacy notice', async ({ page, request }) =>
   await page.goto(`/prof/course/${course._id}/session/${session._id}/live`);
   await expect(page.getByRole('status').filter({ hasText: 'To protect anonymity' })).toBeVisible();
   await capture(page, 'professor-anonymous-stats-waiting.png', 1200);
+});
+
+test('review response timelines include all response times and work on narrow screens', async ({ browser, request }) => {
+  const { admin, professor, student } = await seedUsers(request);
+  const course = await createCourseViaApi(request, admin.token, { name: 'Introduction to Biology', deptCode: 'BIOL', courseNumber: '101' });
+  await addInstructorToCourseViaApi(request, admin.token, course._id, professor.user._id);
+  const session = await createSessionViaApi(request, professor.token, course._id, {
+    name: 'Cell Biology Review Quiz', quiz: true, status: 'hidden',
+    quizStart: '2026-10-02T19:00:00Z', quizEnd: '2026-10-02T19:10:00Z',
+  });
+  const questionIds = [];
+  for (const content of ['Which structure controls what enters and leaves the cell?', 'Which structure contains most of the cell’s genetic material?']) {
+    const question = await createQuestionViaApi(request, professor.token, {
+      courseId: course._id, content: `<p>${content}</p>`, plainText: content,
+      options: [{ answer: 'Cell membrane', correct: true }, { answer: 'Nucleus', correct: false }],
+      sessionOptions: { points: 2 },
+    });
+    const updated = await addQuestionToSessionViaApi(request, professor.token, session._id, question._id);
+    questionIds.push(String(updated.questions.at(-1)));
+  }
+  const participants = [student];
+  for (let i = 1; i < 12; i += 1) {
+    const registered = await apiJson(request, 'POST', '/auth/register', { payload: buildUser('timeline') });
+    expect(registered.response.status()).toBe(201);
+    participants.push(registered.body);
+  }
+  for (const participant of participants) await enrollStudentViaApi(request, participant.token, course.enrollmentCode);
+  // Historical times and missing legacy dates are seeded only into the isolated
+  // in-memory E2E database, never through production endpoints or real data.
+  const { mongoUri } = await readE2eState();
+  const mongo = await MongoClient.connect(mongoUri);
+  try {
+    const offsets = [0, 15, 15, 30, 90, 90, 90, 300, 360, 700, 720, 900];
+    const responses = questionIds.flatMap((questionId, questionIndex) => participants.map((participant, index) => {
+      const timestamp = new Date(Date.parse('2026-10-02T18:58:00Z') + (offsets[index] + questionIndex * 90) * 1000);
+      return {
+        _id: `timeline-${questionId}-${index}`, questionId, studentUserId: participant.user._id, attempt: 1,
+        answer: String(index % 2), editable: false,
+        ...(questionIndex === 1 && index === 0 ? {} : { submittedAt: timestamp, createdAt: timestamp, updatedAt: new Date('2026-10-02T20:00:00Z') }),
+      };
+    }));
+    await mongo.db().collection('responses').insertMany(responses);
+  } finally {
+    await mongo.close();
+  }
+  await patchSessionViaApi(request, professor.token, session._id, { status: 'done' });
+  const context = await browser.newContext({ timezoneId: 'America/Toronto', hasTouch: true });
+  const page = await context.newPage();
+  await loginViaUi(page, professor.email, professor.password, /\/prof$/);
+  await page.setViewportSize({ width: 1440, height: 1500 });
+  await page.goto(`/prof/course/${course._id}/session/${session._id}/review`);
+  await expect(page.getByRole('button', { name: 'Session response timeline', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  await page.getByRole('button', { name: 'Session response timeline', exact: true }).click();
+  const overview = page.getByRole('region', { name: 'Session response timeline', exact: true });
+  await expect(overview.getByText('Responses plotted: 23', { exact: true })).toBeVisible();
+  await expect(overview.getByText(/without a usable timestamp: 1/)).toBeVisible();
+  const chart = overview.getByRole('img', { name: 'Session response timeline', exact: true });
+  await chart.focus();
+  await chart.press('Home');
+  await expect(overview.getByRole('status')).toContainText('Oct 2, 2026');
+  await expect(overview.getByRole('status')).toContainText('2:58:00 PM');
+  await chart.press('End');
+  await expect(overview.getByRole('status')).toContainText('3:14:');
+  await chart.press('Escape');
+  await expect(overview.getByRole('status')).toBeEmpty();
+  await page.getByRole('button', { name: 'Response timeline — Q1, attempt 1', exact: true }).click();
+  const question = page.getByRole('region', { name: 'Response timeline — Q1, attempt 1', exact: true });
+  await expect(question.getByText('Responses plotted: 12', { exact: true })).toBeVisible();
+  await expect(question.getByRole('switch')).toHaveCount(0);
+  await expectNoCriticalAccessibilityViolations(page);
+  if (process.env.QCLICKER_CAPTURE_MANUALS === '1') await capture(page, 'professor-response-timeline.png', 1900);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(question.getByRole('combobox', { name: 'Detail' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await chart.scrollIntoViewIfNeeded();
+  await chart.tap({ position: { x: 90, y: 80 } });
+  await expect(overview.getByRole('status')).not.toBeEmpty();
+  await overview.getByRole('combobox', { name: 'Detail', exact: true }).click();
+  await page.getByRole('option', { name: 'Fine', exact: true }).click();
+  await expect(overview.getByText('Responses plotted: 23', { exact: true })).toBeVisible();
+  await expectNoCriticalAccessibilityViolations(page);
+  await context.close();
 });
