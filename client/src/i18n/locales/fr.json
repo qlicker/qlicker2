@@ -1046,7 +1046,8 @@
       "expandAllPreviews": "Développer tous les aperçus",
       "collapseAllPreviews": "Réduire tous les aperçus",
       "expandQuestion": "Développer la question {{number}}",
-      "collapseQuestion": "Réduire la question {{number}}"
+      "collapseQuestion": "Réduire la question {{number}}",
+      "allowSkippingZeroPointQuestions": "Autoriser la remise du quiz avec des questions à 0 point sans réponse"
     },
     "liveSession": {
       "currentQuestion": "Question actuelle",
@@ -1492,7 +1493,9 @@
       "submittingQuestion": "Soumission...",
       "submitting": "Soumission...",
       "submitPracticeQuiz": "Soumettre le quiz pratique",
-      "submitQuiz": "Soumettre le quiz"
+      "submitQuiz": "Soumettre le quiz",
+      "answerRequiredToSubmit": "Répondez à toutes les questions obligatoires pour activer la remise. Les questions facultatives peuvent être ignorées.",
+      "optionalZeroPoints": "Facultative (0 point)"
     },
     "sessionReview": {
       "pageProgress": "Page {{current}} sur {{total}}",
@@ -2355,7 +2358,8 @@
             "Les réponses et la présence sont enregistrées sans l'identité des étudiants. Cette session ne sera pas notée. L'anonymat ne peut plus être modifié une fois que des étudiants ont rejoint la session ou répondu. Les statistiques anonymes en direct et les listes de réponses non liées sont mises à jour après les réponses d’au moins quatre nouvelles personnes à la question et à la tentative. Les noms et les heures des réponses sont masqués. Après la fin de l’activité, les réponses sont publiées séparément pour chaque question et tentative comptant au moins quatre répondants, avec un lien entre les questions admissibles. Pour les groupes plus petits, le nombre réel de réponses reste visible avec un avis de masquage ; les pourcentages globaux restent masqués tant que certaines réponses le sont. Une réponse particulière peut encore identifier quelqu’un. Un encadré d’information dans les commandes en direct explique le minimum de quatre personnes tant que les statistiques sont masquées, puis indique le nombre de réponses publiées et la règle de mise à jour par groupes.",
             "L’éditeur de session affiche les commandes de partage uniquement lorsque le cours autorise le partage d’activités. Utilisez l’interrupteur de la séance pour activer ou désactiver le partage; le code actif reste visible après actualisation et peut être régénéré. Activez d’abord le partage par code dans les paramètres du cours; il est désactivé par défaut. Le désactiver révoque les codes existants et l’accès externe. Supprimez les prolongations individuelles avant le partage; elles restent indisponibles ensuite. Pour inviter des personnes connectées hors du cours, créez un quiz ou une séance en direct dans le cours, puis générez un code d’activité S- dans l’éditeur. Copiez-le aussitôt; le renouveler bloque les nouveaux accès avec l’ancien code et le désactiver retire l’accès externe. La réactivation réutilise le même code; seule la régénération le remplace. Dans une activité nominative, les étudiants inscrits peuvent recevoir des notes; les invités ont des réponses suivies mais pas de notes. Activez l’anonymat pour un sondage sans note pour personne. Choisissez des réponses nominatives ou anonymes avant le premier accès. Après la fin de l’activité, les réponses sont publiées séparément pour chaque question et tentative comptant au moins quatre répondants, avec un lien entre les questions admissibles. Pour les groupes plus petits, le nombre réel de réponses reste visible avec un avis de masquage ; les pourcentages globaux restent masqués tant que certaines réponses le sont. Une réponse particulière peut encore identifier son auteur. Le code tournant de la séance reste requis s’il est activé. Les codes d’activité ne fonctionnent pas tant que l’activité est à l’état Brouillon, même pour les anciens participants. Le même code devient utilisable lorsque l’enseignant publie l’activité. Les codes d’activité commencent par S- suivi de sept lettres ou chiffres. Le code actif apparaît aussi dans les commandes de la séance en direct de l’enseignant.",
             "Si l’enseignant remet une séance en direct à l’état À venir, les participants voient un écran d’attente jusqu’à sa reprise. L’état Brouillon renvoie les étudiants inscrits au cours et les invités à leur tableau de bord. Les réponses enregistrées sont conservées.",
-            "Pour une session interactive à venir, les étudiants peuvent sélectionner Ouvrir la page d’attente ; les invités peuvent saisir son code d’activité S-. L’attente n’enregistre aucune présence. L’enseignant peut encore modifier la session et exiger un code d’accès en direct. Lorsque la session démarre, les participants attendent une question ou saisissent le code après l’ouverture de la période d’accès par l’enseignant."
+            "Pour une session interactive à venir, les étudiants peuvent sélectionner Ouvrir la page d’attente ; les invités peuvent saisir son code d’activité S-. L’attente n’enregistre aucune présence. L’enseignant peut encore modifier la session et exiger un code d’accès en direct. Lorsque la session démarre, les participants attendent une question ou saisissent le code après l’ouverture de la période d’accès par l’enseignant.",
+            "Pour les quiz ordinaires, activez « Autoriser la remise du quiz avec des questions à 0 point sans réponse » dans l’éditeur de séance pour rendre facultatives les questions valant explicitement 0 point. Cette option est désactivée par défaut et s’applique aux étudiants inscrits, aux invités et aux participants anonymes. Les questions ignorées ne modifient ni la note ni la participation ; les quiz de pratique restent inchangés."
           ]
         },
         {
@@ -2474,7 +2478,8 @@
             "Faire défiler la page au-dessus d’une réponse numérique ne modifie pas sa valeur et retire le focus du champ pour permettre le défilement. Cliquez dans le champ ou utilisez la touche Tab pour continuer à modifier la réponse.",
             "Le libellé Anonyme signifie que votre enseignant voit vos réponses sans votre nom. Vous devez toujours vous connecter et ne pouvez répondre qu'une fois à chaque question, vous pourrez revoir vos propres réponses plus tard, et la session n'est pas notée.",
             "Si l’enseignant remet une séance en direct à l’état À venir, les participants voient un écran d’attente jusqu’à sa reprise. L’état Brouillon renvoie les étudiants inscrits au cours et les invités à leur tableau de bord. Les réponses enregistrées sont conservées.",
-            "Pour une session interactive à venir, les étudiants peuvent sélectionner Ouvrir la page d’attente ; les invités peuvent saisir son code d’activité S-. L’attente n’enregistre aucune présence. L’enseignant peut encore modifier la session et exiger un code d’accès en direct. Lorsque la session démarre, les participants attendent une question ou saisissent le code après l’ouverture de la période d’accès par l’enseignant."
+            "Pour une session interactive à venir, les étudiants peuvent sélectionner Ouvrir la page d’attente ; les invités peuvent saisir son code d’activité S-. L’attente n’enregistre aucune présence. L’enseignant peut encore modifier la session et exiger un code d’accès en direct. Lorsque la session démarre, les participants attendent une question ou saisissent le code après l’ouverture de la période d’accès par l’enseignant.",
+            "Lorsque votre enseignant le permet, les questions marquées « Facultative (0 point) » peuvent rester sans réponse. La remise devient disponible dès que toutes les questions obligatoires ont une réponse, même si les questions facultatives sont vides. Les ignorer ne réduit ni votre note ni votre participation. La remise verrouille toujours le quiz."
           ]
         },
         {

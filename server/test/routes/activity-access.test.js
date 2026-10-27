@@ -67,6 +67,31 @@ async function redeem(code, outsiderToken) {
 }
 
 describe('activity code foundation', () => {
+  it.each([false, true])('allows guests to skip zero-point quiz questions without grades (anonymous=%s)', async (anonymous) => {
+    const { professorToken, outsiderToken, outsider, course, session } = await fixture({ anonymous, status: 'running' });
+    const question = await Question.create({ creator: session.creator, type: 2, content: 'Optional feedback', courseId: course._id, sessionId: session._id, sessionOptions: { points: 0 } });
+    await Session.updateOne({ _id: session._id }, { $set: { questions: [question._id], allowSkippingZeroPointQuestions: true } });
+    const call = (method, suffix, token, payload) => authenticatedRequest(app, method, `/api/v1/sessions/${session._id}${suffix}`, { token, payload });
+    expect((await call('POST', '/submit', outsiderToken)).statusCode).toBe(403);
+    const issued = await issue(session._id, professorToken);
+    expect(issued.statusCode).toBe(200);
+    expect((await redeem(issued.json().code, outsiderToken)).statusCode).toBe(200);
+    expect((await call('GET', '/quiz', outsiderToken)).json().session.allowSkippingZeroPointQuestions).toBe(true);
+    expect((await call('POST', '/submit', outsiderToken)).statusCode).toBe(200);
+    expect((await call('POST', '/submit', outsiderToken)).statusCode).toBe(409);
+    expect((await call('PATCH', '/quiz-response', outsiderToken, { questionId: question._id, answer: 'Late answer' })).statusCode).toBe(403);
+    expect((await call('PATCH', '', professorToken, { status: 'done' })).statusCode).toBe(200);
+    const stored = await Session.findById(session._id).lean();
+    expect(stored.submittedQuiz).toEqual([getSessionParticipantId(stored, outsider._id)]);
+    if (anonymous) {
+      expect(stored.submittedQuiz).not.toContain(outsider._id);
+      expect(stored.joinRecords).toEqual([]);
+    }
+    expect(await Response.countDocuments({ questionId: question._id })).toBe(0);
+    expect(await Grade.countDocuments({ sessionId: session._id })).toBe(0);
+    expect((await Course.findById(course._id)).students).not.toContain(outsider._id);
+  });
+
   it('issues a hashed code and an idempotent session-only grant without enrollment or grades', async () => {
     const { professorToken, outsiderToken, outsider, course, session } = await fixture();
     const issued = await issue(session._id, professorToken);

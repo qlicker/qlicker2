@@ -285,6 +285,10 @@ Create a session, enable quiz mode, and configure its window. A normal quiz is s
 
 The status dropdowns in the course page and session editor control the same setting. **Switch to Live/Ended based on dates** follows the quiz schedule and extensions. **Live** opens the quiz immediately, even outside the scheduled dates, and keeps it open until you change its status. **Ended** closes general access while preserving individual extensions. Setting a quiz to **Live** keeps you in the editor; choose **Review Live Session Results** to monitor responses.
 
+**Allow quiz submission with unanswered 0-point questions** is available in the session editor for normal quizzes and is off by default. Enable it to make questions explicitly set to **0 points** optional, including in surveys, anonymous quizzes, and quizzes shared with guests. All other questions still require answers. If every question is optional, participants may submit without answering any. Skipped questions do not reduce scores or participation: both already exclude 0-point questions. Practice quizzes keep their per-question submission workflow.
+
+![Quiz editor with the optional 0-point question setting](../assets/manuals/quiz-editor.png)
+
 Students' answers save while they move through the quiz. The course/dashboard cards show the relevant start/end time. Submitted normal quizzes cannot be edited again. Avoid editing question meaning or scoring while students are actively answering.
 
 ### After the window

@@ -209,3 +209,7 @@ review endpoints still enforce reviewability.
 ## Account appearance
 
 The authenticated `PATCH /api/v1/users/me` endpoint accepts `themeMode: "light" | "dark"` and returns the updated sanitized user. This account preference is also returned by login and `GET /api/v1/users/me`. Missing legacy values mean light mode. Invalid modes receive `400`; the endpoint updates only the authenticated user, and SSO-managed accounts can change appearance without unlocking their name or password.
+
+## Optional zero-point quiz submission
+
+Session creation (`POST /courses/:courseId/sessions`) and instructor updates (`PATCH /sessions/:id`) accept `allowSkippingZeroPointQuestions: boolean`, default `false`. Session payloads, copies, and JSON export/import retain it. With this enabled, `POST /sessions/:id/submit` permits unanswered response-enabled questions only when `sessionOptions.points` is explicitly numeric zero. All other answerable questions remain required; otherwise submission returns `400`. This also applies to authorized named guests and anonymous participants. Practice quizzes retain per-question submission. An all-optional quiz can submit with no responses. Submission locks every saved answer and prevents subsequent answers, including previously skipped questions. `GET /sessions/:id/quiz` keeps `allAnswered` as the actual completion count check, not submission eligibility.

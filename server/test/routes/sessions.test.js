@@ -2364,6 +2364,70 @@ describe('Student quiz routes', () => {
     });
   }
 
+  it('requires opt-in, protects scored questions, locks saved answers, and preserves grades and participation', async () => {
+    const { profToken, course, student, studentToken } = await setupCourseWithStudent();
+    const session = await createOpenQuiz({ profToken, courseId: course._id });
+    const required = await addMcQuestion({ profToken, sessionId: session._id, courseId: course._id });
+    const optional = await addMcQuestion({ profToken, sessionId: session._id, courseId: course._id });
+    const answeredOptional = await addMcQuestion({ profToken, sessionId: session._id, courseId: course._id });
+    await Question.updateMany({ _id: { $in: [optional._id, answeredOptional._id] } }, { $set: { 'sessionOptions.points': 0 } });
+    const call = (method, suffix, token, payload) => authenticatedRequest(app, method, `/api/v1/sessions/${session._id}${suffix}`, { token, payload });
+    expect(session.allowSkippingZeroPointQuestions).toBe(false);
+    // Legacy documents without the setting retain the same requirement.
+    await Session.updateOne({ _id: session._id }, { $unset: { allowSkippingZeroPointQuestions: '' } });
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(400);
+    expect((await call('PATCH', '', studentToken, { allowSkippingZeroPointQuestions: true })).statusCode).toBe(403);
+    expect((await call('PATCH', '', profToken, { allowSkippingZeroPointQuestions: {} })).statusCode).toBe(400);
+    expect((await call('PATCH', '', profToken, { allowSkippingZeroPointQuestions: true })).statusCode).toBe(200);
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(400);
+    // Missing point values must not turn a legacy question into an optional one.
+    await Question.updateOne({ _id: required._id }, { $unset: { 'sessionOptions.points': '' } });
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(400);
+    await Question.updateOne({ _id: required._id }, { $set: { 'sessionOptions.points': 2 } });
+    for (const question of [required, answeredOptional]) {
+      expect((await call('PATCH', '/quiz-response', studentToken, { questionId: question._id, answer: '0' })).statusCode).toBe(200);
+    }
+    expect((await call('PATCH', '', profToken, { allowSkippingZeroPointQuestions: false })).statusCode).toBe(200);
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(400);
+    expect((await call('PATCH', '', profToken, { allowSkippingZeroPointQuestions: true })).statusCode).toBe(200);
+    const quiz = await call('GET', '/quiz', studentToken);
+    expect(quiz.json().session.allowSkippingZeroPointQuestions).toBe(true);
+    expect(quiz.json().allAnswered).toBe(false); // Actual progress still includes optional questions.
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(200);
+    expect((await call('POST', '/submit', studentToken)).statusCode).toBe(409);
+    expect((await call('PATCH', '/quiz-response', studentToken, { questionId: optional._id, answer: '0' })).statusCode).toBe(403);
+    expect(await Response.countDocuments({ questionId: optional._id })).toBe(0);
+    expect(await Response.countDocuments({ questionId: { $in: [required._id, answeredOptional._id] }, editable: true })).toBe(0);
+    expect((await call('PATCH', '', profToken, { status: 'done' })).statusCode).toBe(200);
+    const grade = await Grade.findOne({ sessionId: session._id, userId: student._id }).lean();
+    expect(grade).toMatchObject({ points: 2, outOf: 2, value: 100, participation: 100, numAnswered: 1, numQuestions: 1, numAnsweredTotal: 2, numQuestionsTotal: 3, needsGrading: false });
+    expect(grade.marks.find((mark) => mark.questionId === optional._id)).toMatchObject({ points: 0, outOf: 0, responseId: '', needsGrading: false });
+  });
+
+  it('creates and copies the opt-in setting and allows a wholly optional quiz without responses', async () => {
+    const { profToken, course, studentToken } = await setupCourseWithStudent();
+    const created = await createSessionInCourse(profToken, course._id, { quiz: true, allowSkippingZeroPointQuestions: true });
+    expect(created.statusCode).toBe(201);
+    const session = created.json().session;
+    expect(session.allowSkippingZeroPointQuestions).toBe(true);
+    const question = await addMcQuestion({ profToken, sessionId: session._id, courseId: course._id });
+    await Question.updateOne({ _id: question._id }, { $set: { 'sessionOptions.points': 0 } });
+    const copied = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${session._id}/copy`, { token: profToken, payload: {} });
+    expect(copied.statusCode).toBe(201);
+    expect(copied.json().session.allowSkippingZeroPointQuestions).toBe(true);
+    const exported = await authenticatedRequest(app, 'GET', `/api/v1/sessions/${session._id}/export`, { token: profToken });
+    expect(exported.statusCode).toBe(200);
+    expect(exported.json().session.allowSkippingZeroPointQuestions).toBe(true);
+    const imported = await authenticatedRequest(app, 'POST', `/api/v1/courses/${course._id}/sessions/import`, { token: profToken, payload: { session: exported.json().session } });
+    expect(imported.statusCode).toBe(201);
+    expect(imported.json().session.allowSkippingZeroPointQuestions).toBe(true);
+
+    await Session.updateOne({ _id: session._id }, { $set: { status: 'running' } });
+    const submit = await authenticatedRequest(app, 'POST', `/api/v1/sessions/${session._id}/submit`, { token: studentToken });
+    expect(submit.statusCode).toBe(200);
+    expect(await Response.countDocuments({ questionId: question._id })).toBe(0);
+  });
+
   it.each(['visible', 'running'])('quiz results reveal submitted attempts, then all saved answers at Ended (%s)', async (status) => {
     const { prof, profToken, course, student, studentToken } = await setupCourseWithStudent();
     const other = await createTestUser({ email: 'unsubmitted-quiz@example.com' });

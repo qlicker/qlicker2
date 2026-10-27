@@ -1609,6 +1609,18 @@ export default function SessionEditor() {
                 </Tooltip>
               )}
             />
+            {quiz && !practiceQuiz && (
+              <FormControlLabel
+                control={(
+                  <Switch
+                    checked={!!session.allowSkippingZeroPointQuestions}
+                    onChange={(e) => saveSessionPatch({ allowSkippingZeroPointQuestions: e.target.checked })}
+                    disabled={savingSession}
+                  />
+                )}
+                label={t('professor.sessionEditor.allowSkippingZeroPointQuestions')}
+              />
+            )}
             <FormControlLabel
               control={(
                 <Switch

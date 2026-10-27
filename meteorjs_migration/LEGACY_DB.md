@@ -145,6 +145,7 @@ Legacy installations use `users`, `courses`, `sessions`, `questions`, `responses
   status: String,                 // 'hidden', 'visible', 'running', 'done'
   quiz: Boolean,
   practiceQuiz: Boolean,          // New
+  allowSkippingZeroPointQuestions: Boolean, // New: absent means false; no migration
   anonymous: Boolean,             // New: absent means false; see note below
   participationStarted: Boolean,  // New: monotonic guard against changing identity mode after participation
   quizStart: Date,
