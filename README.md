@@ -24,7 +24,7 @@ Qlicker is an open-source classroom response system. Run live questions, quizzes
 For a local installation, you need **Git, Docker Engine with Compose v2, Bash, and OpenSSL**. Node.js, MongoDB, and Redis run in containers; you do not need to install them separately. These commands target a Linux host; the bundled system monitor uses Linux `/proc` mounts.
 
 ```bash
-git clone https://github.com/ryanmartinneutrino/qlicker2.git
+git clone https://github.com/qlicker/qlicker2.git
 cd qlicker2
 ./scripts/setup-docker.sh
 docker compose up -d --build
