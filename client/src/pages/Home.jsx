@@ -199,14 +199,16 @@ export default function Home() {
         img.onerror = reject;
         img.src = src;
       }));
-      return Promise.all(loaders);
+      // A missing or undecodable asset must not suppress the entire background.
+      const results = await Promise.allSettled(loaders);
+      return results.filter((result) => result.status === 'fulfilled').map((result) => result.value);
     }
 
     async function init() {
       try {
         resize();
         const images = await loadImages();
-        if (canceled) return;
+        if (canceled || images.length === 0) return;
 
         const spriteCount = 52;
         const rect = heroEl.getBoundingClientRect();

@@ -63,6 +63,32 @@ test('the landing page llama supports touch and reduced motion on mobile', async
   await expect(greeting).toHaveCount(0);
 });
 
+test('the landing page keeps the other doodles when one asset cannot decode', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 800, height: 600 });
+  // A stale development server can return its HTML fallback for a missing SVG.
+  await page.route('**/animated-hero/assets/doodles/cap.svg', (route) => route.fulfill({
+    status: 200,
+    contentType: 'text/html',
+    body: '<!doctype html><html><body>App fallback</body></html>',
+  }));
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Llama', exact: true })).toBeVisible();
+  const canvas = page.locator('#bgCanvas');
+  await expect(canvas).toBeVisible();
+  await expect.poll(() => canvas.evaluate((element) => {
+    const pixels = element.getContext('2d').getImageData(0, 0, element.width, element.height).data;
+    // Look for actual blue strokes; the canvas's white wash alone must not pass.
+    let bluePixels = 0;
+    for (let index = 0; index < pixels.length; index += 16) {
+      if (pixels[index + 2] > pixels[index] + 20 && pixels[index + 1] > pixels[index] + 10 && pixels[index + 3] > 0) bluePixels += 1;
+    }
+    return bluePixels;
+  })).toBeGreaterThan(50);
+  await page.getByRole('button', { name: /get started/i }).click();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 test('capture the public landing page', async ({ page }) => {
   test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Opt-in documentation capture.');
   await page.setViewportSize({ width: 1440, height: 900 });
