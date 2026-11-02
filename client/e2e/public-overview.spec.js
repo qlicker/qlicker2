@@ -16,6 +16,53 @@ async function capture(page, filename) {
   await fs.copyFile(docsPath, path.join(root, 'client/public/manuals', filename));
 }
 
+test('the landing page has one llama greeting on hover and keyboard focus', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const llama = page.getByRole('button', { name: 'Llama', exact: true });
+  const greeting = page.getByRole('tooltip');
+  await expect(llama).toHaveCount(1);
+  await expect(greeting).toHaveCount(0);
+  // Move to its current position without waiting for a floating doodle to stop moving.
+  const floatingBounds = await llama.boundingBox();
+  await page.mouse.move(floatingBounds.x + floatingBounds.width / 2, floatingBounds.y + floatingBounds.height / 2);
+  await expect(greeting).toHaveText('hello');
+  await expect(llama).toHaveCSS('animation-play-state', 'paused');
+  const llamaBounds = await llama.boundingBox();
+  const greetingBounds = await greeting.boundingBox();
+  expect(greetingBounds.x).toBeGreaterThan(llamaBounds.x + llamaBounds.width * 0.8);
+  expect(greetingBounds.y).toBeGreaterThan(llamaBounds.y);
+  expect(greetingBounds.y).toBeLessThan(llamaBounds.y + llamaBounds.height / 2);
+  await page.mouse.move(0, 0);
+  await expect(greeting).toHaveCount(0);
+  await page.getByRole('button', { name: /get started/i }).focus();
+  await page.keyboard.press('Tab');
+  await expect(llama).toBeFocused();
+  await expect(greeting).toHaveText('hello');
+  await page.keyboard.press('Escape');
+  await expect(greeting).toHaveCount(0);
+  await expectNoCriticalAccessibilityViolations(page);
+});
+
+test('the landing page llama supports touch and reduced motion on mobile', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const llama = page.getByRole('button', { name: 'Llama', exact: true });
+  const greeting = page.getByRole('tooltip');
+  await expect(llama).toHaveCount(1);
+  await expect(llama).toHaveCSS('animation-name', 'none');
+  await expect(llama).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  const llamaBounds = await llama.boundingBox();
+  const copyBounds = await page.getByRole('heading', { level: 1 }).boundingBox();
+  expect(llamaBounds.y + llamaBounds.height < copyBounds.y || llamaBounds.y > copyBounds.y + copyBounds.height).toBe(true);
+  await llama.dispatchEvent('touchstart', { touches: [{ identifier: 1 }] });
+  await expect(greeting).toHaveText('hello');
+  await llama.dispatchEvent('touchend', { touches: [] });
+  await expect(greeting).toHaveCount(0);
+});
+
 test('capture the public landing page', async ({ page }) => {
   test.skip(process.env.QCLICKER_CAPTURE_MANUALS !== '1', 'Opt-in documentation capture.');
   await page.setViewportSize({ width: 1440, height: 900 });

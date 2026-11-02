@@ -226,7 +226,9 @@
     "description": "课堂投票、居家测验、学生练习环节、成绩管理、统计分析等等，尽在您的指尖，完全免费！",
     "getStarted": "开始使用",
     "motionNote": "动效遵循 `prefers-reduced-motion` 设置。",
-    "phoneAlt": "显示 Qlicker 的手机"
+    "phoneAlt": "显示 Qlicker 的手机",
+    "llama": "美洲驼",
+    "llamaHello": "你好"
   },
   "auth": {
     "email": "电子邮箱",

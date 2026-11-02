@@ -226,7 +226,9 @@
     "description": "Umfragen im Unterricht, Quizze für zu Hause, Übungssitzungen für Studierende, Notenverwaltung, Statistiken und vieles mehr. Alles griffbereit und kostenlos!",
     "getStarted": "Jetzt starten",
     "motionNote": "Animationen berücksichtigen `prefers-reduced-motion`.",
-    "phoneAlt": "Telefon mit Qlicker-Anzeige"
+    "phoneAlt": "Telefon mit Qlicker-Anzeige",
+    "llama": "Lama",
+    "llamaHello": "hallo"
   },
   "auth": {
     "email": "E-Mail",

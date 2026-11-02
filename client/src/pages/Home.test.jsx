@@ -13,6 +13,8 @@ vi.mock('react-i18next', () => ({
       'home.getStarted': 'Get Started',
       'home.motionNote': 'Motion respects `prefers-reduced-motion`.',
       'home.phoneAlt': 'App preview',
+      'home.llama': 'Llama',
+      'home.llamaHello': 'hello',
     }[key] ?? key),
   }),
 }));
@@ -27,6 +29,10 @@ vi.mock('../components/common/ConnectionStatus', () => ({
 
 describe('Home', () => {
   beforeEach(() => {
+    vi.stubGlobal('ResizeObserver', class {
+      observe() {}
+      disconnect() {}
+    });
     window.matchMedia = vi.fn().mockReturnValue({
       matches: true,
       addEventListener: vi.fn(),

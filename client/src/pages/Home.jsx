@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
+import Tooltip from '@mui/material/Tooltip';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ConnectionStatus from '../components/common/ConnectionStatus';
@@ -28,6 +29,45 @@ export default function Home() {
   const { t } = useTranslation();
   const heroRef = useRef(null);
   const canvasRef = useRef(null);
+  const llamaRef = useRef(null);
+  const [llamaGreetingOpen, setLlamaGreetingOpen] = useState(false);
+
+  useEffect(() => {
+    const hero = heroRef.current;
+    const llama = llamaRef.current;
+    // Reuse the same random candidates on resize so the llama doesn't jump on hover.
+    const candidates = Array.from({ length: 80 }, () => ({ x: Math.random(), y: Math.random() }));
+    const content = [...hero.querySelectorAll('.homeHeroCopy, .homeHeroDevice')];
+
+    function placeLlama() {
+      const heroBounds = hero.getBoundingClientRect();
+      const size = llama.offsetWidth;
+      const obstacles = content.map((element) => element.getBoundingClientRect());
+      const positions = candidates.map(({ x, y }) => ({
+        x: 28 + x * Math.max(0, heroBounds.width - size - 148),
+        y: 64 + y * Math.max(0, heroBounds.height - size - 92),
+      }));
+      const position = positions.find(({ x, y }) => obstacles.every((bounds) => (
+        x + size + 112 < bounds.left - heroBounds.left
+        || x - 20 > bounds.right - heroBounds.left
+        || y + size + 20 < bounds.top - heroBounds.top
+        || y - 60 > bounds.bottom - heroBounds.top
+      ))) || {
+        // The reserved bottom space always leaves room on narrow screens.
+        x: positions[0].x,
+        y: heroBounds.height - size - 24,
+      };
+      llama.style.left = `${position.x}px`;
+      llama.style.top = `${position.y}px`;
+      setLlamaGreetingOpen(false);
+    }
+
+    placeLlama();
+    const observer = new ResizeObserver(placeLlama);
+    observer.observe(hero);
+    content.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -250,6 +290,26 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {/* Keep the llama separate from the repeating canvas sprites: there is only one. */}
+        <Tooltip title={t('home.llamaHello')} arrow describeChild placement="right-start" enterTouchDelay={0}
+          open={llamaGreetingOpen} onOpen={() => setLlamaGreetingOpen(true)} onClose={() => setLlamaGreetingOpen(false)}
+          slotProps={{
+            popper: { modifiers: [{ name: 'offset', options: { offset: [14, -12] } }] },
+            tooltip: { sx: {
+              bgcolor: theme.palette.background.paper,
+              color: theme.palette.mode === 'dark' ? '#8FC3E8' : '#427da3',
+              border: '2px solid #8FC3E8',
+              borderRadius: '14px',
+              fontSize: '0.875rem',
+              px: 1.75,
+              py: 0.75,
+            } },
+            arrow: { sx: { color: theme.palette.background.paper, '&::before': { border: '2px solid #8FC3E8' } } },
+          }}>
+          <button ref={llamaRef} className="homeHeroLlama" type="button" aria-label={t('home.llama')}>
+            <img src="/animated-hero/assets/doodles/llama.svg" alt="" />
+          </button>
+        </Tooltip>
       </main>
     </>
   );
