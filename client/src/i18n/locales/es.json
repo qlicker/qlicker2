@@ -226,7 +226,9 @@
     "description": "Encuestas en clase, cuestionarios en casa, sesiones de práctica para estudiantes, gestión de calificaciones, estadísticas y mucho más. Todo al alcance de su mano y de forma gratuita.",
     "getStarted": "Comenzar",
     "motionNote": "El movimiento respeta `prefers-reduced-motion`.",
-    "phoneAlt": "Teléfono mostrando Qlicker"
+    "phoneAlt": "Teléfono mostrando Qlicker",
+    "llama": "Llama",
+    "llamaHello": "hola"
   },
   "auth": {
     "email": "Correo electrónico",

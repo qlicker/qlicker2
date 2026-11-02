@@ -226,7 +226,9 @@
     "description": "Sondaggi in classe, quiz da casa, sessioni di pratica per gli studenti, gestione dei voti, statistiche e molto altro. Tutto a portata di mano e gratis!",
     "getStarted": "Inizia",
     "motionNote": "Il movimento rispetta `prefers-reduced-motion`.",
-    "phoneAlt": "Telefono che mostra Qlicker"
+    "phoneAlt": "Telefono che mostra Qlicker",
+    "llama": "Lama",
+    "llamaHello": "ciao"
   },
   "auth": {
     "email": "Email",

@@ -226,7 +226,9 @@
     "description": "In-class pollin', at-home reckonings, crew member drill voyages, ledger management, statistics, an' so much more — all at yer fingertips, an' free as th' open sea!",
     "getStarted": "Get Started",
     "motionNote": "Motion respects `prefers-reduced-motion`, arr.",
-    "phoneAlt": "A phone showin' off Qlicker"
+    "phoneAlt": "A phone showin' off Qlicker",
+    "llama": "Llama",
+    "llamaHello": "ahoy"
   },
   "auth": {
     "email": "Missive",

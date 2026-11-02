@@ -1,9 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
-<g fill="none" stroke="#8FC3E8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
-  <circle cx="120" cy="110" r="70"/>
-  <path d="M50 110h140"/>
-  <path d="M120 40c25 22 35 50 35 70s-10 48-35 70"/>
-  <path d="M120 40c-25 22-35 50-35 70s10 48 35 70"/>
-  <path d="M90 190h60"/>
-  <path d="M120 180v40"/>
-</g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+  <g fill="none" stroke="#8FC3E8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+    <circle cx="106" cy="94" r="62"/>
+    <g transform="rotate(40 106 94)">
+      <path d="M106 32C77 60 77 128 106 156C135 128 135 60 106 32Z"/>
+      <path d="M44 94H168M53 62C85 75 127 75 159 62M53 126C85 113 127 113 159 126"/>
+      <path d="M106 12V32M106 156V176"/>
+      <path d="M106 12A82 82 0 0 1 106 176"/>
+    </g>
+    <path d="M120 175V192M86 198C101 189 139 189 154 198"/>
+  </g>
+</svg>

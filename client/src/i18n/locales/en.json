@@ -226,7 +226,9 @@
     "description": "In-class polling, at home quizzes, student practice sessions, grade management, statistics, and so much more. All at your fingertips and for free!",
     "getStarted": "Get started",
     "motionNote": "Motion respects `prefers-reduced-motion`.",
-    "phoneAlt": "Phone showing Qlicker"
+    "phoneAlt": "Phone showing Qlicker",
+    "llama": "Llama",
+    "llamaHello": "hello"
   },
   "auth": {
     "email": "Email",

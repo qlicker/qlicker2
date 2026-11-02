@@ -226,7 +226,9 @@
     "description": "Sondages en classe, questionnaires à domicile, séances de pratique pour les étudiants, gestion des notes, statistiques, et bien plus encore. Le tout à portée de main et gratuitement !",
     "getStarted": "Commencer",
     "motionNote": "Le mouvement respecte `prefers-reduced-motion`.",
-    "phoneAlt": "Téléphone affichant Qlicker"
+    "phoneAlt": "Téléphone affichant Qlicker",
+    "llama": "Lama",
+    "llamaHello": "bonjour"
   },
   "auth": {
     "email": "E-mail",
