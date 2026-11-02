@@ -175,7 +175,9 @@ REDIS_URL= QCLICKER_CAPTURE_MANUALS=1 npx playwright test e2e/public-overview.sp
 
 The anonymous review test also runs as a normal browser regression without the capture variable; only screenshot writing and the landing-page capture require opt-in.
 
-The landing-page doodles are SVG outlines in `client/public/animated-hero/assets/doodles/`. Keep their strokes inside the viewBox with padding. `Home.jsx` repeats the school doodles on a decorative canvas, but renders the llama once as a separate button so its localized greeting works on hover, keyboard focus, and touch. It chooses a random open position on each visit, keeps clear of the page content, and uses a pale-blue outlined speech bubble. Its floating animation pauses during interaction and stops with reduced motion. Keep the llama out of the repeating sprite list. The public-overview browser tests cover this interaction.
+The landing-page doodles are SVG outlines in `client/public/animated-hero/assets/doodles/`. Keep their strokes inside the viewBox with padding. `Home.jsx` repeats the school doodles on a decorative canvas, skipping images that fail to load or decode. If every image fails, the page remains usable without the canvas animation. It renders the llama once as a separate button so its localized greeting works on hover, keyboard focus, and touch. It chooses a random open position on each visit, keeps clear of the page content, and uses a pale-blue outlined speech bubble. Its floating animation pauses during interaction and stops with reduced motion. Keep the llama out of the repeating sprite list. The public-overview browser tests cover this interaction and partial asset failures.
+
+After switching branches with Vite running, restart the development server if an existing public SVG URL returns the app's HTML instead of `image/svg+xml`; its cached public-file list may be stale. The loader tolerates that failed doodle, but restarting restores the missing asset.
 
 ## Security and operational expectations
 
