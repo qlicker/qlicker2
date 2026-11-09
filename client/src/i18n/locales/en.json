@@ -226,7 +226,9 @@
     "description": "In-class polling, at home quizzes, student practice sessions, grade management, statistics, and so much more. All at your fingertips and for free!",
     "getStarted": "Get started",
     "motionNote": "Motion respects `prefers-reduced-motion`.",
-    "phoneAlt": "Phone showing Qlicker"
+    "phoneAlt": "Phone showing Qlicker",
+    "llama": "Llama",
+    "llamaHello": "hello"
   },
   "auth": {
     "email": "Email",
@@ -1271,7 +1273,9 @@
       "responseTimestampsHint": "Times show when each answer was last saved (or created for older records), not when the whole quiz was submitted. ISO 8601 format uses your browser timezone ({{timezone}}) with the offset at the response date. Missing timestamps are left blank.",
       "anonymousTimestampsHidden": "Response timestamps are hidden for anonymous activities to protect anonymity.",
       "csvTime": "Q{{number}} Time",
-      "csvAttemptTime": "Q{{number}} Attempt {{attempt}} Time"
+      "csvAttemptTime": "Q{{number}} Attempt {{attempt}} Time",
+      "anonymousLiveWaiting": "Live review needs at least 4 submitted quizzes.",
+      "anonymousLiveBatches": "Anonymous live review releases submitted quizzes in batches of 4. Answers for each question and attempt also wait for 4 new respondents. Refreshing does not reveal a partial batch. After the quiz ends, saved answers are included even without submission; each question and attempt still needs at least 4 respondents."
     },
     "secondDesktop": {
       "joinCode": "Join Code",
@@ -2366,7 +2370,7 @@
             "Use Expand all previews or Collapse all previews above the question list, or toggle an individual question preview.",
             "Use Grades visible beside Reviewable in the session list, editor, or review page to release scores without opening session review. Reviewable turns grade visibility on or off with it. While Reviewable is off, you can explicitly release grades. Release is available after the session and any extensions end."
           ],
-          "warning": "Once a question has response data, some edits are intentionally restricted to protect the meaning of past results.",
+          "warning": "Once a question has any saved response, its type and option count are locked and it cannot be deleted. You can still edit its content and existing option text. This includes quiz autosaves before Submit and shared or anonymous activities below the four-respondent threshold. Unlocking an ended session keeps these protections.",
           "screenshot": {
             "variant": "professorSession",
             "title": "Session editor preview",
@@ -2402,7 +2406,7 @@
             "Practice quizzes feel more like guided rehearsal and are well suited for self-study or optional reinforcement.",
             "If a session depends on passcodes, groups, or visible statistics, confirm those settings before students begin joining.",
             "Session lists keep search, filters, and pagination inside Search sessions. While an interactive session is live, opening its card joins the live controls directly; live quiz cards still open the editor.",
-            "Responses and attendance are stored without student identities. This session will not be graded. Anonymity cannot be changed after students have joined or responded. Anonymous live statistics and unlinked answer lists update after at least four new people respond to the question and attempt. Names and answer times are hidden. After the activity ends, answers are released separately for each question and attempt with at least four respondents, linked across eligible questions. Smaller groups show their actual response count with an answers-hidden notice; overall percentages remain hidden while any answers are withheld. Unique answers may still identify someone. An information banner in the live Controls explains the four-person minimum while statistics are hidden, then shows the released response count and batching rule.",
+            "Responses and attendance are stored without student identities. This session will not be graded. Anonymity cannot be changed after students have joined or responded. Anonymous live statistics and unlinked answer lists update after at least four new people respond to the question and attempt. Names and answer times are hidden. After the activity ends, answers are released separately for each question and attempt with at least four respondents, linked across eligible questions. Smaller groups show their actual response count with an answers-hidden notice; overall percentages remain hidden while any answers are withheld. Unique answers may still identify someone. An information banner in the live Controls explains the four-person minimum while statistics are hidden, then shows the released response count and batching rule. Anonymous live review releases submitted quizzes in batches of 4. Answers for each question and attempt also wait for 4 new respondents. Refreshing does not reveal a partial batch. After the quiz ends, saved answers are included even without submission; each question and attempt still needs at least 4 respondents.",
             "The session editor shows sharing controls only when the course allows activity sharing. Use the session switch to turn sharing on or off; the active code remains visible after a refresh and can be regenerated. First enable activity-code sharing in Course settings; it is off by default. Turning it off revokes existing codes and outside access. Remove individual quiz extensions before sharing; they remain unavailable after sharing. To invite signed-in people outside the course, create a quiz or live session in the course and generate an S- activity code in its editor. Copy it when shown; regenerating stops new use of the old code, and disabling revokes outside access. Turning sharing back on reuses the same code; only Regenerate code replaces it. In a named activity, enrolled students can receive grades; guests have tracked responses but no grade items. Turn on anonymity for a survey with no grade items for anyone. Choose named or anonymous responses before anyone redeems the code. After the activity ends, answers are released separately for each question and attempt with at least four respondents, linked across eligible questions. Smaller groups show their actual response count with an answers-hidden notice; overall percentages remain hidden while any answers are withheld. Unique answers may still reveal someone. The rotating live join code still applies when enabled. Activity codes do not work while the activity is in Draft, even for previous participants. The same code becomes usable when the instructor publishes the activity. Activity codes use S- followed by seven letters or digits. The active code also appears in the instructor’s live session controls.",
             "If an instructor changes a live session to Upcoming, participants see a waiting screen until it returns to Live. Draft sends enrolled students back to the course and guests back to their dashboard. Saved answers are preserved.",
             "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period.",
@@ -2526,7 +2530,8 @@
             "An Anonymous label means your instructor sees your answers without your name. You still sign in and can answer each question only once, you can review your own answers later, and the session is not graded.",
             "If an instructor changes a live session to Upcoming, participants see a waiting screen until it returns to Live. Draft sends enrolled students back to the course and guests back to their dashboard. Saved answers are preserved.",
             "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period.",
-            "When your instructor permits it, questions marked “Optional (0 points)” may be left unanswered. Submit becomes available after you answer all required questions, even if optional questions are blank. Skipping them does not reduce your score or participation. Submitting still locks the quiz."
+            "When your instructor permits it, questions marked “Optional (0 points)” may be left unanswered. Submit becomes available after you answer all required questions, even if optional questions are blank. Skipping them does not reduce your score or participation. Submitting still locks the quiz.",
+            "Multiple Choice uses a blue type chip and round radio buttons for one answer. Multi-Select uses a purple type chip and square checkboxes with checkmarks for multiple answers. When statistics and correct answers are shown together, green fills mark correct options and red fills mark incorrect options; dark mode uses stronger fills."
           ]
         },
         {

@@ -418,7 +418,12 @@ function QuestionEditor({
       hydratingRef.current = false;
     }, 0);
 
-    return () => clearTimeout(hydrationTimer);
+    return () => {
+      clearTimeout(hydrationTimer);
+      // Strict Mode can clean up before the timer fires, then reuse this
+      // question on the next effect run. Do not leave autosave suspended.
+      hydratingRef.current = false;
+    };
   }, [initial, initialBaseline, open, showVisibilityControls]);
 
   useEffect(() => {
@@ -820,9 +825,9 @@ function QuestionEditor({
                   {form.options.map((opt, i) => (
                     <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1.5 }}>
                       {form.type === QUESTION_TYPES.MULTI_SELECT ? (
-                        <Checkbox checked={opt.correct} onChange={e => setOption(i, 'correct', e.target.checked)} sx={{ mt: 0.5 }} />
+                        <Checkbox slotProps={{ input: { 'aria-label': `${t('questions.editor.correctAnswer')}: ${t('questions.editor.optionPlaceholder', { number: i + 1 })}` } }} checked={opt.correct} onChange={e => setOption(i, 'correct', e.target.checked)} sx={{ mt: 0.5 }} />
                       ) : (
-                        <Checkbox checked={opt.correct} onChange={() => setOption(i, 'correct', true)} sx={{ mt: 0.5 }} />
+                        <Checkbox slotProps={{ input: { 'aria-label': `${t('questions.editor.correctAnswer')}: ${t('questions.editor.optionPlaceholder', { number: i + 1 })}` } }} checked={opt.correct} onChange={() => setOption(i, 'correct', true)} sx={{ mt: 0.5 }} />
                       )}
                       <Box sx={{ flexGrow: 1 }}>
                         <RichTextEditor

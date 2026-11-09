@@ -248,6 +248,24 @@ describe('SessionReview', () => {
     expect(screen.queryByText(/only submitted quizzes are shown/i)).not.toBeInTheDocument();
   }, 10000);
 
+  it('refreshes anonymous release metadata with a new submission batch', async () => {
+    const originalGet = apiClient.get.getMockImplementation();
+    let payload = buildResultsPayload({ quiz: true, anonymous: true, status: 'running' });
+    payload.questions[0].anonymousResponseAttempts = [{ attempt: 1, respondentCount: 3, releasedRespondentCount: 0, responsesWithheld: true, minimumRespondents: 4 }];
+    payload.studentResults = [];
+    payload.anonymousSummary = { respondentCount: 3, responsesWithheld: true, minimumRespondents: 4 };
+    apiClient.get.mockImplementation((url, ...args) => url === '/sessions/session-1/results'
+      ? Promise.resolve({ data: payload }) : originalGet(url, ...args));
+    renderSessionReview();
+    await screen.findByText('Answers hidden — fewer than 4 respondents.');
+    payload = buildResultsPayload({ quiz: true, anonymous: true, status: 'running' });
+    payload.questions[0].anonymousResponseAttempts = [{ attempt: 1, respondentCount: 4, releasedRespondentCount: 4, responsesWithheld: false, minimumRespondents: 4 }];
+    act(() => quizEvents.listeners.forEach((handler) => handler({ event: 'session:quiz-submitted' })));
+    await screen.findByText('4 responses', {}, { timeout: 4000 });
+    expect(screen.queryByText('Answers hidden — fewer than 4 respondents.')).not.toBeInTheDocument();
+    expect(apiClient.get.mock.calls.filter(([url]) => url === '/courses/course-1')).toHaveLength(1);
+  });
+
   it('renders question math in both the results and grading tabs', async () => {
     const defaultGet = apiClient.get.getMockImplementation();
     apiClient.get.mockImplementation(async (url) => {
@@ -533,14 +551,23 @@ describe('SessionReview', () => {
     expect(within(overview).queryByRole('switch')).not.toBeInTheDocument();
   });
 
-  it('disables timestamp exports and timelines for anonymous activities', async () => {
+  it.each(['done', 'running'])('disables timestamp exports and timelines for anonymous %s quizzes with missing timestamps', async (status) => {
     const defaultGet = apiClient.get.getMockImplementation();
+    const payload = buildResultsPayload({ anonymous: true, quiz: true, status });
+    payload.studentResults.forEach((student) => {
+      delete student.joinedAt;
+      student.questionResults.forEach((question) => question.responses.forEach((response) => {
+        delete response.createdAt;
+        delete response.updatedAt;
+      }));
+    });
     apiClient.get.mockImplementation(async (url) => url === '/sessions/session-1/results'
-      ? { data: buildResultsPayload({ anonymous: true }) }
+      ? { data: payload }
       : defaultGet(url));
     renderSessionReview();
     await screen.findByText('Midterm review');
     expect(screen.queryByRole('button', { name: /response timeline/i })).not.toBeInTheDocument();
+    if (status === 'running') expect(screen.getByText(/Anonymous live review releases submitted quizzes in batches of 4/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /response data/i }));
     fireEvent.click(screen.getByRole('button', { name: /export results to csv/i }));
     expect(screen.getByRole('checkbox', { name: /include response timestamps/i })).toBeDisabled();

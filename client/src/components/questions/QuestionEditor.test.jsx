@@ -27,6 +27,38 @@ vi.mock('../common/AutoSaveStatus', () => ({
 }));
 
 describe('QuestionEditor', () => {
+  it('autosaves content under Strict Mode while response-backed structure stays locked', async () => {
+    vi.useFakeTimers();
+    const onAutoSave = vi.fn().mockResolvedValue({ _id: 'answered-question' });
+    try {
+      render(
+        <React.StrictMode>
+          <QuestionEditor
+            open
+            inline
+            initial={{ _id: 'answered-question', type: 2, content: '<p>Original</p>' }}
+            onAutoSave={onAutoSave}
+            disableTypeSelection
+            disableOptionCountChanges
+            showVisibilityControls={false}
+          />
+        </React.StrictMode>
+      );
+      await act(async () => { await vi.advanceTimersByTimeAsync(750); });
+      expect(onAutoSave).not.toHaveBeenCalled();
+      fireEvent.change(screen.getByRole('textbox', { name: /Write the question here/ }), {
+        target: { value: '<p>Clarified</p>' },
+      });
+      await act(async () => { await vi.advanceTimersByTimeAsync(750); });
+      expect(onAutoSave).toHaveBeenCalledTimes(1);
+      expect(onAutoSave).toHaveBeenCalledWith(expect.objectContaining({
+        type: 2, content: '<p>Clarified</p>',
+      }), 'answered-question');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('disables tags and keeps the course-tag guidance inside the tag field when no topics exist', () => {
     render(
       <QuestionEditor

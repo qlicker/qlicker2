@@ -11,6 +11,9 @@ export function createAppTheme(mode = 'light') {
         ? { main: '#66c9f2', contrastText: '#10212b' }
         : { main: '#30B0E7', contrastText: '#FFFFFF' },
       secondary: { main: '#FF9800' },
+      multiSelect: mode === 'dark'
+        ? { main: '#ce93d8', light: '#e1bee7', dark: '#ab47bc', contrastText: '#211126' }
+        : { main: '#7b1fa2', light: '#ae52d4', dark: '#4a0072', contrastText: '#FFFFFF' },
       ...(mode === 'light' ? {
         success: { main: '#4CAF50' },
         error: { main: '#F44336' },

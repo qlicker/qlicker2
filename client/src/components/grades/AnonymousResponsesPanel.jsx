@@ -141,7 +141,7 @@ export default function AnonymousResponsesPanel({
         question={activeQuestion}
         number={activeQuestionIndex + 1}
         headerExtra={<Chip size="small" variant="outlined"
-          label={t('professor.sessionReview.responseCountLabel', { count: activeAttempt?.respondentCount ?? rows.length })} />}
+          label={t('professor.sessionReview.responseCountLabel', { count: (activeAttempt?.releasedRespondentCount || activeAttempt?.respondentCount) ?? rows.length })} />}
       />
       <ReviewQuestionNavigator
         questionStatuses={questions.map((question, index) => ({ questionId: String(question._id), label: t('grades.coursePanel.questionShort', { index: index + 1 }) }))}

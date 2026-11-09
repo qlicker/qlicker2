@@ -170,7 +170,7 @@ Legacy installations use `users`, `courses`, `sessions`, `questions`, `responses
 }
 ```
 
-`anonymous`, `participationStarted`, `activityAccessEnabled`, and `activityEverShared` are additive and need no migration: legacy sessions are read as non-anonymous, and existing participation arrays and responses still block an anonymity change. Named shared activities grade only enrolled students; outside participant responses do not create grade rows. For anonymous sessions, `joined`, `submittedQuiz`, and `Response.studentUserId` hold per-session `anon_…` pseudonyms instead of user IDs, `joinRecords` stays empty, and no grade rows exist. See [anonymous sessions](../docs/developer/data-model.md#anonymous-sessions).
+`anonymous`, `participationStarted`, `activityAccessEnabled`, and `activityEverShared` are additive and need no migration: legacy sessions are read as non-anonymous, and existing participation arrays and responses still block an anonymity change. Named shared activities grade only enrolled students; outside participant responses do not create grade rows. Anonymous quiz live review treats the existing stored `submittedQuiz` order as an append-only release order and exposes complete groups of four; new submissions append atomically without reordering. No field or migration is added. For anonymous sessions, `joined`, `submittedQuiz`, and `Response.studentUserId` hold per-session `anon_…` pseudonyms instead of user IDs, `joinRecords` stays empty, and no grade rows exist. See [anonymous sessions](../docs/developer/data-model.md#anonymous-sessions).
 
 ### Questions Collection
 

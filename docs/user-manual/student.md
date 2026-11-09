@@ -140,16 +140,20 @@ The instructor can independently hide/show the page, open/close responses, show 
 
 When released, you may see option percentages, a numerical histogram, or a word cloud. For short answers, the shared response list and word cloud have separate visibility controls. Student identities remain hidden from classmates where the UI describes responses as anonymous; instructors can still moderate/authenticate authors.
 
+When statistics and correct answers are both shown, green fills mark correct options and red fills mark incorrect options. Dark mode uses stronger fills to keep them distinguishable.
+
 ## 4. Answer each question type
 
 | Type | How to answer |
 | --- | --- |
-| Multiple Choice | Select the one best option and submit |
+| Multiple Choice | Blue type chip and round radio buttons: select the one best option and submit |
 | True/False | Select one value and submit |
-| Multi-Select | Select every option you believe applies; the scoring method may penalize incorrect selections |
+| Multi-Select | Purple type chip and square checkboxes with checkmarks: select every option you believe applies; the scoring method may penalize incorrect selections |
 | Numerical | Enter the requested number and units only if the prompt asks for them; grading can use a tolerance |
 | Short Answer | Type the requested explanation; rich text, equations, or images may be available |
 | Slide | Read it; there is no response to submit |
+
+![Multi-select question in dark mode with checkboxes, a purple type chip, and red and green statistics fills](../assets/manuals/student-multi-select-dark.png)
 
 ### Rich text and math
 

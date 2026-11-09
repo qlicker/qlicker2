@@ -13,6 +13,7 @@ import {
   isSlideType,
   normalizeQuestionType,
 } from '../../components/questions/constants';
+import { getOptionStatsBarColor } from '../../components/questions/optionStatsStyles';
 import {
   normalizeStoredHtml,
   prepareRichTextInput,
@@ -542,9 +543,6 @@ function PresentationContent() {
             const count = inlineDistribution?.[i]?.count || 0;
             const pct = inlineDistributionTotal > 0 ? Math.round(100 * count / inlineDistributionTotal) : 0;
             const optionContent = getOptionRichContentProps(opt);
-            const barColor = showCorrect
-              ? (isCorrect ? 'rgba(46, 125, 50, 0.22)' : 'rgba(211, 47, 47, 0.14)')
-              : 'rgba(25, 118, 210, 0.18)';
             return (
               <Paper
                 key={opt._id || i}
@@ -569,7 +567,7 @@ function PresentationContent() {
                     top: 0,
                     bottom: 0,
                     width: `${showInlineOptionStats ? pct : 0}%`,
-                    bgcolor: barColor,
+                    bgcolor: (theme) => getOptionStatsBarColor(theme, showCorrect, isCorrect),
                     transition: 'width 0.4s ease-out',
                     pointerEvents: 'none',
                   }}

@@ -226,7 +226,9 @@
     "description": "In-class pollin', at-home reckonings, crew member drill voyages, ledger management, statistics, an' so much more — all at yer fingertips, an' free as th' open sea!",
     "getStarted": "Get Started",
     "motionNote": "Motion respects `prefers-reduced-motion`, arr.",
-    "phoneAlt": "A phone showin' off Qlicker"
+    "phoneAlt": "A phone showin' off Qlicker",
+    "llama": "Llama",
+    "llamaHello": "ahoy"
   },
   "auth": {
     "email": "Missive",
@@ -1271,7 +1273,9 @@
       "responseTimestampsHint": "These times mark when each answer was last stowed (or first created in older logs), not when the whole quiz was handed over. ISO 8601 uses yer browser timezone ({{timezone}}) and the offset on the response date. Missing timestamps stay blank, matey.",
       "anonymousTimestampsHidden": "Response timestamps stay hidden in anonymous activities to keep identities under wraps, arr!",
       "csvTime": "Q{{number}} Time",
-      "csvAttemptTime": "Q{{number}} Attempt {{attempt}} Time"
+      "csvAttemptTime": "Q{{number}} Attempt {{attempt}} Time",
+      "anonymousLiveWaiting": "Arrr, live review needs at least 4 handed-in quizzes.",
+      "anonymousLiveBatches": "Arrr, anonymous live review reveals handed-in quizzes in crews of 4. Each question and attempt waits fer 4 new shipmates too. Refreshin’ reveals no partial crew. Once the quiz ends, saved answers count even without handin’ in; each question and attempt still needs at least 4 shipmates."
     },
     "secondDesktop": {
       "joinCode": "Board Code",
@@ -2319,7 +2323,7 @@
             "Use Unfurl all previews or Furl all previews above the question manifest, or toggle each question preview on its own, arr!",
             "Use Marks visible beside Reviewable in the voyage list, editor, or review page to release scores without opening review. Reviewable hoists or lowers mark visibility with it. With Reviewable off, ye can explicitly release marks. Wait until the voyage and all extensions end, arr!"
           ],
-          "warning": "Once a riddle has reply data, some edits be intentionally restricted to protect th' meanin' o' past results.",
+          "warning": "Once a question has any saved answer, its type and option count be locked, and ye cannot send it to the depths. Ye may still edit its content and the words of existing options. This covers quiz autosaves before Submit and shared or anonymous activities with fewer than four answering crewmates. Unlocking an ended session keeps these protections aboard.",
           "screenshot": {
             "variant": "professorSession",
             "title": "Voyage editor preview",
@@ -2355,7 +2359,7 @@
             "Drill reckonings feel more like guided rehearsal an' be well suited fer self-study or optional reinforcement.",
             "If a voyage depends on secret codes, watches, or in plain sight statistics, confirm those rigging afore crew begin joinin'.",
             "Voyage lists keep hunt, filters, an' pagination inside Hunt voyages. While an interactive voyage be underway, openin' its card joins th' underway controls directly; underway reckoning cards still open th' editor.",
-            "Replies an' musters be stowed without the crew's names. This voyage won't be scored. The mask can't be changed once crew have boarded or replied. Masked live reckonings and untied answer lists update after at least four new mateys answer the riddle and attempt. Names and answer times stay hidden. After the voyage ends, replies be released for each riddle and attempt with at least four mateys, tied across eligible riddles. Smaller crews show their true reply count with a hidden-replies notice; overall percentages stay hidden while any replies be withheld. A rare reply may still reveal someone. An info banner in live Controls explains the four-crewmate minimum while stats be hidden, then shows the released answer count and batchin’ rule.",
+            "Replies an' musters be stowed without the crew's names. This voyage won't be scored. The mask can't be changed once crew have boarded or replied. Masked live reckonings and untied answer lists update after at least four new mateys answer the riddle and attempt. Names and answer times stay hidden. After the voyage ends, replies be released for each riddle and attempt with at least four mateys, tied across eligible riddles. Smaller crews show their true reply count with a hidden-replies notice; overall percentages stay hidden while any replies be withheld. A rare reply may still reveal someone. An info banner in live Controls explains the four-crewmate minimum while stats be hidden, then shows the released answer count and batchin’ rule. Arrr, anonymous live review reveals handed-in quizzes in crews of 4. Each question and attempt waits fer 4 new shipmates too. Refreshin’ reveals no partial crew. Once the quiz ends, saved answers count even without handin’ in; each question and attempt still needs at least 4 shipmates.",
             "The session editor shows sharin’ controls only when the course allows activity sharin’. Use the voyage switch to open or close sharing; the live code stays in sight after a refresh and can be forged anew. First enable code sharing in course settings, matey; it starts off. Turnin’ it off scuttles old codes and outside access. Clear individual quiz extensions afore sharing; they stay gone thereafter. To invite signed-in mateys outside yer ship, make a quiz or live voyage in the course and forge an S- activity code in the editor. Copy it at once; a new code bars new use of the old one, and disabling it revokes outside entry. Turnin’ sharing back on uses the same code; only forgin’ a new one replaces it. In a named voyage, enrolled mateys may earn marks; guest replies be tracked without marks. Turn on masking fer a survey with no marks fer any matey. Choose named or masked replies before the first code use. After the voyage ends, replies be released for each riddle and attempt with at least four mateys, tied across eligible riddles. Smaller crews show their true reply count with a hidden-replies notice; overall percentages stay hidden while any replies be withheld. A rare answer may still reveal a matey. The rotating live boarding code still applies when enabled. Activity codes won't work while the activity be a Draft, even fer past crewmates. The same code works once the captain publishes the activity. Activity codes be S- followed by seven letters or digits. The active code also appears in the captain’s live session controls.",
             "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
             "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period.",
@@ -2479,7 +2483,8 @@
             "A Masked label means yer captain sees yer replies without yer name. Ye still sign aboard an' can answer each question but once, ye can review yer own replies later, an' the voyage earns no plunder.",
             "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
             "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period.",
-            "When yer captain allows it, riddles marked “Optional (0 points)” may stay unanswered. Hand-in unlocks after ye answer all required riddles, even with optional ones blank. Skippin’ them lowers neither yer marks nor participation. Handin’ in still locks th’ reckonin’."
+            "When yer captain allows it, riddles marked “Optional (0 points)” may stay unanswered. Hand-in unlocks after ye answer all required riddles, even with optional ones blank. Skippin’ them lowers neither yer marks nor participation. Handin’ in still locks th’ reckonin’.",
+            "Arrr, Multiple Choice flies a blue badge and round radio buttons fer one answer. Multi-Select flies a purple badge and square checkboxes with checkmarks fer several answers. When stats and correct answers sail together, green fills mark correct options and red fills mark wrong ones; dark mode gives the colours more strength."
           ]
         },
         {

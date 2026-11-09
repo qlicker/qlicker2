@@ -29,7 +29,7 @@ export const TYPE_COLORS = {
   [QUESTION_TYPES.SHORT_ANSWER]: 'default',
   [QUESTION_TYPES.MULTIPLE_CHOICE]: 'primary',
   [QUESTION_TYPES.TRUE_FALSE]: 'secondary',
-  [QUESTION_TYPES.MULTI_SELECT]: 'info',
+  [QUESTION_TYPES.MULTI_SELECT]: 'multiSelect',
   [QUESTION_TYPES.NUMERICAL]: 'warning',
   [QUESTION_TYPES.SLIDE]: 'default',
 };

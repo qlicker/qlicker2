@@ -15,11 +15,20 @@ export function getProfessorSessionPrimaryPath(session, courseId, returnTab = 0)
 }
 
 export function sessionCanShowLiveReviewAction(session) {
-  return String(session?.status || '') === 'running';
+  return String(session?.status || '') === 'running' && anonymousReviewAvailable(session);
+}
+
+function anonymousReviewAvailable(session) {
+  return !session?.anonymous || (!!session.quiz && !session.practiceQuiz && Number(session.submittedCount || 0) >= 4);
+}
+
+export function sessionWaitingForAnonymousReview(session) {
+  return session?.status === 'running' && !!session.anonymous && !!session.quiz
+    && !session.practiceQuiz && !anonymousReviewAvailable(session);
 }
 
 export function sessionCanShowListReviewAction(session) {
   const status = String(session?.status || '');
   if (!['hidden', 'visible'].includes(status)) return false;
-  return !!session?.hasResponses;
+  return !!session?.hasResponses && anonymousReviewAvailable(session);
 }

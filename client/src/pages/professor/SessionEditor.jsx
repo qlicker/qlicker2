@@ -32,6 +32,8 @@ import SessionStatusChip from '../../components/common/SessionStatusChip';
 import SessionGradesVisibilityControl from '../../components/common/SessionGradesVisibilityControl';
 import { buildCourseTitle } from '../../utils/courseTitle';
 import { quizWouldBeLiveImmediately } from '../../utils/studentSessions';
+import { sessionCanShowLiveReviewAction, sessionWaitingForAnonymousReview } from '../../utils/professorSessions';
+import { LiveSessionWebSocketProvider, useLiveSessionWebSocket } from '../../contexts/LiveSessionWebSocketContext';
 import {
   buildSessionExportFilename,
   buildPrintableSessionHtml,
@@ -164,6 +166,29 @@ function compareStudentsByLastName(a, b) {
   return aEmail.localeCompare(bEmail);
 }
 
+// Only update availability: a submission must not overwrite unsaved editor fields.
+function AnonymousQuizReviewUpdates({ sessionId, setSession }) {
+  const { subscribe, registerRefreshHandler } = useLiveSessionWebSocket();
+  useEffect(() => {
+    let stopped = false;
+    const updateCount = (count) => {
+      if (!stopped && Number.isFinite(count)) setSession((previous) => previous
+        ? { ...previous, submittedCount: Math.max(previous.submittedCount || 0, count) } : previous);
+    };
+    const unsubscribe = subscribe(({ event, data }) => {
+      if (event === 'session:quiz-submitted' && data?.anonymous) updateCount(data.submittedCount);
+    });
+    const unregister = registerRefreshHandler(async () => {
+      try {
+        const { data } = await apiClient.get(`/sessions/${sessionId}`);
+        updateCount(data.session?.submittedCount);
+      } catch { /* The next reconnect/focus can recover availability. */ }
+    });
+    return () => { stopped = true; unsubscribe(); unregister(); };
+  }, [registerRefreshHandler, sessionId, setSession, subscribe]);
+  return null;
+}
+
 export default function SessionEditor() {
   const { courseId, sessionId } = useParams();
   const navigate = useNavigate();
@@ -254,16 +279,8 @@ export default function SessionEditor() {
 
   const refreshResponseBackedQuestions = useCallback(async () => {
     try {
-      const { data: resultsData } = await apiClient.get(`/sessions/${sessionId}/results`);
-      const backedIds = new Set();
-      (resultsData?.studentResults || []).forEach((studentResult) => {
-        (studentResult?.questionResults || []).forEach((questionResult) => {
-          if ((questionResult?.responses || []).length > 0) {
-            backedIds.add(String(questionResult.questionId));
-          }
-        });
-      });
-      setResponseBackedQuestionIds(backedIds);
+      const { data } = await apiClient.get(`/sessions/${sessionId}/response-locks`);
+      setResponseBackedQuestionIds(new Set(data.responseBackedQuestionIds.map(String)));
     } catch {
       // Keep the last known locks if the response check is temporarily unavailable.
     }
@@ -371,15 +388,15 @@ export default function SessionEditor() {
     return () => clearTimeout(timer);
   }, [fetchSession, quiz, session?.quizEnd, session?.quizStart, session?.quizExtensions, status]);
 
-  // While a quiz is live, poll only its response metadata. This immediately
+  // While responses can arrive, poll only edit-lock metadata. This
   // applies the existing type/option locks when a student starts responding,
   // without resetting any fields the instructor is editing.
   useEffect(() => {
-    if (!quiz || status !== 'running') return undefined;
+    if (status !== 'running' && !session?.quizHasRemainingExtensions) return undefined;
     refreshResponseBackedQuestions();
     const timer = setInterval(refreshResponseBackedQuestions, 3000);
     return () => clearInterval(timer);
-  }, [quiz, refreshResponseBackedQuestions, status]);
+  }, [refreshResponseBackedQuestions, session?.quizHasRemainingExtensions, status]);
 
   const toIsoIfValid = (dateValue) => {
     if (!dateValue) return null;
@@ -1391,7 +1408,8 @@ export default function SessionEditor() {
   if (!session) return <Box sx={{ p: 3 }}><Alert severity="error">{t('professor.sessionEditor.sessionNotFound')}</Alert></Box>;
   const courseTitle = course?._id ? buildCourseTitle(course, 'long') : '';
   const courseSection = String(course?.section || '').trim();
-  const canReviewRunningQuiz = !session.anonymous && (session.quiz || session.practiceQuiz) && status === 'running';
+  const reviewSession = { ...session, status };
+  const canReviewRunningQuiz = (session.quiz || session.practiceQuiz) && sessionCanShowLiveReviewAction(reviewSession);
   // Anonymity cannot change once students have joined or answered: their
   // records are stored under a different identifier in anonymous sessions.
   const anonymityLocked = !!session.participationStarted
@@ -1411,6 +1429,11 @@ export default function SessionEditor() {
 
   return (
     <Box sx={{ px: { xs: 1.5, sm: 2 }, pt: 1.25, pb: 2, maxWidth: 980, mx: 'auto' }}>
+      {session.anonymous && session.quiz && status === 'running' && (
+        <LiveSessionWebSocketProvider sessionId={sessionId}>
+          <AnonymousQuizReviewUpdates sessionId={sessionId} setSession={setSession} />
+        </LiveSessionWebSocketProvider>
+      )}
       {/* Header */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: PAGE_SECTION_GAP }}>
         <BackLinkButton
@@ -1472,6 +1495,11 @@ export default function SessionEditor() {
             >
               {t('professor.sessionEditor.reviewLiveResults')}
             </Button>
+          )}
+          {sessionWaitingForAnonymousReview(reviewSession) && (
+            <Typography variant="body2" color="text.secondary" role="status">
+              {t('professor.sessionReview.anonymousLiveWaiting')}
+            </Typography>
           )}
           {canReviewEndedSession && (
             <Button

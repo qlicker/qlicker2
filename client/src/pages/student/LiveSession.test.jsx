@@ -5,6 +5,8 @@ import LiveSession from './LiveSession';
 import apiClient from '../../api/client';
 import i18n from '../../i18n';
 import { QUESTION_TYPES } from '../../components/questions/constants';
+import { ThemeProvider } from '@mui/material/styles';
+import { createAppTheme } from '../../theme';
 
 const websocketState = vi.hoisted(() => ({ lastEvent: null }));
 const liveSessionMocks = vi.hoisted(() => ({
@@ -105,6 +107,39 @@ describe('Student LiveSession', () => {
 
       throw new Error(`Unexpected GET ${url}`);
     });
+  });
+
+  it.each([
+    [QUESTION_TYPES.MULTIPLE_CHOICE, 'radio', 'checkbox', 'Multiple Choice'],
+    [QUESTION_TYPES.MULTI_SELECT, 'checkbox', 'radio', 'Multi-Select'],
+  ])('uses the appropriate selection controls for question type %s', async (type, role, otherRole, label) => {
+    const response = await apiClient.get('/sessions/session-1/live');
+    response.data.currentQuestion.type = type;
+    apiClient.get.mockResolvedValueOnce(response);
+    render(
+      <ThemeProvider theme={createAppTheme('dark')}>
+        <MemoryRouter initialEntries={['/student/course/course-1/live/session-1']}>
+          <Routes>
+            <Route path="/student/course/:courseId/live/:sessionId" element={<LiveSession />} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+    const first = await screen.findByRole(role, { name: 'Option A' });
+    const second = screen.getByRole(role, { name: 'Option B' });
+    expect(screen.queryByRole(otherRole)).not.toBeInTheDocument();
+    expect(screen.getByText(label)).toBeVisible();
+    fireEvent.click(first);
+    fireEvent.click(second);
+    expect(second).toBeChecked();
+    if (role === 'checkbox') {
+      expect(first).toBeChecked();
+      fireEvent.click(first);
+      expect(first).not.toBeChecked();
+      expect(second).toBeChecked();
+    } else {
+      expect(first).not.toBeChecked();
+    }
   });
 
   it('renders math from option plain-text fallbacks for live MS options', async () => {

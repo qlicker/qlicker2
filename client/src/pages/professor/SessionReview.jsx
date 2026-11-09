@@ -767,6 +767,7 @@ export default function SessionReview() {
   editSessionParams.set('returnTo', 'review');
   const editSessionPath = `/prof/course/${courseId}/session/${sessionId}?${editSessionParams.toString()}`;
   const anonymousSession = !!session?.anonymous;
+  const anonymousLiveReview = anonymousSession && session?.status !== 'done';
   const ungradedSession = anonymousSession;
   // Anonymous results arrive without identities; give each respondent a
   // generic, stable label so the table, CSV, and charts stay readable.
@@ -786,9 +787,10 @@ export default function SessionReview() {
         resultsOnly ? Promise.resolve(null) : apiClient.get(`/courses/${courseId}`).catch(() => ({ data: null })),
       ]);
       setSession(data.session);
+      // Anonymous release metadata changes with each batch, even on a partial refresh.
+      if (!resultsOnly || data.session?.anonymous) setQuestions(data.questions || []);
       if (!resultsOnly) {
         setCourse(courseResponse?.data?.course || courseResponse?.data || null);
-        setQuestions(data.questions || []);
       }
       setStudentResults(data.studentResults || []);
       setAnonymousSummary(data.anonymousSummary || null);
@@ -1192,7 +1194,7 @@ export default function SessionReview() {
         responsesWithheld: !!release?.responsesWithheld,
         minimumRespondents: release?.minimumRespondents,
         correctIndices,
-        responseCount: release?.respondentCount ?? (cachedAttemptStats ? Number(cachedAttemptStats.total || 0) : attemptResponses.length),
+        responseCount: (release?.releasedRespondentCount || release?.respondentCount) ?? (cachedAttemptStats ? Number(cachedAttemptStats.total || 0) : attemptResponses.length),
         timeline: !anonymousSession && !isSlideType(qType) ? collectResponseTimeline(attemptResponses) : null,
         saResponses,
         nuResponses,
@@ -1547,7 +1549,7 @@ export default function SessionReview() {
       ) : session?.activityEverShared ? (
         <Alert severity="info" sx={{ mb: 2 }}>{t('professor.sessionEditor.sharedNamedGradingInfo')}</Alert>
       ) : null}
-      {anonymousSession && anonymousSummary?.responsesWithheld ? (
+      {anonymousSession && anonymousSummary?.responsesWithheld && !anonymousLiveReview ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {t('professor.sessionReview.anonymousResponsesWithheld', {
             minimum: anonymousSummary.minimumRespondents,
@@ -1559,14 +1561,14 @@ export default function SessionReview() {
           {reviewableWarning}
         </Alert>
       ) : null}
-      {session?.quiz && !session?.practiceQuiz && !anonymousSession ? (
+      {session?.quiz && !session?.practiceQuiz ? (
         <LiveSessionWebSocketProvider sessionId={sessionId}>
           <QuizReviewUpdates onRefresh={fetchResults} refreshAt={quizResultsRefreshAt} />
         </LiveSessionWebSocketProvider>
       ) : null}
       {session?.quiz && !session?.practiceQuiz && session?.status !== 'done' ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          {t('professor.sessionReview.quizSubmittedResultsOnly')}
+          {t(anonymousSession ? 'professor.sessionReview.anonymousLiveBatches' : 'professor.sessionReview.quizSubmittedResultsOnly')}
         </Alert>
       ) : null}
       {liveInteractiveSession ? (
@@ -1690,7 +1692,7 @@ export default function SessionReview() {
                       variant="outlined"
                       sx={COMPACT_CHIP_SX}
                     />
-                    {qT === QUESTION_TYPES.SHORT_ANSWER ? (
+                    {qT === QUESTION_TYPES.SHORT_ANSWER && !anonymousLiveReview ? (
                       <Box sx={{ ml: 'auto' }}>
                         <AiSummaryControls
                           summary={aiSummaries[q._id]}
@@ -1797,11 +1799,11 @@ export default function SessionReview() {
                       </Button>
                       <Collapse in={!!expandedSARows[row.key]}>
                         <Box sx={{ mt: 1 }}>
-                          <WordCloudPanel
+                          {!anonymousLiveReview && <WordCloudPanel
                             wordCloudData={wordCloudByRow[row.key] || q.sessionOptions?.wordCloudData}
                             onGenerate={() => handleGenerateWordCloudForQuestion(q._id, row.key)}
                             showControls
-                          />
+                          />}
                           <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
                             {row.saResponses.map((r, idx) => (
                               <Paper key={idx} variant="outlined" sx={{ p: 1, mb: 0.5 }}>
@@ -1844,11 +1846,11 @@ export default function SessionReview() {
                       </Button>
                       <Collapse in={!!expandedNURows[row.key]}>
                         <Box sx={{ mt: 1 }}>
-                          <HistogramPanel
+                          {!anonymousLiveReview && <HistogramPanel
                             histogramData={histogramByRow[row.key] || q.sessionOptions?.histogramData}
                             onGenerate={(opts) => handleGenerateHistogramForQuestion(q._id, row.key, opts)}
                             showControls
-                          />
+                          />}
                           <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
                             {row.nuResponses.map((r, idx) => (
                               <Paper key={idx} variant="outlined" sx={{ p: 1, mb: 0.5 }}>

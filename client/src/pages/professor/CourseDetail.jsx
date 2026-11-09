@@ -26,6 +26,7 @@ import {
   getProfessorSessionPrimaryPath,
   sessionCanShowListReviewAction,
   sessionCanShowLiveReviewAction,
+  sessionWaitingForAnonymousReview,
 } from '../../utils/professorSessions';
 import { getSessionTimingText } from '../../utils/sessionDisplay';
 import { quizWouldBeLiveImmediately } from '../../utils/studentSessions';
@@ -847,6 +848,9 @@ export default function CourseDetail() {
       patchSingleSessionStatus(d?.sessionId, d?.status);
     } else if (evt === 'session:metadata-changed') {
       refreshSingleSession(d?.sessionId).catch(() => {});
+    } else if (evt === 'session:quiz-submitted' && d?.anonymous && Number.isFinite(d.submittedCount)) {
+      setSessions((previous) => previous.map((session) => String(session._id) === String(d.sessionId)
+        ? { ...session, submittedCount: Math.max(session.submittedCount || 0, d.submittedCount) } : session));
     } else if (evt === 'course:chat-updated') {
       setChatRefreshToken((prev) => prev + 1);
       if (tab === chatTabIndex) {
@@ -1788,6 +1792,11 @@ export default function CourseDetail() {
                         >
                           {t('professor.course.reviewLiveSessionResults')}
                         </Button>
+                      )}
+                      {sessionWaitingForAnonymousReview(s) && (
+                        <Typography variant="body2" color="text.secondary" role="status">
+                          {t('professor.sessionReview.anonymousLiveWaiting')}
+                        </Typography>
                       )}
                       {sessionCanShowListReviewAction(s) && (
                         <Button
