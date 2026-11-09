@@ -657,3 +657,92 @@ test('review response timelines include all response times and work on narrow sc
   await expectNoCriticalAccessibilityViolations(page);
   await context.close();
 });
+
+test('live answer controls and statistics remain readable in both themes', async ({ browser, request }) => {
+  const { admin, professor, student } = await seedUsers(request);
+  const course = await createCourseViaApi(request, admin.token, { name: 'Question readability' });
+  await addInstructorToCourseViaApi(request, admin.token, course._id, professor.user._id);
+  await enrollStudentViaApi(request, student.token, course.enrollmentCode);
+  const studentContext = await browser.newContext();
+  const professorContext = await browser.newContext();
+  const studentPage = await studentContext.newPage();
+  const professorPage = await professorContext.newPage();
+  const presentation = await professorContext.newPage();
+  try {
+    await loginViaUi(studentPage, student.email, student.password, /\/student$/);
+    await loginViaUi(professorPage, professor.email, professor.password, /\/prof$/);
+    for (const type of [0, 3]) {
+      const multiSelect = type === 3;
+      const session = await createSessionViaApi(request, admin.token, course._id, { name: 'Answer selection and results' });
+      const question = await createQuestionViaApi(request, admin.token, {
+        courseId: course._id, sessionId: session._id, type,
+        content: multiSelect ? 'Select all prime numbers.' : 'Which number is prime?',
+        options: [{ answer: 'Two', correct: true }, { answer: 'Four', correct: false }],
+      });
+      await addQuestionToSessionViaApi(request, admin.token, session._id, question._id);
+      const control = async (method, path, payload, token = professor.token, status = 200) => {
+        const result = await apiJson(request, method, `/sessions/${session._id}${path}`, { token, payload });
+        expect(result.response.status(), JSON.stringify(result.body)).toBe(status);
+      };
+      await control('POST', '/start');
+      await control('PATCH', '/question-visibility', { hidden: false, stats: false, correct: false });
+      await control('POST', '/join', {}, student.token);
+      const studentUrl = `/student/course/${course._id}/session/${session._id}/live`;
+      await studentPage.goto(studentUrl);
+      const role = multiSelect ? 'checkbox' : 'radio';
+      const first = studentPage.getByRole(role, { name: 'Option A' });
+      const second = studentPage.getByRole(role, { name: 'Option B' });
+      await expect(first).toBeVisible();
+      await expect(studentPage.getByRole(multiSelect ? 'radio' : 'checkbox')).toHaveCount(0);
+      await first.focus();
+      await studentPage.keyboard.press('Space');
+      await expect(first).toBeChecked();
+      await second.focus();
+      await studentPage.keyboard.press('Space');
+      await expect(second).toBeChecked();
+      if (multiSelect) await expect(first).toBeChecked();
+      else await expect(first).not.toBeChecked();
+      await studentPage.getByRole('button', { name: /^Submit response$/i }).click();
+      await expect(first).toBeDisabled();
+      await control('PATCH', '/question-visibility', { stats: true, correct: true });
+      for (const mode of ['light', 'dark']) {
+        for (const user of [student, professor]) {
+          const result = await apiJson(request, 'PATCH', '/users/me', { token: user.token, payload: { themeMode: mode } });
+          expect(result.response.status()).toBe(200);
+        }
+        await studentPage.goto(studentUrl);
+        await professorPage.goto(`/prof/course/${course._id}/session/${session._id}/live`);
+        await presentation.goto(`/prof/course/${course._id}/session/${session._id}/present`);
+        for (const page of [studentPage, professorPage, presentation]) {
+          await expect(page.locator('html')).toHaveCSS('color-scheme', mode);
+          // The fill is decorative; the option text and percentage remain accessible above it.
+          for (const [answer, correct] of [['Two', true], ['Four', false]]) {
+            const option = page.locator('.MuiPaper-root').filter({ has: page.getByText(answer, { exact: true }) }).last();
+            const fill = option.locator(':scope > [aria-hidden="true"]');
+            await expect(fill).toHaveCSS('background-color', mode === 'dark'
+              ? (correct ? 'rgb(71, 126, 80)' : 'rgb(181, 45, 50)')
+              : (correct ? 'rgba(46, 125, 50, 0.22)' : 'rgba(211, 47, 47, 0.14)'));
+          }
+        }
+        const typeChip = studentPage.getByText(multiSelect ? 'Multi-Select' : 'Multiple Choice', { exact: true }).locator('..');
+        await expect(typeChip).toHaveCSS('background-color', multiSelect
+          ? (mode === 'dark' ? 'rgb(206, 147, 216)' : 'rgb(123, 31, 162)')
+          : (mode === 'dark' ? 'rgb(102, 201, 242)' : 'rgb(48, 176, 231)'));
+        await expectNoCriticalAccessibilityViolations(studentPage);
+        if (multiSelect && mode === 'dark' && process.env.QCLICKER_CAPTURE_MANUALS === '1') {
+          await capture(studentPage, 'student-multi-select-dark.png');
+        }
+        await studentPage.setViewportSize({ width: 390, height: 844 });
+        await expect(first).toBeVisible();
+        await expect.poll(() => studentPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+        await studentPage.setViewportSize({ width: 1440, height: 1000 });
+      }
+    }
+  } finally {
+    for (const user of [student, professor]) {
+      await apiJson(request, 'PATCH', '/users/me', { token: user.token, payload: { themeMode: 'light' } });
+    }
+    await studentContext.close();
+    await professorContext.close();
+  }
+});

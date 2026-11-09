@@ -265,7 +265,10 @@ function getScreenshotPresets(screenshot, t, context = {}) {
       10: [{ imageSrc: '/manuals/profile-dark-mode.png', titleKey: 'profile.appearance' }],
     },
     student: {
-      1: '/manuals/student-live-session.png',
+      1: [
+        { imageSrc: '/manuals/student-live-session.png' },
+        { imageSrc: '/manuals/student-multi-select-dark.png', titleKey: 'questions.types.multiSelect' },
+      ],
       4: '/manuals/student-practice-session.png',
       5: [
         { imageSrc: '/manuals/student-course-chat.png', titleKey: 'courseChat.title' },

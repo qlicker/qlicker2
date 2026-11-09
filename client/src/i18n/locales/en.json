@@ -2530,7 +2530,8 @@
             "An Anonymous label means your instructor sees your answers without your name. You still sign in and can answer each question only once, you can review your own answers later, and the session is not graded.",
             "If an instructor changes a live session to Upcoming, participants see a waiting screen until it returns to Live. Draft sends enrolled students back to the course and guests back to their dashboard. Saved answers are preserved.",
             "For an Upcoming interactive session, students can select Open waiting page; guests can enter its S- activity code. Waiting does not record attendance. The instructor can still edit the session and require a live join code. When the session goes Live, participants wait for a question or enter the join code once the instructor opens the join period.",
-            "When your instructor permits it, questions marked “Optional (0 points)” may be left unanswered. Submit becomes available after you answer all required questions, even if optional questions are blank. Skipping them does not reduce your score or participation. Submitting still locks the quiz."
+            "When your instructor permits it, questions marked “Optional (0 points)” may be left unanswered. Submit becomes available after you answer all required questions, even if optional questions are blank. Skipping them does not reduce your score or participation. Submitting still locks the quiz.",
+            "Multiple Choice uses a blue type chip and round radio buttons for one answer. Multi-Select uses a purple type chip and square checkboxes with checkmarks for multiple answers. When statistics and correct answers are shown together, green fills mark correct options and red fills mark incorrect options; dark mode uses stronger fills."
           ]
         },
         {

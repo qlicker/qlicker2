@@ -2483,7 +2483,8 @@
             "A Masked label means yer captain sees yer replies without yer name. Ye still sign aboard an' can answer each question but once, ye can review yer own replies later, an' the voyage earns no plunder.",
             "If the captain moves a live voyage to Upcoming, mateys see a waitin’ screen till it sails Live again. Draft sends enrolled crew back to the course and guests to their dashboard. Saved answers stay aboard.",
             "Fer an Upcomin’ interactive session, students can choose Open the waitin’ deck; guests can enter its S- activity code. Waitin’ records no attendance. The captain can still edit the session and require a live join code. When the session goes Live, crew wait fer a question or enter the code once the captain opens the join period.",
-            "When yer captain allows it, riddles marked “Optional (0 points)” may stay unanswered. Hand-in unlocks after ye answer all required riddles, even with optional ones blank. Skippin’ them lowers neither yer marks nor participation. Handin’ in still locks th’ reckonin’."
+            "When yer captain allows it, riddles marked “Optional (0 points)” may stay unanswered. Hand-in unlocks after ye answer all required riddles, even with optional ones blank. Skippin’ them lowers neither yer marks nor participation. Handin’ in still locks th’ reckonin’.",
+            "Arrr, Multiple Choice flies a blue badge and round radio buttons fer one answer. Multi-Select flies a purple badge and square checkboxes with checkmarks fer several answers. When stats and correct answers sail together, green fills mark correct options and red fills mark wrong ones; dark mode gives the colours more strength."
           ]
         },
         {
