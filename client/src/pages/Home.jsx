@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ConnectionStatus from '../components/common/ConnectionStatus';
@@ -19,6 +20,8 @@ const DOODLES = [
   '/animated-hero/assets/doodles/cap.svg',
 ];
 
+const PHONE_PREVIEW_STILL = '/animated-hero/assets/phone/phonescreen-first-frame.webp';
+
 function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -27,6 +30,7 @@ export default function Home() {
   const navigate = useNavigate();
   const theme = useTheme();
   const { t } = useTranslation();
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const heroRef = useRef(null);
   const canvasRef = useRef(null);
   const llamaRef = useRef(null);
@@ -299,9 +303,13 @@ export default function Home() {
           <div className="homeHeroDevice">
             <img className="homeHeroPhone" src="/animated-hero/assets/phone/phone-body-new.png" alt={t('home.phoneAlt')} />
             <div className="homeHeroScreenMask" aria-hidden="true">
-              <video className="homeHeroScreenVideo" autoPlay muted loop playsInline preload="auto">
-                <source src="/animated-hero/assets/video/phonescreen.mp4" type="video/mp4" />
-              </video>
+              {prefersReducedMotion ? (
+                <img className="homeHeroScreenStill" src={PHONE_PREVIEW_STILL} alt="" />
+              ) : (
+                <video className="homeHeroScreenVideo" poster={PHONE_PREVIEW_STILL} autoPlay muted loop playsInline preload="auto">
+                  <source src="/animated-hero/assets/video/phonescreen.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
           </div>
         </div>

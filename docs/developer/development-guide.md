@@ -181,6 +181,12 @@ The landing-page doodles are SVG outlines in `client/public/animated-hero/assets
 
 After switching branches with Vite running, restart the development server if an existing public SVG URL returns the app's HTML instead of `image/svg+xml`; its cached public-file list may be stale. The loader tolerates that failed doodle, but restarting restores the missing asset.
 
+The landing-page phone uses a static first frame when reduced motion is enabled, without mounting or downloading the video. Changes to the motion preference switch between the still and video immediately. The same image is the video's loading poster. Regenerate it from the bundled demo when that video changes:
+
+```bash
+ffmpeg -i client/public/animated-hero/assets/video/phonescreen.mp4 -frames:v 1 -vf scale=640:-1 -c:v libwebp -quality 85 client/public/animated-hero/assets/phone/phonescreen-first-frame.webp
+```
+
 ## Security and operational expectations
 
 The current app includes:

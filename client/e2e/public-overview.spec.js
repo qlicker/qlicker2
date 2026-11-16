@@ -101,6 +101,36 @@ for (const [slot, random] of [['top', 0.1], ['middle', 0.5], ['bottom', 0.9]]) {
   });
 }
 
+test('the phone shows a static first frame for reduced motion and plays when motion is enabled', async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const videoRequests = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/animated-hero/assets/video/')) videoRequests.push(request.url());
+  });
+  await page.goto('/');
+  const still = page.locator('.homeHeroScreenStill');
+  const video = page.locator('.homeHeroScreenVideo');
+  await expect(still).toBeVisible();
+  await expect.poll(() => still.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await expect(video).toHaveCount(0);
+  expect(videoRequests).toEqual([]);
+  await page.locator('.homeHeroDevice').screenshot({ path: testInfo.outputPath('phone-reduced-motion.png') });
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(still).toHaveCount(0);
+  await expect(video).toBeVisible();
+  await expect(video).toHaveAttribute('poster', '/animated-hero/assets/phone/phonescreen-first-frame.webp');
+  await expect.poll(() => video.evaluate((element) => !element.paused && element.currentTime > 0.2)).toBe(true);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(video).toHaveCount(0);
+  await expect(still).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(still).toBeVisible();
+  await expect.poll(() => still.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+});
+
 test('the landing page keeps the other doodles when one asset cannot decode', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.setViewportSize({ width: 800, height: 600 });
