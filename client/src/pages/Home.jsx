@@ -31,6 +31,7 @@ export default function Home() {
   const canvasRef = useRef(null);
   const llamaRef = useRef(null);
   const [llamaGreetingOpen, setLlamaGreetingOpen] = useState(false);
+  const [llamaMobileSlot] = useState(() => ['top', 'middle', 'bottom'][Math.floor(Math.random() * 3)]);
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -47,16 +48,28 @@ export default function Home() {
         x: 28 + x * Math.max(0, heroBounds.width - size - 148),
         y: 64 + y * Math.max(0, heroBounds.height - size - 92),
       }));
-      const position = positions.find(({ x, y }) => obstacles.every((bounds) => (
+      let position = positions.find(({ x, y }) => obstacles.every((bounds) => (
         x + size + 112 < bounds.left - heroBounds.left
         || x - 20 > bounds.right - heroBounds.left
         || y + size + 20 < bounds.top - heroBounds.top
         || y - 60 > bounds.bottom - heroBounds.top
       ))) || {
-        // The reserved bottom space always leaves room on narrow screens.
+        // Desktop fallback when none of the random candidates clears the content.
         x: positions[0].x,
         y: heroBounds.height - size - 24,
       };
+      if (window.matchMedia('(max-width: 920px)').matches) {
+        // Mobile reserves one randomly selected gap instead of always using the footer.
+        const [copy, device] = obstacles;
+        const gapStart = llamaMobileSlot === 'top' ? 0
+          : (llamaMobileSlot === 'middle' ? device.bottom : copy.bottom) - heroBounds.top;
+        const gapEnd = llamaMobileSlot === 'bottom' ? heroBounds.height
+          : (llamaMobileSlot === 'top' ? device.top : copy.top) - heroBounds.top;
+        position = {
+          x: positions[0].x,
+          y: gapStart + 24 + candidates[0].y * Math.max(0, gapEnd - gapStart - size - 48),
+        };
+      }
       llama.style.left = `${position.x}px`;
       llama.style.top = `${position.y}px`;
       setLlamaGreetingOpen(false);
@@ -67,7 +80,7 @@ export default function Home() {
     observer.observe(hero);
     content.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, []);
+  }, [llamaMobileSlot]);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -257,7 +270,7 @@ export default function Home() {
   return (
     <>
       <ConnectionStatus />
-      <main className="homeHero" id="hero" ref={heroRef} style={theme.palette.mode === 'dark' ? {
+      <main className="homeHero" id="hero" ref={heroRef} data-llama-mobile-slot={llamaMobileSlot} style={theme.palette.mode === 'dark' ? {
         '--hero-text': theme.palette.text.primary,
         '--hero-background': theme.palette.background.default,
         '--hero-secondary': theme.palette.text.secondary,

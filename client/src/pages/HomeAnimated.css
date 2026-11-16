@@ -169,6 +169,19 @@
 }
 
 @media (max-width: 920px) {
+  .homeHero[data-llama-mobile-slot='top'] {
+    padding-top: 180px;
+    padding-bottom: clamp(20px, 4vw, 48px);
+  }
+
+  .homeHero[data-llama-mobile-slot='middle'] {
+    padding-bottom: clamp(20px, 4vw, 48px);
+  }
+
+  .homeHero[data-llama-mobile-slot='middle'] .homeHeroContent {
+    row-gap: 180px;
+  }
+
   .homeHeroContent {
     grid-template-columns: 1fr;
   }

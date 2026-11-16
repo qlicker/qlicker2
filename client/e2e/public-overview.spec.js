@@ -63,6 +63,44 @@ test('the landing page llama supports touch and reduced motion on mobile', async
   await expect(greeting).toHaveCount(0);
 });
 
+for (const [slot, random] of [['top', 0.1], ['middle', 0.5], ['bottom', 0.9]]) {
+  test(`the mobile llama can start in the ${slot} gap and keeps its slot on resize`, async ({ page }, testInfo) => {
+    await page.addInitScript((value) => { Math.random = () => value; }, random);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    const llama = page.getByRole('button', { name: 'Llama', exact: true });
+    await expect(llama).toHaveCount(1);
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      await document.querySelector('.homeHeroPhone').decode();
+    });
+
+    for (const width of [390, 320, 768, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect.poll(() => page.evaluate(() => {
+        const hero = document.querySelector('.homeHero').getBoundingClientRect();
+        const llama = document.querySelector('.homeHeroLlama').getBoundingClientRect();
+        const device = document.querySelector('.homeHeroDevice').getBoundingClientRect();
+        const copy = document.querySelector('.homeHeroCopy').getBoundingClientRect();
+        if (llama.left < hero.left || llama.right > hero.right || llama.top < hero.top || llama.bottom > hero.bottom) return 'clipped';
+        if (llama.bottom < device.top) return 'top';
+        if (llama.top > device.bottom && llama.bottom < copy.top) return 'middle';
+        if (llama.top > copy.bottom) return 'bottom';
+        return 'overlaps content';
+      })).toBe(slot);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    }
+
+    await llama.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('hello');
+    const bubbleBounds = await page.getByRole('tooltip').boundingBox();
+    expect(bubbleBounds.x).toBeGreaterThanOrEqual(0);
+    expect(bubbleBounds.x + bubbleBounds.width).toBeLessThanOrEqual(390);
+    await page.screenshot({ path: testInfo.outputPath(`llama-${slot}-mobile.png`), fullPage: true });
+  });
+}
+
 test('the landing page keeps the other doodles when one asset cannot decode', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.setViewportSize({ width: 800, height: 600 });
