@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ConnectionStatus from '../components/common/ConnectionStatus';
@@ -19,6 +20,8 @@ const DOODLES = [
   '/animated-hero/assets/doodles/cap.svg',
 ];
 
+const PHONE_PREVIEW_STILL = '/animated-hero/assets/phone/phonescreen-first-frame.webp';
+
 function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -27,10 +30,12 @@ export default function Home() {
   const navigate = useNavigate();
   const theme = useTheme();
   const { t } = useTranslation();
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const heroRef = useRef(null);
   const canvasRef = useRef(null);
   const llamaRef = useRef(null);
   const [llamaGreetingOpen, setLlamaGreetingOpen] = useState(false);
+  const [llamaMobileSlot] = useState(() => ['top', 'middle', 'bottom'][Math.floor(Math.random() * 3)]);
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -47,16 +52,28 @@ export default function Home() {
         x: 28 + x * Math.max(0, heroBounds.width - size - 148),
         y: 64 + y * Math.max(0, heroBounds.height - size - 92),
       }));
-      const position = positions.find(({ x, y }) => obstacles.every((bounds) => (
+      let position = positions.find(({ x, y }) => obstacles.every((bounds) => (
         x + size + 112 < bounds.left - heroBounds.left
         || x - 20 > bounds.right - heroBounds.left
         || y + size + 20 < bounds.top - heroBounds.top
         || y - 60 > bounds.bottom - heroBounds.top
       ))) || {
-        // The reserved bottom space always leaves room on narrow screens.
+        // Desktop fallback when none of the random candidates clears the content.
         x: positions[0].x,
         y: heroBounds.height - size - 24,
       };
+      if (window.matchMedia('(max-width: 920px)').matches) {
+        // Mobile reserves one randomly selected gap instead of always using the footer.
+        const [copy, device] = obstacles;
+        const gapStart = llamaMobileSlot === 'top' ? 0
+          : (llamaMobileSlot === 'middle' ? device.bottom : copy.bottom) - heroBounds.top;
+        const gapEnd = llamaMobileSlot === 'bottom' ? heroBounds.height
+          : (llamaMobileSlot === 'top' ? device.top : copy.top) - heroBounds.top;
+        position = {
+          x: positions[0].x,
+          y: gapStart + 24 + candidates[0].y * Math.max(0, gapEnd - gapStart - size - 48),
+        };
+      }
       llama.style.left = `${position.x}px`;
       llama.style.top = `${position.y}px`;
       setLlamaGreetingOpen(false);
@@ -67,7 +84,7 @@ export default function Home() {
     observer.observe(hero);
     content.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, []);
+  }, [llamaMobileSlot]);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -257,7 +274,7 @@ export default function Home() {
   return (
     <>
       <ConnectionStatus />
-      <main className="homeHero" id="hero" ref={heroRef} style={theme.palette.mode === 'dark' ? {
+      <main className="homeHero" id="hero" ref={heroRef} data-llama-mobile-slot={llamaMobileSlot} style={theme.palette.mode === 'dark' ? {
         '--hero-text': theme.palette.text.primary,
         '--hero-background': theme.palette.background.default,
         '--hero-secondary': theme.palette.text.secondary,
@@ -286,9 +303,13 @@ export default function Home() {
           <div className="homeHeroDevice">
             <img className="homeHeroPhone" src="/animated-hero/assets/phone/phone-body-new.png" alt={t('home.phoneAlt')} />
             <div className="homeHeroScreenMask" aria-hidden="true">
-              <video className="homeHeroScreenVideo" autoPlay muted loop playsInline preload="auto">
-                <source src="/animated-hero/assets/video/phonescreen.mp4" type="video/mp4" />
-              </video>
+              {prefersReducedMotion ? (
+                <img className="homeHeroScreenStill" src={PHONE_PREVIEW_STILL} alt="" />
+              ) : (
+                <video className="homeHeroScreenVideo" poster={PHONE_PREVIEW_STILL} autoPlay muted loop playsInline preload="auto">
+                  <source src="/animated-hero/assets/video/phonescreen.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
           </div>
         </div>

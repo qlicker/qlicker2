@@ -161,7 +161,8 @@
   pointer-events: none;
 }
 
-.homeHeroScreenVideo {
+.homeHeroScreenVideo,
+.homeHeroScreenStill {
   display: block;
   width: 100%;
   height: 100%;
@@ -169,6 +170,19 @@
 }
 
 @media (max-width: 920px) {
+  .homeHero[data-llama-mobile-slot='top'] {
+    padding-top: 180px;
+    padding-bottom: clamp(20px, 4vw, 48px);
+  }
+
+  .homeHero[data-llama-mobile-slot='middle'] {
+    padding-bottom: clamp(20px, 4vw, 48px);
+  }
+
+  .homeHero[data-llama-mobile-slot='middle'] .homeHeroContent {
+    row-gap: 180px;
+  }
+
   .homeHeroContent {
     grid-template-columns: 1fr;
   }
@@ -184,10 +198,6 @@
   }
 
   .homeHeroCanvas {
-    display: none;
-  }
-
-  .homeHeroScreenVideo {
     display: none;
   }
 
