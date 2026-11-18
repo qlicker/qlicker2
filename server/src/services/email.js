@@ -1,7 +1,23 @@
 import nodemailer from 'nodemailer';
+import addressparser from 'nodemailer/lib/addressparser';
 import config from '../config/index.js';
 
 let transporter = null;
+
+function accountRecipient(user) {
+  const address = user.emails?.[0]?.address;
+  // Account addresses must be a single bare mailbox, not an RFC 5322 header.
+  // Reject SMTP delimiters and controls: Nodemailer replaces them inside quoted
+  // local parts, which would send a token to a different mailbox.
+  if (typeof address !== 'string' || /[\x00-\x1f\x7f<>]/.test(address)) {
+    throw new Error('Invalid account email recipient');
+  }
+  const recipients = addressparser(address, { flatten: true });
+  if (recipients.length !== 1 || recipients[0].address !== address) {
+    throw new Error('Invalid account email recipient');
+  }
+  return { address };
+}
 
 export function parseMailUrl(mailUrl, { quiet = false } = {}) {
   if (!mailUrl) return null;
@@ -70,10 +86,10 @@ export async function sendVerificationEmail(user, token) {
     return;
   }
   const verifyUrl = `${config.rootUrl}/verify-email/${token}`;
-  const emailAddress = user.emails?.[0]?.address;
+  const recipient = accountRecipient(user);
   await t.sendMail({
     from: `"Qlicker" <noreply@qlicker.app>`,
-    to: emailAddress,
+    to: recipient,
     subject: 'Verify your Qlicker email',
     html: `<p>Hello ${user.profile?.firstname || ''},</p>
 <p>Please verify your email by clicking the link below:</p>
@@ -88,10 +104,10 @@ export async function sendPasswordResetEmail(user, token) {
     return;
   }
   const resetUrl = `${config.rootUrl}/reset/${token}`;
-  const emailAddress = user.emails?.[0]?.address;
+  const recipient = accountRecipient(user);
   await t.sendMail({
     from: `"Qlicker" <noreply@qlicker.app>`,
-    to: emailAddress,
+    to: recipient,
     subject: 'Reset your Qlicker password',
     html: `<p>Hello ${user.profile?.firstname || ''},</p>
 <p>You requested a password reset. Click the link below to set a new password:</p>

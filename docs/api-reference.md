@@ -25,6 +25,8 @@ Fastify schemas supply parameters, request bodies, response shapes, tags, and be
 
 ## Route families
 
+`POST /api/v1/auth/register` and `POST /api/v1/auth/forgot-password` require an `email` string in email format. RFC 5322 header values (display names, comments, groups, or angle-bracket addresses) fail validation with HTTP 400. Password reset still returns `{ "success": true }` for syntactically valid addresses regardless of whether an eligible account exists. Verification and reset delivery additionally reject unsafe stored recipient values; see [dependency maintenance](developer/development-guide.md#dependency-maintenance).
+
 | Prefix/area | Responsibilities |
 | --- | --- |
 | `/api/v1/auth` and legacy SAML paths | Registration, login/logout, refresh, email verification, reset, SAML metadata/callback/logout |

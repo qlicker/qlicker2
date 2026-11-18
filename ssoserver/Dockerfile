@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-ARG SIMPLESAMLPHP_VERSION=2.4.4
+ARG SIMPLESAMLPHP_VERSION=2.4.9.3
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl git libicu-dev libxml2-dev unzip \
@@ -10,7 +10,9 @@ RUN apt-get update \
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-RUN composer create-project --no-dev --prefer-dist simplesamlphp/simplesamlphp:${SIMPLESAMLPHP_VERSION} /var/www/simplesamlphp \
+# The trusted module installer must run during this root-owned image build to
+# place browser assets under public/assets (including SAML auto-submit scripts).
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer create-project --no-dev --prefer-dist simplesamlphp/simplesamlphp:${SIMPLESAMLPHP_VERSION} /var/www/simplesamlphp \
   && mkdir -p /var/www/html /var/www/simplesamlphp/cert /var/www/simplesamlphp/config /var/www/simplesamlphp/metadata /tmp/simplesamlphp/cache /tmp/simplesamlphp/temp \
   && chown -R www-data:www-data /tmp/simplesamlphp \
   && chown -R www-data:www-data /var/www/simplesamlphp /var/www/html

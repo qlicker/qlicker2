@@ -17,6 +17,7 @@
 #   --app-version VER  Runtime app version baked into images (default: TAG)
 #   --push             Push images after building
 #   --no-cache         Build without Docker cache
+#   --pull             Refresh base images before building
 # =============================================================================
 set -euo pipefail
 
@@ -37,6 +38,7 @@ REGISTRY="qlicker"
 APP_VERSION=""
 PUSH=false
 NO_CACHE=""
+PULL=""
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -46,8 +48,9 @@ while [ $# -gt 0 ]; do
     --app-version) APP_VERSION="$2"; shift 2 ;;
     --push)     PUSH=true; shift ;;
     --no-cache) NO_CACHE="--no-cache"; shift ;;
+    --pull)     PULL="--pull"; shift ;;
     --help|-h)
-      echo "Usage: ./scripts/build-images.sh [--tag TAG] [--registry REG] [--app-version VER] [--push] [--no-cache]"
+      echo "Usage: ./scripts/build-images.sh [--tag TAG] [--registry REG] [--app-version VER] [--push] [--no-cache] [--pull]"
       exit 0
       ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
@@ -75,7 +78,7 @@ echo ""
 
 # ---- Build server image ------------------------------------------------------
 info "Building server image..."
-docker build $NO_CACHE \
+docker build $NO_CACHE $PULL \
   --build-arg "APP_VERSION=$APP_VERSION" \
   -t "$SERVER_IMAGE" \
   -f "$PROJECT_ROOT/server/Dockerfile" \
@@ -85,7 +88,7 @@ info "Server image built: $SERVER_IMAGE"
 
 # ---- Build client image ------------------------------------------------------
 info "Building client image..."
-docker build $NO_CACHE \
+docker build $NO_CACHE $PULL \
   --build-arg "APP_VERSION=$APP_VERSION" \
   -t "$CLIENT_IMAGE" \
   -f "$PROJECT_ROOT/client/Dockerfile" \

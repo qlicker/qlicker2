@@ -853,7 +853,7 @@ export default async function authRoutes(app) {
         body: {
           type: 'object',
           required: ['email'],
-          properties: { email: { type: 'string' } },
+          properties: { email: { type: 'string', format: 'email' } },
         },
       },
     },

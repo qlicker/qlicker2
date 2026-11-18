@@ -764,6 +764,9 @@ From the repository root (where you have the source code):
 
 # Build, tag, and push to a registry
 ./scripts/build-images.sh --tag v2.0.0 --registry ghcr.io/yourorg --push
+
+# Refresh base images and rebuild all layers for a security update
+./scripts/build-images.sh --tag security-update --pull --no-cache
 ```
 
 `production_setup/docker-compose.yml` already uses pre-built images. You can override the default tags in `.env` and set the runtime release label:
@@ -774,6 +777,20 @@ CLIENT_IMAGE=ghcr.io/yourorg/qlicker-client:v2.0.0
 APP_VERSION=vX.Y.Z
 ENABLE_API_DOCS=false
 ```
+
+For a security rebuild, use the new image tags in `.env` and recreate the API replicas, system monitor, and client with `docker compose up -d --force-recreate server system-monitor client` from `production_setup/`. Pull your published application images first if building on another host. `--no-cache` alone does not refresh mutable base-image tags; use `--pull` too.
+
+Verify the deployed containers after replacement, including every API replica:
+
+```bash
+for container in $(docker compose ps -q server system-monitor); do
+  docker exec "$container" node --version
+  docker exec "$container" node -p 'require("nodemailer/package.json").version'
+  docker inspect --format '{{.Name}} {{.Image}}' "$container"
+done
+```
+
+For the October 2026 security fixes, the Node 24 images must report **24.22.1 or newer** ([Node release notes](https://nodejs.org/en/blog/release/v24.22.1)). Nodemailer must report **10.1.4 or newer**; this checkout requires **10.4.0 or newer within 10.x**. Record the image IDs and registry digests in your deployment log and smoke-test verification and password-reset delivery. Source changes and mutable Dockerfile tags alone do not establish which runtime is deployed. The PHP/SimpleSAMLphp image belongs only to the [isolated local SSO test environment](../ssoserver/README.md).
 
 ---
 

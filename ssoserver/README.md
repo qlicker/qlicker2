@@ -2,6 +2,10 @@
 
 This directory contains an isolated SimpleSAMLphp IdP used to verify Qlicker SAML login and logout flows without changing the repository root Docker setup.
 
+The image pins SimpleSAMLphp **2.4.9.3** (the published 2.4 maintenance package on [Packagist](https://packagist.org/packages/simplesamlphp/simplesamlphp)) and uses the PHP 8.3 Apache image. It is a local test IdP, not a production identity provider.
+
+The build enables the package's trusted Composer module installer for the root-owned install step so browser assets, including the SAML auto-submit script, are installed under `public/assets`.
+
 ## What It Provides
 
 - A Dockerized local IdP running on its own port
@@ -57,6 +61,17 @@ cp .env.example .env
 node ./scripts/render-config.mjs
 docker compose up -d --build
 ```
+
+When applying security updates to an existing test environment, refresh the PHP and Composer base images and recreate the IdP (from `ssoserver/`):
+
+```bash
+docker compose build --pull --no-cache idp
+docker compose up -d --force-recreate idp
+docker compose exec idp php --version
+docker compose exec idp composer --working-dir=/var/www/simplesamlphp show --self
+```
+
+Verify PHP is **8.3.36 or newer** for the [October 2026 security fixes](https://www.php.net/releases/8_3_36.php), and SimpleSAMLphp is **2.4.9.3**. Then run the SSO smoke test below. A cached build or an existing container can retain older packages even when the Dockerfile uses a mutable base-image tag.
 
 If your main Qlicker app is already running on non-default ports, you do not need to edit `ssoserver/.env` just to match those ports as long as the repository root `.env` is correct. Re-run `node ./scripts/render-config.mjs` after changing the main app ports so the generated SAML metadata follows the updated callback URLs.
 
